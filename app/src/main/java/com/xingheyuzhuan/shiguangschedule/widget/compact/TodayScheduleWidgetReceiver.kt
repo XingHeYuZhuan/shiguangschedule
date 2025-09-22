@@ -1,0 +1,20 @@
+package com.xingheyuzhuan.shiguangschedule.widget.compact
+
+import android.content.Context
+import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import com.xingheyuzhuan.shiguangschedule.widget.WorkManagerHelper
+
+class TodayScheduleWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = TodayScheduleWidget()
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        WorkManagerHelper.schedulePeriodicWork(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        WorkManagerHelper.cancelAllWork(context)
+    }
+}

@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">拾光课程表</string>
+    <string name="widget_name_compact">今日课程2x2</string>
+    <string name="widget_name_moderate">今日课程4x2</string>
+    <string name="widget_name_double_days">近日课程4x2</string>
+    <string name="widget_name_large">今日课程4x4</string>
+</resources>
