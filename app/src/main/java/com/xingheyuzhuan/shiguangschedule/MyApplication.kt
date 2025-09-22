@@ -43,7 +43,6 @@ class MyApplication : Application(), Configuration.Provider {
         CourseConversionRepository(
             database.courseDao(),
             database.courseWeekDao(),
-            database.courseTableDao(),
             database.timeSlotDao(),
             appSettingsRepository
         )

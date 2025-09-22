@@ -6,7 +6,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.room.Transaction
 import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
-import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeek
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
@@ -24,7 +23,6 @@ import java.util.UUID
 class CourseConversionRepository(
     private val courseDao: CourseDao,
     private val courseWeekDao: CourseWeekDao,
-    private val courseTableDao: CourseTableDao,
     private val timeSlotDao: TimeSlotDao,
     private val appSettingsRepository: AppSettingsRepository
 ) {
@@ -152,8 +150,6 @@ class CourseConversionRepository(
      * @return 包含课程和时间段的完整 JSON 模型。
      */
     suspend fun exportCourseTableToJson(tableId: String): CourseTableExportModel? {
-        val courseTable = courseTableDao.getCourseTableById(tableId) ?: return null
-        val courseTableName = courseTable.name
 
         val coursesWithWeeks = courseDao.getCoursesWithWeeksByTableId(tableId).first()
         val exportCourses = coursesWithWeeks.map { courseWithWeeks ->
@@ -181,7 +177,6 @@ class CourseConversionRepository(
         }
 
         return CourseTableExportModel(
-            name = courseTableName,
             courses = exportCourses,
             timeSlots = exportTimeSlots
         )

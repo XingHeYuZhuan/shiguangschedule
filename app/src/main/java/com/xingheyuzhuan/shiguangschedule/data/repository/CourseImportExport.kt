@@ -9,7 +9,6 @@ object CourseImportExport {
     // 导入时使用的 JSON 模型
     @Serializable
     data class CourseTableImportModel(
-        val name: String? = null,
         val courses: List<ImportCourseJsonModel>,
         val timeSlots: List<TimeSlotJsonModel>
     )
@@ -30,7 +29,6 @@ object CourseImportExport {
     // 导出时使用的 JSON 模型
     @Serializable
     data class CourseTableExportModel(
-        val name: String,
         val courses: List<ExportCourseJsonModel>,
         val timeSlots: List<TimeSlotJsonModel>
     )
