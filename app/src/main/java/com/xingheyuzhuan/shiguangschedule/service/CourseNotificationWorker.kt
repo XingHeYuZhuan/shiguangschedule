@@ -17,6 +17,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import androidx.core.content.edit
 
 /**
  * WorkManager 用于设置课程提醒闹钟的 Worker。
@@ -31,8 +32,13 @@ class CourseNotificationWorker(
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     companion object {
-        private const val WIDGET_SYNC_DAYS = 14L
+        private const val WIDGET_SYNC_DAYS = 7L
         private const val TAG = "CourseNotificationWorker"
+
+        // SharedPreferences 文件名，用于存储闹钟ID
+        private const val ALARM_IDS_PREFS = "alarm_ids_prefs"
+        // 存储 ID 集合的键名
+        private const val KEY_ACTIVE_ALARM_IDS = "active_alarm_ids"
     }
 
     override suspend fun doWork(): Result {
@@ -56,6 +62,7 @@ class CourseNotificationWorker(
             val coursesToRemind = widgetRepository.getWidgetCoursesByDateRange(startDate, endDate).first()
             Log.i(TAG, "获取到 ${coursesToRemind.size} 个未来 $WIDGET_SYNC_DAYS 天的课程。")
 
+            // 使用 SharedPreferences 方案，在设置新闹钟前先取消所有已记录的旧闹钟
             Log.i(TAG, "正在清除所有旧的闹钟...")
             cancelAllAlarms()
 
@@ -90,6 +97,8 @@ class CourseNotificationWorker(
     /**
      * 设置一个课程提醒闹钟。
      * 只有在拥有精确闹钟权限时才会设置。
+     *
+     * 该方法会同时将闹钟ID记录到 SharedPreferences 中。
      */
     private fun setAlarm(courseId: String, triggerTime: Long, name: String, position: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -117,29 +126,51 @@ class CourseNotificationWorker(
             triggerTime,
             pendingIntent
         )
+
+        // --- SharedPreferences 闹钟记录逻辑 ---
+        val sharedPreferences = applicationContext.getSharedPreferences(ALARM_IDS_PREFS, Context.MODE_PRIVATE)
+        val currentIds = sharedPreferences.getStringSet(KEY_ACTIVE_ALARM_IDS, mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+        currentIds.add(courseId)
+        sharedPreferences.edit {
+            putStringSet(KEY_ACTIVE_ALARM_IDS, currentIds)
+        }
+        Log.d(TAG, "已将闹钟ID记录到 SharedPreferences: $courseId")
     }
 
-    private suspend fun cancelAllAlarms() {
-        val today = LocalDate.now()
-        val startDate = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val endDate = today.plusDays(WIDGET_SYNC_DAYS).format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val courses = widgetRepository.getWidgetCoursesByDateRange(startDate, endDate).first()
+    /**
+     * 取消所有由本应用设置的闹钟。
+     * 该方法不再依赖课程查询，而是直接从 SharedPreferences 中读取并取消所有已记录的ID。
+     */
+    private fun cancelAllAlarms() {
+        val sharedPreferences = applicationContext.getSharedPreferences(ALARM_IDS_PREFS, Context.MODE_PRIVATE)
+        val activeAlarmIds = sharedPreferences.getStringSet(KEY_ACTIVE_ALARM_IDS, null)
 
-        for (course in courses) {
-            val intent = Intent(applicationContext, CourseAlarmReceiver::class.java).apply {
-                putExtra(CourseAlarmReceiver.EXTRA_COURSE_ID, course.id)
-            }
-            val pendingIntent = PendingIntent.getBroadcast(
-                applicationContext,
-                abs(course.id.hashCode()),
-                intent,
-                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-            )
-            pendingIntent?.let {
-                alarmManager.cancel(it)
-                it.cancel()
-                Log.d(TAG, "已取消闹钟：${course.name}")
+        if (activeAlarmIds != null) {
+            for (courseId in activeAlarmIds) {
+                // 必须重新创建一个和设置时完全相同的 PendingIntent
+                val intent = Intent(applicationContext, CourseAlarmReceiver::class.java).apply {
+                    putExtra(CourseAlarmReceiver.EXTRA_COURSE_ID, courseId)
+                    // 注意：这里不需要 putExtra 其他信息，因为取消时只需要 ID
+                }
+                val pendingIntent = PendingIntent.getBroadcast(
+                    applicationContext,
+                    abs(courseId.hashCode()),
+                    intent,
+                    PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+                )
+
+                pendingIntent?.let {
+                    alarmManager.cancel(it)
+                    it.cancel()
+                    Log.d(TAG, "已取消闹钟：${courseId}")
+                }
             }
         }
+
+        // 关键一步：取消完所有闹钟后，将记录清空
+        sharedPreferences.edit {
+            remove(KEY_ACTIVE_ALARM_IDS)
+        }
+        Log.i(TAG, "所有记录的闹钟已取消，SharedPreferences记录已清空。")
     }
 }
