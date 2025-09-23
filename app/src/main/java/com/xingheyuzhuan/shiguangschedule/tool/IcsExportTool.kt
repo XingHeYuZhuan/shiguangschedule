@@ -25,6 +25,7 @@ object IcsExportTool {
      * @param semesterStartDate 学期开始日期。
      * @param semesterTotalWeeks 本学期的总周数。
      * @param alarmMinutes 可选的提醒时间，单位分钟。传入null则不设置提醒。
+     * @param skippedDates 包含需要跳过的日期的字符串集合，格式为 yyyy-MM-dd。
      * @return ICS 格式的字符串。
      */
     fun generateIcsFileContent(
@@ -32,7 +33,8 @@ object IcsExportTool {
         timeSlots: List<TimeSlot>,
         semesterStartDate: LocalDate,
         semesterTotalWeeks: Int,
-        alarmMinutes: Int? = null
+        alarmMinutes: Int? = null,
+        skippedDates: Set<String>? = null
     ): String {
         val icsContent = StringBuilder()
 
@@ -88,11 +90,16 @@ object IcsExportTool {
                     return@forEach // 跳过超出学期总周数的课程
                 }
 
+                // 检查该日期是否在跳过列表中
+                if (skippedDates?.contains(date.toString()) == true) {
+                    return@forEach
+                }
+
                 // 组合日期和时间
                 val startDateTime = LocalDateTime.of(date, startSectionTime)
                 val endDateTime = LocalDateTime.of(date, endSectionTime)
 
-                // 3. 拼接 VEVENT 事件块
+                // 拼接 VEVENT 事件块
                 icsContent.append("BEGIN:VEVENT\r\n")
                 icsContent.append("UID:${UUID.randomUUID()}@shiguangschedule.com\r\n")
                 icsContent.append("DTSTAMP:${formatDateTimeUtc(LocalDateTime.now())}\r\n")
@@ -103,7 +110,7 @@ object IcsExportTool {
                 val description = "教师: ${course.teacher}"
                 icsContent.append("DESCRIPTION:${escapeText(description)}\r\n")
 
-                // 【修改】根据传入参数决定是否添加VALARM提醒
+                // 根据传入参数决定是否添加VALARM提醒
                 if (alarmMinutes != null && alarmMinutes in 0..60) {
                     icsContent.append("BEGIN:VALARM\r\n")
                     icsContent.append("ACTION:DISPLAY\r\n")
@@ -136,7 +143,7 @@ object IcsExportTool {
      */
     private fun formatDateTimeUtc(dateTime: LocalDateTime): String {
         val utcDateTime = dateTime.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime()
-        return utcDateTime.format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'"))
+        return utcDateTime.format(DATE_TIME_FORMATTER)
     }
 
     /**

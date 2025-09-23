@@ -183,12 +183,12 @@ class CourseConversionRepository(
     }
 
     /**
-     * 将指定课表下的所有课程数据导出为 ICS 日历文件的内容字符串。
-     *
-     * @param tableId 要导出的课表的 ID。
-     * @param alarmMinutes 可选的提醒时间，单位分钟。传入null则不设置提醒。
-     * @return 包含 ICS 日历文件内容的字符串，如果失败则返回 null。
-     */
+    * 将指定课表下的所有课程数据导出为 ICS 日历文件的内容字符串。
+    *
+    * @param tableId 要导出的课表的 ID。
+    * @param alarmMinutes 可选的提醒时间，单位分钟。传入null则不设置提醒。
+    * @return 包含 ICS 日历文件内容的字符串，如果失败则返回 null。
+    */
     suspend fun exportToIcsString(tableId: String, alarmMinutes: Int?): String? {
         val courses = courseDao.getCoursesWithWeeksByTableId(tableId).first()
         val timeSlots = timeSlotDao.getTimeSlotsByCourseTableId(tableId).first()
@@ -199,12 +199,16 @@ class CourseConversionRepository(
             return null
         }
 
+        // 从 appSettings 获取 skippedDates
+        val skippedDates = appSettings.skippedDates
+
         return IcsExportTool.generateIcsFileContent(
             courses = courses,
             timeSlots = timeSlots,
             semesterStartDate = semesterStartDate,
             semesterTotalWeeks = appSettings.semesterTotalWeeks,
-            alarmMinutes = alarmMinutes
+            alarmMinutes = alarmMinutes,
+            skippedDates = skippedDates
         )
     }
 }
