@@ -25,6 +25,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.settings.additional.OpenSourceLicen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.conversion.CourseTableConversionScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.course.AddEditCourseScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.time.TimeSlotManagementScreen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.update.UpdateRepoScreen
 import com.xingheyuzhuan.shiguangschedule.ui.theme.shiguangscheduleTheme
 import com.xingheyuzhuan.shiguangschedule.ui.today.TodayScheduleScreen
 
@@ -131,6 +132,9 @@ fun AppNavigation() {
         }
         composable(Screen.OpenSourceLicenses.route) {
             OpenSourceLicensesScreen (navController = navController)
+        }
+        composable(Screen.UpdateRepo.route) {
+            UpdateRepoScreen(navController = navController)
         }
     }
 }

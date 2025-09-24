@@ -12,10 +12,14 @@ import com.xingheyuzhuan.shiguangschedule.data.repository.WidgetRepository
 import com.xingheyuzhuan.shiguangschedule.data.sync.SyncManager
 import com.xingheyuzhuan.shiguangschedule.data.sync.WidgetDataSynchronizer
 import com.xingheyuzhuan.shiguangschedule.service.AppWorkerFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
-/**
- * 整个应用的全局入口，用于管理所有核心依赖项的单例实例，并为 WorkManager 提供自定义工厂。
- */
 class MyApplication : Application(), Configuration.Provider {
 
     // 主数据库
@@ -94,5 +98,54 @@ class MyApplication : Application(), Configuration.Provider {
             widgetRepository = widgetRepository
         )
         syncManager.startAllSynchronizers()
+
+        // 3. 在应用启动时初始化离线仓库
+        CoroutineScope(Dispatchers.IO).launch {
+            initOfflineRepo()
+        }
+    }
+
+    /**
+     * 将 assets 目录下的离线仓库资源复制到内部存储，用于首次启动时的初始化。
+     */
+    private suspend fun initOfflineRepo() = withContext(Dispatchers.IO) {
+        val repoDir = File(filesDir, "repo")
+
+        if (repoDir.exists() && repoDir.list()?.isNotEmpty() == true) {
+            return@withContext
+        }
+
+        if (!repoDir.exists()) {
+            repoDir.mkdirs()
+        }
+
+        try {
+            copyAssets("offline_repo", repoDir)
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * 递归复制 assets 目录到目标目录。
+     */
+    private fun copyAssets(assetPath: String, destDir: File) {
+        val assetList = assets.list(assetPath) ?: return
+
+        for (item in assetList) {
+            val srcItemPath = "$assetPath/$item"
+            val destItem = File(destDir, item)
+
+            try {
+                assets.open(srcItemPath).use { inputStream ->
+                    FileOutputStream(destItem).use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+            } catch (e: IOException) {
+                destItem.mkdirs()
+                copyAssets(srcItemPath, destItem)
+            }
+        }
     }
 }

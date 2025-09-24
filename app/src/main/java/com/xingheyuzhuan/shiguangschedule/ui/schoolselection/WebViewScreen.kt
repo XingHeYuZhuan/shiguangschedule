@@ -63,6 +63,7 @@ import com.xingheyuzhuan.shiguangschedule.data.SchoolRepository
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -532,14 +533,14 @@ fun WebViewScreen(
                 schoolAssetJsPath?.let { assetPath ->
                     try {
                         androidBridge?.setImportTableId(selectedTable.id)
-
-                        val inputStream = context.assets.open(assetPath)
-                        val reader = java.io.BufferedReader(java.io.InputStreamReader(inputStream))
-                        val jsCode = reader.use { it.readText() }
-
-                        webView.evaluateJavascript(jsCode, null)
-
-                        Toast.makeText(context, "正在执行导入脚本...", Toast.LENGTH_SHORT).show()
+                        val jsFile = File(context.filesDir, "repo/$assetPath")
+                        if (jsFile.exists()) {
+                            val jsCode = jsFile.readText()
+                            webView.evaluateJavascript(jsCode, null)
+                            Toast.makeText(context, "正在执行导入脚本...", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "导入脚本文件不存在: ${jsFile.path}", Toast.LENGTH_LONG).show()
+                        }
                     } catch (e: Exception) {
                         Toast.makeText(context, "加载导入脚本失败: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                     }

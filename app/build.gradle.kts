@@ -31,12 +31,12 @@ android {
         }
     }
     compileOptions {
-        // 保持 Java 11
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        // 保持 Java 17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     kotlin {
-        jvmToolchain(11)
+        jvmToolchain(21)
     }
     buildFeatures {
         compose = true
@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.androidx.glance.material3)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.jgit)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)

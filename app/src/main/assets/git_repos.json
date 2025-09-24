@@ -1,0 +1,30 @@
+[
+  {
+    "name": "官方仓库",
+    "type": "OFFICIAL",
+    "url": "https://github.com/XingHeYuZhuan/shiguang_warehouse.git",
+    "branch": "main",
+    "editable": false
+  },
+  {
+    "name": "第三方官方认证镜像站",
+    "type": "PUBLIC_FORK",
+    "url": "https://github.com/XingHeYuZhuan/shiguang_warehouse.git",
+    "branch": "main",
+    "editable": false
+  },
+  {
+    "name": "自定义仓库",
+    "type": "CUSTOM",
+    "url": "",
+    "branch": "",
+    "editable": true
+  },
+  {
+    "name": "私有仓库",
+    "type": "PRIVATE_REPO",
+    "url": "",
+    "branch": "",
+    "editable": true
+  }
+]

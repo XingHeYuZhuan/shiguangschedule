@@ -52,7 +52,16 @@ fun MoreOptionsScreen(navController: NavController) {
                     }
                     .padding(16.dp)
             )
-            // 更多选项
+            Text(
+                text = "更新仓库",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        // 导航到更新仓库页面
+                        navController.navigate(Screen.UpdateRepo.route)
+                    }
+                    .padding(16.dp)
+            )
         }
     }
 }

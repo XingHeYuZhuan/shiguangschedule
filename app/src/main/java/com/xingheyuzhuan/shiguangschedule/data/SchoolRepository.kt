@@ -4,6 +4,7 @@ package com.xingheyuzhuan.shiguangschedule.data
 import android.content.Context
 import com.xingheyuzhuan.shiguangschedule.data.model.School
 import kotlinx.serialization.json.Json
+import java.io.File
 import java.io.IOException
 
 // 导入协程相关的包
@@ -14,7 +15,7 @@ object SchoolRepository {
 
     private var cachedSchools: List<School>? = null
 
-    // 从 assets 文件夹读取学校列表
+    // 从 /files/repo 文件夹读取学校列表
     suspend fun getSchools(context: Context): List<School> {
         // 如果有缓存，直接返回，这部分不会阻塞
         if (cachedSchools != null) {
@@ -25,12 +26,17 @@ object SchoolRepository {
         // 切换到 IO 调度器（一个专门处理 IO 任务的线程池）上执行。
         // 这样，调用 getSchools 的线程（例如主线程）就不会被阻塞。
         return withContext(Dispatchers.IO) {
+            val dataFile = File(context.filesDir, "repo/schools.json")
             val jsonString: String
+
             try {
-                jsonString = context.assets.open("schools.json").bufferedReader().use { it.readText() }
+                // 检查文件是否存在，如果不存在则返回空列表
+                if (!dataFile.exists()) {
+                    return@withContext emptyList()
+                }
+                jsonString = dataFile.readText()
             } catch (ioException: IOException) {
                 ioException.printStackTrace()
-
                 return@withContext emptyList() // 发生错误时返回空列表
             }
 

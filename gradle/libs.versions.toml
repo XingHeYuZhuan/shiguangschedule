@@ -21,6 +21,7 @@ glance = "1.1.1"
 room = "2.7.2"
 ksp = "2.2.10-2.0.2"
 gradle-license-plugin = "0.9.8"
+jgit = "7.3.0.202506031305-r"
 
 
 [libraries]
@@ -57,6 +58,7 @@ androidx-glance-material3 = { group = "androidx.glance", name = "glance-material
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "jgit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

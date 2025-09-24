@@ -1,0 +1,10 @@
+[
+  {
+    "id": "school_Cs",
+    "name": "测试大学(这是一个空网站，用于组件测试)",
+    "initial": "C",
+    "importUrl": "",
+    "assetJsPath" : "schools/school.js",
+    "maintainer": "星河欲转"
+  }
+]
