@@ -53,24 +53,24 @@ data class TimeSlotJsonModel(
  *
  * @param context 应用程序上下文。
  * @param coroutineScope 用于启动协程来执行挂起函数（如保存数据）。
- * @param onCoursesImported 当课程成功导入后，通知外部更新UI或状态。
  * @param webView 传入的 WebView 实例，用于执行 JS 回调。
  * @param onShowComposeAlertDialog 通知 Compose 显示带确认按钮的弹窗。
  * @param onShowComposePromptDialog 通知 Compose 显示带输入框的弹窗。
  * @param onShowComposeSingleSelectionDialog 通知 Compose 显示单选列表弹窗。
  * @param courseConversionRepository 转换数据仓库的新依赖。
  * @param timeSlotRepository 时间段数据仓库的新依赖。
+ * @param onTaskCompleted 任务完成后通知 Compose 端执行收尾操作
  */
 class AndroidBridge(
     private val context: Context,
     private val coroutineScope: CoroutineScope,
-    private val onCoursesImported: () -> Unit,
     private val webView: WebView,
     private val onShowComposeAlertDialog: (AlertDialogData, (Boolean) -> Unit) -> Unit,
     private val onShowComposePromptDialog: (PromptDialogData, (String?) -> Unit) -> Unit,
     private val onShowComposeSingleSelectionDialog: (SingleSelectionDialogData, (Int?) -> Unit) -> Unit,
     private val courseConversionRepository: CourseConversionRepository,
-    private val timeSlotRepository: TimeSlotRepository
+    private val timeSlotRepository: TimeSlotRepository,
+    private val onTaskCompleted: () -> Unit
 ) {
 
     private val json = Json {
@@ -84,16 +84,24 @@ class AndroidBridge(
     // 用于保存用户选择的导入课表 ID，当用户取消选择时，该值为 null
     private var importTableId: String? = null
 
+    // 用于存储当前 Toast 实例
+    private var currentToast: Toast? = null
+
     // 提供一个公共方法供外部设置 ID
     fun setImportTableId(tableId: String) {
         this.importTableId = tableId
     }
 
-    // JS 调用：显示一个 Toast 消息。
+    /**
+     * JS 调用：显示一个短暂的 Toast 消息。
+     */
     @JavascriptInterface
     fun showToast(message: String) {
         handler.post {
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            currentToast?.cancel()
+            val newToast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
+            newToast.show()
+            currentToast = newToast
         }
     }
 
@@ -208,7 +216,6 @@ class AndroidBridge(
                 courseConversionRepository.importCoursesFromList(tableId, importedCoursesList)
 
                 Toast.makeText(context, "课程导入成功！课表已更新。", Toast.LENGTH_LONG).show()
-                onCoursesImported()
                 resolveJsPromise(promiseId, "true")
                 Log.d(TAG, "课程数据成功覆盖到课表: $tableId，共 ${importedCoursesList.size} 门课程。")
             } catch (e: Exception) {
@@ -263,6 +270,17 @@ class AndroidBridge(
                 rejectJsPromise(promiseId, "Preset time slots import failed: ${e.message}")
                 Log.e(TAG, "预设时间段导入失败: ${e.message}", e)
             }
+        }
+    }
+
+    /**
+     * JS 调用：通知 Native 端整个 JS 任务已逻辑完成，是生命周期结束的信号。
+     */
+    @JavascriptInterface
+    fun notifyTaskCompletion() {
+        // 触发回调
+        handler.post {
+            onTaskCompleted()
         }
     }
 

@@ -363,6 +363,9 @@ async function runAllDemosSequentially() {
     // 以下是数据导入，与用户交互无关，可以继续
     await demoSaveCourses();
     await importPresetTimeSlots();
+
+    // 发送最终的生命周期完成信号
+    AndroidBridge.notifyTaskCompletion();
 }
 
 // 启动所有演示

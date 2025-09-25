@@ -125,7 +125,13 @@ fun WebViewScreen(
             androidBridge = AndroidBridge(
                 context = context,
                 coroutineScope = coroutineScope,
-                onCoursesImported = {
+                onTaskCompleted = {
+                    // 这是在 JS 脚本调用 AndroidBridge.notifyTaskCompletion() 后执行的 Native 逻辑
+
+                    // 1. 实现您提出的交互性 Toast/弹窗 (Toast是最简单且有效的)
+                    Toast.makeText(context, "导入脚本执行完毕，返回课表页面。", Toast.LENGTH_LONG).show()
+
+                    // 2. 执行导航逻辑
                     navController.popBackStack(
                         route = Screen.CourseSchedule.route,
                         inclusive = false
@@ -224,7 +230,6 @@ fun WebViewScreen(
                                     AndroidBridge.showSingleSelection(title, itemsJsonString, defaultSelectedIndex, promiseId);
                                 });
                             },
-                            // 这是一个专门为外部调用的函数，通常由 Android 侧的 Composable 调用
                             saveImportedCourses: function(coursesJsonString) {
                                 return new Promise((resolve, reject) => {
                                     const promiseId = 'saveCourses_' + Date.now() + Math.random().toString(36).substring(2);
