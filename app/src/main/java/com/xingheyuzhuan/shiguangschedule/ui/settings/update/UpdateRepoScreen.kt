@@ -42,7 +42,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.xingheyuzhuan.shiguangschedule.data.model.RepositoryInfo
-import com.xingheyuzhuan.shiguangschedule.data.model.RepoType
+import com.xingheyuzhuan.shiguangschedule.data.model.RepoType // 引入 RepoType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +98,7 @@ fun UpdateRepoScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 日志显示
+            // 第二个矩形区域：日志显示
             LogDisplayCard(logs = uiState.logs)
         }
     }
@@ -111,14 +111,14 @@ fun RepoSelectionCard(
     selectedRepo: RepositoryInfo?,
     currentUrl: String,
     currentBranch: String,
-    // 凭证状态参数
+    // 新增凭证状态参数
     currentUsername: String,
     currentPassword: String,
     isUpdating: Boolean,
     onRepoSelected: (RepositoryInfo) -> Unit,
     onUrlChanged: (String) -> Unit,
     onBranchChanged: (String) -> Unit,
-    // 凭证事件参数
+    // 新增凭证事件参数
     onUsernameChanged: (String) -> Unit,
     onPasswordChanged: (String) -> Unit,
     onUpdateClicked: () -> Unit
@@ -173,6 +173,7 @@ fun RepoSelectionCard(
                 currentBranch = currentBranch,
                 onUrlChanged = onUrlChanged,
                 onBranchChanged = onBranchChanged,
+                // 传递凭证状态和事件给 RepoEditOptions
                 currentUsername = currentUsername,
                 currentPassword = currentPassword,
                 onUsernameChanged = onUsernameChanged,
@@ -202,6 +203,7 @@ fun RepoEditOptions(
     currentBranch: String,
     onUrlChanged: (String) -> Unit,
     onBranchChanged: (String) -> Unit,
+    // 新增凭证状态和事件参数
     currentUsername: String,
     currentPassword: String,
     onUsernameChanged: (String) -> Unit,
@@ -252,6 +254,7 @@ fun RepoEditOptions(
             Spacer(modifier = Modifier.height(8.dp))
 
             // 密码/Token输入框
+            // 实际应用中建议使用 KeyboardOptions 和 VisualTransformation 隐藏输入内容
             TextField(
                 value = currentPassword,
                 onValueChange = onPasswordChanged,
@@ -278,6 +281,7 @@ fun LogDisplayCard(logs: String) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // 新增：使用 SelectionContainer 包裹文本以实现选择和复制功能
             SelectionContainer {
                 Surface(
                     modifier = Modifier
@@ -305,6 +309,7 @@ fun LogDisplayCard(logs: String) {
 @Composable
 fun PreviewUpdateRepoScreen() {
     MaterialTheme {
+        // 为了预览，需要传递模拟的 ViewModel
         UpdateRepoScreen(navController = rememberNavController(), viewModel = PreviewUpdateRepoViewModel())
     }
 }
