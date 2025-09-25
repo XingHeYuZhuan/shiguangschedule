@@ -1,23 +1,22 @@
+// LogProgressMonitor.kt
+
 package com.xingheyuzhuan.shiguangschedule.tool
 
 import org.eclipse.jgit.lib.ProgressMonitor
 import java.util.Locale
 
 /**
- * 一个用于实时输出Git操作进度、日志和耗时的监听器。
- * 它实现了JGit的ProgressMonitor接口，将JGit内部的进度信息转换成可读的字符串，并通过回调函数传递。
+ * 这是一个详细的 JGit ProgressMonitor，它将所有的进度信息直接路由到 onLog 回调，
+ * 从而在 UI 上实时显示 Git 操作的全过程。
  */
 class LogProgressMonitor(private val onLog: (String) -> Unit) : ProgressMonitor {
-
-    private var showDuration = false
-    private val taskStartTimes = mutableMapOf<String, Long>()
 
     private var currentTotalWork = 0
     private var currentCompleted = 0
     private var currentTitle = ""
 
     override fun start(totalTasks: Int) {
-        onLog("正在开始Git操作，总共包含 $totalTasks 个任务。")
+        onLog("[Git] 操作开始，总共包含 $totalTasks 个任务。")
     }
 
     override fun beginTask(title: String, totalWork: Int) {
@@ -25,42 +24,43 @@ class LogProgressMonitor(private val onLog: (String) -> Unit) : ProgressMonitor 
         this.currentTotalWork = totalWork
         this.currentCompleted = 0
 
-        taskStartTimes[title] = System.currentTimeMillis() // 记录任务开始时间
-
-        if (totalWork == ProgressMonitor.UNKNOWN) {
-            onLog("任务：$title，进度未知。")
+        val totalMsg = if (totalWork == ProgressMonitor.UNKNOWN) {
+            "未知进度"
         } else {
-            onLog("正在开始任务：$title，总进度：$totalWork。")
+            "总进度: $totalWork"
         }
+
+        // 直接输出任务开始信息
+        onLog("[任务] $title - $totalMsg")
     }
 
     override fun update(completed: Int) {
         this.currentCompleted += completed
-        val percentage = if (currentTotalWork > 0) (this.currentCompleted * 100) / currentTotalWork else 0
-        onLog("任务：$currentTitle，已完成 $this.currentCompleted/$currentTotalWork，当前进度：$percentage%。")
-    }
 
-    override fun endTask() {
-        val endTime = System.currentTimeMillis()
-        val duration = taskStartTimes[currentTitle]?.let { endTime - it } // 计算耗时
-
-        val durationMessage = if (showDuration && duration != null) {
-            val seconds = duration / 1000.0
-            String.format(Locale.ROOT, "，耗时：%.2f 秒。", seconds)
+        // 只有当有总进度信息时，才输出百分比，否则只显示已完成的工作量
+        val percentage = if (currentTotalWork > 0) {
+            val p = (this.currentCompleted * 100) / currentTotalWork
+            " ($p%)"
         } else {
             ""
         }
 
-        onLog("任务：$currentTitle，已完成$durationMessage")
+        // 输出详细的更新信息
+        onLog(String.format(Locale.ROOT, "  - 进度: %s %d/%d%s",
+            currentTitle, this.currentCompleted, currentTotalWork, percentage
+        ))
+    }
+
+    override fun endTask() {
+        // 输出任务结束信息
+        onLog("[任务] $currentTitle - 已完成。")
     }
 
     override fun isCancelled(): Boolean {
-        // 你可以在这里添加逻辑来支持任务取消
-        return false
+        return false // 暂不支持取消
     }
 
     override fun showDuration(enabled: Boolean) {
-        this.showDuration = enabled
-        // 这是一个 JGit 接口方法，我们在内部使用它的值来控制是否显示耗时。
+        // JGit 接口方法，暂时不处理
     }
 }

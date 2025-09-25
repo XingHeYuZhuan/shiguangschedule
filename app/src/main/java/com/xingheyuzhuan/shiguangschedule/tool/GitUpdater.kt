@@ -18,8 +18,9 @@ import java.io.File
  */
 class GitUpdater(private val context: Context) {
 
-    // 官方仓库中一个已知的、早期的提交ID，用于合法性验证。
-    private val OFFICIAL_REPO_BASE_COMMIT_ID = "eb49b7c18272c624d12198b03aabf7fc114a7106"
+    private val OFFICIAL_BASE_TAG_NAME = "lighthouse"
+
+    private val OFFICIAL_BASE_TAG_SHA = "eb49b7c18272c624d12198b03aabf7fc114a7106"
 
     // 通过 Context 动态获取本地仓库路径。
     private val localRepoDir: File
@@ -27,43 +28,97 @@ class GitUpdater(private val context: Context) {
 
     /**
      * 自定义的凭证提供者，处理用户名/密码或个人访问令牌。
-     * 这是一个私有嵌套类，仅供 GitUpdater 内部使用。
      */
     private class MyCredentialsProvider(username: String, password: String) :
         UsernamePasswordCredentialsProvider(username, password.toCharArray())
 
+
     /**
-     * 验证用户提供的 Git 仓库是否是官方仓库的合法 fork 或镜像。
-     *
-     * @param userForkUrl 用户仓库的 URL。
-     * @return 如果用户仓库包含官方提交 ID，则返回 true。
+     * 验证仓库的可访问性和历史合法性，不传输文件内容。
+     * 逻辑：检查远程仓库是否包含官方的永久基准标签，并校验其 SHA-1。
      */
-    private fun isLegitimateFork(userForkUrl: String): Boolean {
+    private fun isLegitimateFork(userForkUrl: String, credentialsProvider: CredentialsProvider?): Boolean {
         try {
-            val lsRemote = Git.lsRemoteRepository()
+            val lsRemoteCommand = Git.lsRemoteRepository()
                 .setRemote(userForkUrl)
-                .call()
-            val expectedObjectId = ObjectId.fromString(OFFICIAL_REPO_BASE_COMMIT_ID)
-            return lsRemote.any { it.objectId == expectedObjectId }
+
+            lsRemoteCommand.setTimeout(30)
+
+            credentialsProvider?.let {
+                lsRemoteCommand.setCredentialsProvider(it)
+
+                lsRemoteCommand.setTransportConfigCallback { transport ->
+                    transport.credentialsProvider = it
+                }
+            }
+
+            // 关键：只查询标签 (Tag)，不查询分支 (Head)，避免拉取不必要数据
+            lsRemoteCommand.setTags(true).setHeads(false)
+
+            val lsRemote = lsRemoteCommand.call()
+
+            if (lsRemote.isEmpty()) {
+                return false
+            }
+
+            // 预期的引用名和 SHA 对象
+            val expectedTagRefName = "refs/tags/$OFFICIAL_BASE_TAG_NAME"
+            val expectedTagSha = ObjectId.fromString(OFFICIAL_BASE_TAG_SHA)
+
+            // 检查远程仓库是否包含名称和 SHA-1 都匹配的标签
+            return lsRemote.any {
+                it.name == expectedTagRefName && it.objectId == expectedTagSha
+            }
+
         } catch (e: Exception) {
+            // 捕获 TransportException 等认证失败的错误
             return false
         }
     }
 
+
     /**
      * 更新或克隆仓库并提供详细日志。
-     * @param repoInfo 仓库信息，包含URL、分支和类型。
-     * @param onLog 用于接收实时日志消息的回调函数。
      */
     fun updateRepository(repoInfo: RepositoryInfo, onLog: (String) -> Unit) {
-        // 对所有非官方仓库进行合法性验证
+
+        // 创建 credentialsProvider (灵活支持真实用户名和 x-token-auth 修复)
+        val credentialsProvider: CredentialsProvider? = if (repoInfo.repoType == RepoType.PRIVATE_REPO && repoInfo.credentials != null) {
+
+            var username = repoInfo.credentials["username"] ?: ""
+            val password = repoInfo.credentials["password"] ?: ""
+
+            // 如果用户提供了 Token 但没有用户名，应用 x-token-auth 修复 JGit 的 Bug
+            if (password.isNotBlank() && username.isBlank()) {
+                username = "x-token-auth"
+            }
+
+            // 如果用户名和密码都为空，则返回 null，否则创建凭证
+            if (username.isBlank() && password.isBlank()) {
+                null
+            } else {
+                MyCredentialsProvider(username, password)
+            }
+
+        } else {
+            // 公开仓库的逻辑（如果提供了用户名/密码，则使用）
+            val username = repoInfo.credentials?.get("username") ?: ""
+            val password = repoInfo.credentials?.get("password") ?: ""
+            if (username.isNotBlank() || password.isNotBlank()) MyCredentialsProvider(username, password) else null
+        }
+
+        // 2. 对所有非官方仓库进行合法性验证 (在克隆/拉取文件前执行)
         if (repoInfo.repoType != RepoType.OFFICIAL) {
-            onLog("正在验证仓库合法性...")
-            if (!isLegitimateFork(repoInfo.url)) {
-                onLog("错误：仓库未通过合法性验证。")
+            onLog("正在执行安全验证（基准灯塔标签检查）...")
+
+            if (!isLegitimateFork(repoInfo.url, credentialsProvider)) {
+                onLog("错误：仓库未通过合法性验证或认证失败。")
+                if (repoInfo.repoType == RepoType.PRIVATE_REPO) {
+                    onLog("提示：请检查 PAT 权限和 Token 字符串是否正确。")
+                }
                 return
             }
-            onLog("仓库合法性验证成功。")
+            onLog("安全验证通过：找到官方基准灯塔标签。")
         }
 
         val targetUrl = repoInfo.url
@@ -72,21 +127,14 @@ class GitUpdater(private val context: Context) {
 
         onLog(if (isLocalRepoExist) "本地仓库已存在，将执行更新。" else "本地仓库不存在，将执行克隆。")
 
-        try {
-            // 只有当仓库类型为 PRIVATE_REPO 且凭证不为空时才创建凭证提供者
-            val credentialsProvider: CredentialsProvider? = if (repoInfo.repoType == RepoType.PRIVATE_REPO && repoInfo.credentials != null) {
-                val username = repoInfo.credentials["username"] ?: ""
-                val password = repoInfo.credentials["password"] ?: ""
-                MyCredentialsProvider(username, password)
-            } else {
-                null
-            }
+        val progressMonitor = LogProgressMonitor(onLog)
 
+        try {
             val git: Git = if (isLocalRepoExist) {
                 onLog("正在打开本地仓库...")
                 Git.open(localRepoDir)
             } else {
-                // 新增：在克隆前检查并删除已存在的非Git目录
+                // 克隆操作
                 if (localRepoDir.exists()) {
                     onLog("检测到非Git目录，正在删除旧目录...")
                     localRepoDir.deleteRecursively()
@@ -97,7 +145,9 @@ class GitUpdater(private val context: Context) {
                     .setURI(targetUrl)
                     .setDirectory(localRepoDir)
                     .setBranch(repoInfo.branch)
-                    .setProgressMonitor(LogProgressMonitor(onLog))
+                    .setProgressMonitor(progressMonitor)
+                    .setTimeout(120)
+
                 credentialsProvider?.let { cloneCommand.setCredentialsProvider(it) }
                 cloneCommand.call()
             }
@@ -119,7 +169,8 @@ class GitUpdater(private val context: Context) {
                 onLog("正在拉取远程变更...")
                 val fetchCommand = git.fetch()
                     .setRemote(tempRemoteName)
-                    .setProgressMonitor(LogProgressMonitor(onLog))
+                    .setProgressMonitor(progressMonitor)
+                    .setTimeout(120)
                 credentialsProvider?.let { fetchCommand.setCredentialsProvider(it) }
                 fetchCommand.call()
 

@@ -72,6 +72,8 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.jgit)
+    implementation(libs.slf4j.api)
+    implementation(libs.slf4j.simple)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
