@@ -59,8 +59,4 @@ class LogProgressMonitor(private val onLog: (String) -> Unit) : ProgressMonitor 
     override fun isCancelled(): Boolean {
         return false // 暂不支持取消
     }
-
-    override fun showDuration(enabled: Boolean) {
-        // JGit 接口方法，暂时不处理
-    }
 }

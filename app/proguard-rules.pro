@@ -19,3 +19,11 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+-dontwarn java.lang.management.**
+-dontwarn javax.management.**
+
+-dontwarn org.ietf.jgss.**
+
+-keep class org.eclipse.jgit.** { *; }
+-keep interface org.eclipse.jgit.** { *; }

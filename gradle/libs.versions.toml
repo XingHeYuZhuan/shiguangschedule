@@ -21,8 +21,9 @@ glance = "1.1.1"
 room = "2.7.2"
 ksp = "2.2.10-2.0.2"
 gradle-license-plugin = "0.9.8"
-jgit = "7.3.0.202506031305-r"
+jgit = "5.13.3.202401111512-r"
 slf4j = "1.7.30"
+desugar-jdk-libs = "2.1.5"
 
 
 [libraries]
@@ -62,6 +63,7 @@ androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = 
 jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "jgit" }
 slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4j" }
+desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar-jdk-libs" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

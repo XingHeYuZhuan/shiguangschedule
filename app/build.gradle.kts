@@ -23,7 +23,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -31,20 +31,34 @@ android {
         }
     }
     compileOptions {
-        // 保持 Java 17
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
+
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlin {
         jvmToolchain(21)
+    }
+    splits {
+        // 启用对 ABI (CPU 架构) 的分包
+        abi {
+            isEnable = true
+            exclude("mips", "mips64", "armeabi", "riscv64")
+            isUniversalApk = false
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        }
     }
     buildFeatures {
         compose = true
     }
 }
 
+afterEvaluate {
+    tasks.named("assembleRelease") {
+        dependsOn("licenseReleaseReport")
+    }
+}
 dependencies {
-
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.foundation)
@@ -83,4 +97,5 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
