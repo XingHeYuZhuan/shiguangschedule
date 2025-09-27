@@ -2,15 +2,11 @@ package com.xingheyuzhuan.shiguangschedule.ui.schedule
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -28,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -67,7 +62,7 @@ fun WeeklyScheduleScreen(
     var showConflictBottomSheet by remember { mutableStateOf(false) }
     var conflictCoursesToShow by remember { mutableStateOf(emptyList<CourseWithWeeks>()) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -173,7 +168,6 @@ fun WeeklyScheduleScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             CenterAlignedTopAppBar(
-                modifier = Modifier.height(70.dp),
                 title = {
                     Text(
                         text = topBarTitle,
@@ -217,34 +211,29 @@ fun WeeklyScheduleScreen(
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    ScheduleGrid(
-                        dates = dates,
-                        timeSlots = uiState.timeSlots,
-                        mergedCourses = currentCourses,
-                        showWeekends = uiState.showWeekends,
-                        todayIndex = todayIndex,
-                        onCourseBlockClicked = { mergedBlock ->
-                            if (mergedBlock.isConflict) {
-                                conflictCoursesToShow = mergedBlock.courses
-                                showConflictBottomSheet = true
-                            } else {
-                                val courseId = mergedBlock.courses.firstOrNull()?.course?.id
-                                if (courseId != null) {
-                                    navController.navigate(Screen.AddEditCourse.createRouteWithCourseId(courseId))
-                                }
+                // 直接调用 ScheduleGrid，让它处理内部的滚动
+                ScheduleGrid(
+                    dates = dates,
+                    timeSlots = uiState.timeSlots,
+                    mergedCourses = currentCourses,
+                    showWeekends = uiState.showWeekends,
+                    todayIndex = todayIndex,
+                    onCourseBlockClicked = { mergedBlock ->
+                        if (mergedBlock.isConflict) {
+                            conflictCoursesToShow = mergedBlock.courses
+                            showConflictBottomSheet = true
+                        } else {
+                            val courseId = mergedBlock.courses.firstOrNull()?.course?.id
+                            if (courseId != null) {
+                                navController.navigate(Screen.AddEditCourse.createRouteWithCourseId(courseId))
                             }
-                        },
-                        onGridCellClicked = onGridCellClicked,
-                        onTimeSlotClicked = {
-                            navController.navigate(Screen.TimeSlotSettings.route)
                         }
-                    )
-                }
+                    },
+                    onGridCellClicked = onGridCellClicked,
+                    onTimeSlotClicked = {
+                        navController.navigate(Screen.TimeSlotSettings.route)
+                    }
+                )
             }
         }
     }

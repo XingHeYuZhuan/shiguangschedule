@@ -16,13 +16,14 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -69,7 +70,6 @@ fun ScheduleGrid(
     val totalGridContentHeight = timeSlotsCount * sectionHeight
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // 1. 顶部星期栏
         DayHeader(
             displayDays = displayDays,
             dates = dates,
@@ -77,20 +77,20 @@ fun ScheduleGrid(
             timeColumnWidth = timeColumnWidth,
             dayHeaderHeight = dayHeaderHeight,
             todayIndex = todayIndex,
+            gridLineColor = gridLineColor
         )
 
-        // 2. 核心网格区域
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .height(totalGridContentHeight)
+                .verticalScroll(rememberScrollState())
         ) {
-            // 左侧时间列表
             TimeColumn(
                 timeSlots = timeSlots,
                 timeColumnWidth = timeColumnWidth,
                 sectionHeight = sectionHeight,
-                onTimeSlotClicked = onTimeSlotClicked
+                onTimeSlotClicked = onTimeSlotClicked,
+                modifier = Modifier.height(totalGridContentHeight)
             )
 
             // 网格和课程层，使用 Box 来堆叠
@@ -149,17 +149,29 @@ private fun DayHeader(
     dates: List<String>,
     cellWidth: Dp,
     timeColumnWidth: Dp,
-    dayHeaderHeight: Dp, // 新增：接收高度参数
+    dayHeaderHeight: Dp,
     todayIndex: Int,
+    gridLineColor: Color
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(dayHeaderHeight) // 使用传递进来的参数
-            .background(MaterialTheme.colorScheme.background) // 使用主题色
+            .height(dayHeaderHeight)
+            .background(MaterialTheme.colorScheme.background)
+            .drawBehind {
+                drawLine(
+                    color = gridLineColor.copy(alpha = 0.3f),
+                    start = Offset(0f, size.height),
+                    end = Offset(size.width, size.height),
+                    strokeWidth = 1f
+                )
+            }
     ) {
-        // 左上角留白
-        Spacer(modifier = Modifier.width(timeColumnWidth))
+        Spacer(
+            modifier = Modifier
+                .width(timeColumnWidth)
+                .fillMaxHeight()
+        )
 
         // 星期几和日期
         displayDays.forEachIndexed { index, day ->
@@ -172,7 +184,17 @@ private fun DayHeader(
                 modifier = Modifier
                     .width(cellWidth)
                     .fillMaxHeight()
-                    .background(backgroundColor), // 使用主题色
+                    .background(backgroundColor)
+                    .drawBehind {
+                        if (index < displayDays.size - 1) {
+                            drawLine(
+                                color = gridLineColor.copy(alpha = 0.3f),
+                                start = Offset(size.width, 0f),
+                                end = Offset(size.width, size.height),
+                                strokeWidth = 1f
+                            )
+                        }
+                    },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -180,13 +202,13 @@ private fun DayHeader(
                     text = "周$day",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = textColor // 使用主题色
+                    color = textColor
                 )
                 if (dates.size > index) {
                     Text(
                         text = dates[index],
-                        fontSize = 10.sp, // 小字
-                        color = dateColor // 使用主题色
+                        fontSize = 10.sp,
+                        color = dateColor
                     )
                 }
             }
@@ -202,24 +224,49 @@ private fun TimeColumn(
     timeSlots: List<TimeSlot>,
     timeColumnWidth: Dp,
     sectionHeight: Dp,
-    onTimeSlotClicked: () -> Unit
+    onTimeSlotClicked: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = Modifier
+    val gridLineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+
+    Column(
+        modifier = modifier
             .width(timeColumnWidth)
-            .fillMaxHeight()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 4.dp),
+            .drawBehind {
+                val strokeWidth = 1f
+                val transparentColor = gridLineColor.copy(alpha = 0.3f)
+
+                // 绘制右侧的垂直分割线
+                drawLine(
+                    color = transparentColor,
+                    start = Offset(size.width, 0f),
+                    end = Offset(size.width, size.height),
+                    strokeWidth = strokeWidth
+                )
+
+                // 绘制所有横向分割线
+                for (i in 0..timeSlots.size) {
+                    val startY = i * sectionHeight.toPx()
+                    drawLine(
+                        color = transparentColor,
+                        start = Offset(0f, startY),
+                        end = Offset(size.width, startY),
+                        strokeWidth = strokeWidth
+                    )
+                }
+            },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        items(items = timeSlots, key = { it.number }) { slot ->
+        timeSlots.forEach { slot ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(sectionHeight)
                     .clickable {
                         onTimeSlotClicked()
-                    },
+                    }
+                    .padding(horizontal = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -246,11 +293,12 @@ private fun GridLines(
     val strokeWidth = 1f
     val transparentColor = gridLineColor.copy(alpha = 0.3f)
 
+    // Canvas 填充父级 Box，由父级 Box 决定高度
     Canvas(
         modifier = Modifier.fillMaxSize()
     ) {
         // 绘制竖线
-        for (i in 0..dayCount) {
+        for (i in 1..dayCount) {
             val startX = i * cellWidth.toPx()
             drawLine(
                 color = transparentColor,
@@ -280,14 +328,14 @@ private fun GridLines(
 private fun ClickableGrid(
     dayCount: Int,
     timeSlotsCount: Int,
-    sectionHeight: Dp, // 新增：接收高度参数
+    sectionHeight: Dp,
     onGridCellClicked: (Int, Int) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         for (section in 1..timeSlotsCount) {
             Row(modifier = Modifier
                 .fillMaxWidth()
-                .height(sectionHeight)) { // 使用传递进来的参数
+                .height(sectionHeight)) {
                 for (day in 1..dayCount) {
                     Spacer(
                         modifier = Modifier

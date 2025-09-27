@@ -86,6 +86,9 @@ class MyApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
 
+        // 在应用启动时清理临时分享文件
+        clearShareTempFiles()
+
         // 1. 触发主数据库的初始化。
         database.courseTableDao()
 
@@ -145,6 +148,20 @@ class MyApplication : Application(), Configuration.Provider {
             } catch (e: IOException) {
                 destItem.mkdirs()
                 copyAssets(srcItemPath, destItem)
+            }
+        }
+    }
+
+    /**
+     * 清理用于分享的临时文件。
+     */
+    private fun clearShareTempFiles() {
+        // 创建一个指向 "share_temp" 目录的 File 对象
+        val shareTempDir = File(cacheDir, "share_temp")
+        if (shareTempDir.exists() && shareTempDir.isDirectory) {
+            // 如果目录存在，遍历并删除所有文件
+            shareTempDir.listFiles()?.forEach { file ->
+                file.delete()
             }
         }
     }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -60,6 +61,10 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import com.xingheyuzhuan.shiguangschedule.tool.shareFile
+import androidx.core.content.FileProvider
+import java.io.File
+import java.io.FileOutputStream
 
 // 自定义文件选择器 Contract，用于导入，只允许选择 JSON 文件
 class OpenJsonDocumentContract : ActivityResultContract<Unit, Uri?>() {
@@ -69,6 +74,7 @@ class OpenJsonDocumentContract : ActivityResultContract<Unit, Uri?>() {
             type = "application/json"
         }
     }
+
     override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
         return if (resultCode == Activity.RESULT_OK) intent?.data else null
     }
@@ -83,6 +89,7 @@ class CreateJsonDocumentContract : ActivityResultContract<String, Uri?>() {
             putExtra(Intent.EXTRA_TITLE, input)
         }
     }
+
     override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
         return if (resultCode == Activity.RESULT_OK) intent?.data else null
     }
@@ -97,10 +104,12 @@ class CreateIcsDocumentContract : ActivityResultContract<String, Uri?>() {
             putExtra(Intent.EXTRA_TITLE, input)
         }
     }
+
     override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
         return if (resultCode == Activity.RESULT_OK) intent?.data else null
     }
 }
+
 
 // 封装提醒时间值，并提供自定义的字符串显示。
 data class AlarmOption(val value: Int?) {
@@ -225,6 +234,9 @@ fun CourseTableConversionScreen(
     var pendingExportIcsTableId by remember { mutableStateOf<String?>(null) }
     var pendingAlarmMinutes by remember { mutableStateOf<Int?>(null) }
 
+    // 新增状态，用于显示分享弹窗。保存公共目录的Uri和原始文件名。
+    var showShareDialog by remember { mutableStateOf<Triple<Uri, String, String>?>(null) }
+
     // 文件导入启动器
     val importLauncher = rememberLauncherForActivityResult(OpenJsonDocumentContract()) { uri: Uri? ->
         val tableId = pendingImportTableId
@@ -248,6 +260,7 @@ fun CourseTableConversionScreen(
     // 文件导出启动器
     val exportLauncher = rememberLauncherForActivityResult(CreateJsonDocumentContract()) { uri: Uri? ->
         val jsonContent = pendingExportJsonContent
+        val filename = "shiguangschedule_${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))}.json"
         if (uri != null && jsonContent != null) {
             val outputStream: OutputStream? = try {
                 context.contentResolver.openOutputStream(uri)
@@ -255,10 +268,12 @@ fun CourseTableConversionScreen(
                 null
             }
             if (outputStream != null) {
+                // 将文件内容写入
                 outputStream.bufferedWriter().use { writer ->
                     writer.write(jsonContent)
                 }
-                coroutineScope.launch { snackbarHostState.showSnackbar("课表已成功导出！") }
+                // 在文件保存成功后，设置状态以显示分享弹窗。我们保存公共Uri和我们想要的原始文件名。
+                showShareDialog = Triple(uri, "application/json", filename)
             } else {
                 coroutineScope.launch { snackbarHostState.showSnackbar("无法保存文件。") }
             }
@@ -272,6 +287,7 @@ fun CourseTableConversionScreen(
     val icsExportLauncher = rememberLauncherForActivityResult(CreateIcsDocumentContract()) { uri: Uri? ->
         val tableId = pendingExportIcsTableId
         val alarmMinutes = pendingAlarmMinutes
+        val filename = "shiguangschedule_${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))}.ics"
         if (uri != null && tableId != null) {
             val outputStream: OutputStream? = try {
                 context.contentResolver.openOutputStream(uri)
@@ -280,6 +296,8 @@ fun CourseTableConversionScreen(
             }
             if (outputStream != null) {
                 viewModel.handleIcsExport(tableId, outputStream, alarmMinutes)
+                // 在文件保存成功后，设置状态以显示分享弹窗。我们保存公共Uri和我们想要的原始文件名。
+                showShareDialog = Triple(uri, "text/calendar", filename)
             } else {
                 coroutineScope.launch { snackbarHostState.showSnackbar("无法保存文件。") }
             }
@@ -415,13 +433,13 @@ fun CourseTableConversionScreen(
                         Column(
                             modifier = Modifier.weight(1f)
                         ) {
-                        Text("日历文件导出", style = MaterialTheme.typography.bodyLarge)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "导出ics文件,点击生成指定提醒时间参数的文件",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                            Text("日历文件导出", style = MaterialTheme.typography.bodyLarge)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "导出ics文件,点击生成指定提醒时间参数的文件",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
@@ -511,5 +529,53 @@ fun CourseTableConversionScreen(
             else -> {
             }
         }
+    }
+
+    if (showShareDialog != null) {
+        AlertDialog(
+            onDismissRequest = { showShareDialog = null },
+            title = { Text("文件已保存") },
+            text = { Text("文件已成功导出到您的下载目录，您想分享它吗？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val (publicUri, mimeType, filename) = showShareDialog!!
+
+                    // 确保 share_temp 目录存在
+                    val shareTempDir = File(context.cacheDir, "share_temp")
+                    if (!shareTempDir.exists()) {
+                        shareTempDir.mkdirs()
+                    }
+
+                    // 1. 将公共目录的文件内容复制到应用的专用临时目录
+                    val tempFile = File(shareTempDir, filename)
+                    context.contentResolver.openInputStream(publicUri)?.use { input ->
+                        FileOutputStream(tempFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+
+                    // 2. 使用 FileProvider 为缓存文件生成一个 Uri
+                    val shareUri = FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        tempFile
+                    )
+
+                    // 3. 使用 FileProvider 的 Uri 来分享
+                    shareFile(context, shareUri, mimeType)
+
+                    showShareDialog = null
+                }) {
+                    Text("分享")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showShareDialog = null
+                }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }
