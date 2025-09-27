@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -27,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -97,7 +99,6 @@ fun WeeklyScheduleScreen(
                 // 将 Pager 页码映射到实际周数
                 val newSelectedWeek = pageIndex - INITIAL_PAGER_INDEX
                 selectedWeek = newSelectedWeek
-                // Log.d("WeeklyScheduleScreen", "Pager滑动：将selectedWeek更新为${newSelectedWeek}")
             }
     }
 
@@ -172,6 +173,7 @@ fun WeeklyScheduleScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             CenterAlignedTopAppBar(
+                modifier = Modifier.height(70.dp),
                 title = {
                     Text(
                         text = topBarTitle,

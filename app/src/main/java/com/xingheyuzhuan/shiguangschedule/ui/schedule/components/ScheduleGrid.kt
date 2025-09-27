@@ -156,7 +156,7 @@ private fun DayHeader(
         modifier = Modifier
             .fillMaxWidth()
             .height(dayHeaderHeight) // 使用传递进来的参数
-            .background(MaterialTheme.colorScheme.surface) // 使用主题色
+            .background(MaterialTheme.colorScheme.background) // 使用主题色
     ) {
         // 左上角留白
         Spacer(modifier = Modifier.width(timeColumnWidth))
@@ -208,7 +208,7 @@ private fun TimeColumn(
         modifier = Modifier
             .width(timeColumnWidth)
             .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.618f))
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

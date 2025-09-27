@@ -130,7 +130,7 @@ fun DoubleDaysLayout(
 fun DayColumn(title: String, courses: List<WidgetCourse>, modifier: GlanceModifier, isToday: Boolean) {
     val now = LocalTime.now()
     val nextCourse = if (isToday) {
-        courses.filter { !it.isSkipped && LocalTime.parse(it.endTime) > now }.firstOrNull()
+        courses.firstOrNull { !it.isSkipped && LocalTime.parse(it.endTime) > now }
     } else {
         courses.firstOrNull { !it.isSkipped }
     }
@@ -142,15 +142,41 @@ fun DayColumn(title: String, courses: List<WidgetCourse>, modifier: GlanceModifi
         // 新的逻辑：将标题作为课程内容的一部分
         if (nextCourse != null) {
             CourseItem(course = nextCourse)
-        } else if (courses.isNotEmpty() && isToday) {
-            TodayCoursesFinishedLayout()
-        } else if (courses.isEmpty() && isToday) {
-            NoCoursesLayout()
-        } else if (courses.isEmpty() && !isToday) {
-            TomorrowNoCoursesLayout()
+        } else if (isToday && courses.isNotEmpty() && courses.all { LocalTime.parse(it.endTime) < now }) {
+            // 今天，但所有课程已结束
+            Box(
+                modifier = GlanceModifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "今日课程已结束",
+                    style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.onSurfaceVariant)
+                )
+            }
+        } else if (isToday) {
+            // 今天，但没有课程
+            Box(
+                modifier = GlanceModifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "今天没有课程",
+                    style = TextStyle(color = GlanceTheme.colors.onSurface)
+                )
+            }
         } else {
-            TomorrowNoCoursesLayout()
+            // 明天，但没有课程
+            Box(
+                modifier = GlanceModifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "明天没有课程",
+                    style = TextStyle(color = GlanceTheme.colors.onSurface)
+                )
+            }
         }
+
 
         Spacer(modifier = GlanceModifier.defaultWeight())
 
@@ -168,45 +194,6 @@ fun DayColumn(title: String, courses: List<WidgetCourse>, modifier: GlanceModifi
         } else {
             Spacer(modifier = GlanceModifier.height(12.dp))
         }
-    }
-}
-
-@Composable
-fun NoCoursesLayout() {
-    Box(
-        modifier = GlanceModifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "今天没有课程",
-            style = TextStyle(color = GlanceTheme.colors.onSurface)
-        )
-    }
-}
-
-@Composable
-fun TomorrowNoCoursesLayout() {
-    Box(
-        modifier = GlanceModifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "明天没有课程",
-            style = TextStyle(color = GlanceTheme.colors.onSurface)
-        )
-    }
-}
-
-@Composable
-fun TodayCoursesFinishedLayout() {
-    Box(
-        modifier = GlanceModifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "今日课程已结束",
-            style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.onSurfaceVariant)
-        )
     }
 }
 
