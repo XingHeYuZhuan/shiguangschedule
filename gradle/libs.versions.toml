@@ -24,6 +24,7 @@ gradle-license-plugin = "0.9.8"
 jgit = "5.13.3.202401111512-r"
 slf4j = "1.7.30"
 desugar-jdk-libs = "2.1.5"
+compose-animation = "1.9.2"
 
 
 [libraries]
@@ -64,6 +65,7 @@ jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "jgit" }
 slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4j" }
 desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar-jdk-libs" }
+androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "compose-animation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

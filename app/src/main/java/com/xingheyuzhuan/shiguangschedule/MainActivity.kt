@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,27 +54,70 @@ fun AppNavigation() {
         startDestination = Screen.CourseSchedule.route,
         modifier = Modifier.fillMaxSize()
     ){
-        composable(Screen.CourseSchedule.route) {
+        // 这些顶级页面的转场是瞬间完成的
+        composable(
+            Screen.CourseSchedule.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             WeeklyScheduleScreen(navController = navController)
         }
-        composable(Screen.Settings.route) {
+        composable(
+            Screen.Settings.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             SettingsScreen(navController = navController)
         }
-        composable(Screen.TodaySchedule.route) {
+        composable(
+            Screen.TodaySchedule.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             TodayScheduleScreen(navController = navController)
         }
-        composable(Screen.TimeSlotSettings.route) {
+
+        // 所有子页面的转场也都是瞬间完成的
+        composable(
+            Screen.TimeSlotSettings.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             TimeSlotManagementScreen(onBackClick = { navController.popBackStack() })
         }
-        composable(Screen.ManageCourseTables.route) {
+        composable(
+            Screen.ManageCourseTables.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             ManageCourseTablesScreen(navController = navController)
         }
-        composable(Screen.SchoolSelection.route) {
+        composable(
+            Screen.SchoolSelection.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             SchoolSelectionScreen(navController = navController)
         }
         composable(
             route = Screen.WebView.route,
-            arguments = listOf(navArgument("schoolId") { type = NavType.StringType })
+            arguments = listOf(navArgument("schoolId") { type = NavType.StringType }),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
         ) { backStackEntry ->
             val schoolId = backStackEntry.arguments?.getString("schoolId")
             if (schoolId != null) {
@@ -82,7 +127,13 @@ fun AppNavigation() {
                 navController.popBackStack()
             }
         }
-        composable(Screen.NotificationSettings.route) {
+        composable(
+            Screen.NotificationSettings.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             NotificationSettingsScreen(onNavigateBack = { navController.popBackStack() })
         }
         composable(
@@ -92,13 +143,17 @@ fun AppNavigation() {
                     type = NavType.StringType
                     nullable = true
                 }
-            )
+            ),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
         ) { backStackEntry ->
             val courseId = backStackEntry.arguments?.getString("courseId")
             AddEditCourseScreen(
                 courseId = courseId,
                 onNavigateBack = { navController.popBackStack() },
-                initialDay = -1, // 默认值
+                initialDay = -1,
                 initialSection = -1
             )
         }
@@ -113,7 +168,11 @@ fun AppNavigation() {
                     type = NavType.IntType
                     defaultValue = -1
                 }
-            )
+            ),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
         ) { backStackEntry ->
             val initialDay = backStackEntry.arguments?.getInt("day")
             val initialSection = backStackEntry.arguments?.getInt("section")
@@ -124,16 +183,40 @@ fun AppNavigation() {
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-        composable(Screen.CourseTableConversion.route) {
+        composable(
+            Screen.CourseTableConversion.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             CourseTableConversionScreen(navController = navController)
         }
-        composable(Screen.MoreOptions.route) {
+        composable(
+            Screen.MoreOptions.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             MoreOptionsScreen(navController = navController)
         }
-        composable(Screen.OpenSourceLicenses.route) {
+        composable(
+            Screen.OpenSourceLicenses.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             OpenSourceLicensesScreen (navController = navController)
         }
-        composable(Screen.UpdateRepo.route) {
+        composable(
+            Screen.UpdateRepo.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             UpdateRepoScreen(navController = navController)
         }
     }

@@ -15,8 +15,8 @@ android {
         applicationId = "com.xingheyuzhuan.shiguangschedule"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.02"
+        versionCode = 4
+        versionName = "0.04"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -88,6 +88,7 @@ dependencies {
     implementation(libs.jgit)
     implementation(libs.slf4j.api)
     implementation(libs.slf4j.simple)
+    implementation(libs.androidx.compose.animation)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)

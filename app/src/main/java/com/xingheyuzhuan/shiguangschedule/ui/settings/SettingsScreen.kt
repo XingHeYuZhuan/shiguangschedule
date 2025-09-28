@@ -8,26 +8,29 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -51,16 +55,16 @@ import java.time.format.DateTimeParseException
 
 // 常量，用于统一间距和边距
 private val SETTING_PADDING = 16.dp
-private val SECTION_SPACING = 24.dp
+private val SECTION_SPACING = 16.dp
 private val ITEM_SPACING = 16.dp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     navController: NavHostController,
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory)
 ) {
     val appSettings by viewModel.appSettingsState.collectAsState()
-    val scrollState = rememberScrollState()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
@@ -84,45 +88,55 @@ fun SettingsScreen(
     var showManualWeekDialog by remember { mutableStateOf(false) }
     var showDatePickerModal by remember { mutableStateOf(false) }
 
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("课程表设置") },
+                scrollBehavior = scrollBehavior
+            )
+        },
         bottomBar = {
             BottomNavigationBar(navController = navController, currentRoute = currentRoute)
         }
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(scrollState)
                 .padding(SETTING_PADDING),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(SECTION_SPACING)
         ) {
-            Text(
-                "课程表设置",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            // 通用设置卡片
-            GeneralSettingsSection(
-                showWeekends = showWeekends,
-                onShowWeekendsChanged = { isChecked -> viewModel.onShowWeekendsChanged(isChecked) },
-                semesterStartDate = semesterStartDate,
-                semesterTotalWeeks = semesterTotalWeeks,
-                displayCurrentWeek = displayCurrentWeek,
-                onSemesterStartDateClick = { showDatePickerModal = true },
-                onSemesterTotalWeeksClick = { showTotalWeeksDialog = true },
-                onManualWeekClick = { showManualWeekDialog = true }
-            )
-
-            // 高级功能卡片
-            AdvancedSettingsSection(navController)
+            item {
+                // 通用设置卡片
+                GeneralSettingsSection(
+                    showWeekends = showWeekends,
+                    onShowWeekendsChanged = { isChecked -> viewModel.onShowWeekendsChanged(isChecked) },
+                    semesterStartDate = semesterStartDate,
+                    semesterTotalWeeks = semesterTotalWeeks,
+                    displayCurrentWeek = displayCurrentWeek,
+                    onSemesterStartDateClick = { showDatePickerModal = true },
+                    onSemesterTotalWeeksClick = { showTotalWeeksDialog = true },
+                    onManualWeekClick = { showManualWeekDialog = true }
+                )
+            }
+            item {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp,horizontal = 16.dp),
+                    thickness = 1.dp, // 设置分隔线的厚度
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+            }
+            item {
+                // 高级功能卡片
+                AdvancedSettingsSection(navController)
+            }
         }
     }
 
-    // 各种对话框
     if (showDatePickerModal) {
         DatePickerModal(
             onDateSelected = { selectedDateMillis ->
@@ -256,14 +270,12 @@ private fun AdvancedSettingsSection(navController: NavHostController) {
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
-
-            // 自定义时间段设置项
+            // 课表导入/导出设置项
             SettingItem(
-                title = "自定义时间段",
-                subtitle = "编辑您的课程时间段设置",
-                onClick = { navController.navigate(Screen.TimeSlotSettings.route) }
+                title = "课表导入/导出",
+                subtitle = "支持多种导入导出方式",
+                onClick = { navController.navigate(Screen.CourseTableConversion.route) }
             )
-
             // 课程提醒设置项
             SettingItem(
                 title = "课程提醒设置",
@@ -278,11 +290,11 @@ private fun AdvancedSettingsSection(navController: NavHostController) {
                 onClick = { navController.navigate(Screen.ManageCourseTables.route) }
             )
 
-            // 课表导入/导出设置项
+            // 自定义时间段设置项
             SettingItem(
-                title = "课表导入/导出",
-                subtitle = "支持多种导入导出方式",
-                onClick = { navController.navigate(Screen.CourseTableConversion.route) }
+                title = "自定义时间段",
+                subtitle = "编辑您的课程时间段设置",
+                onClick = { navController.navigate(Screen.TimeSlotSettings.route) }
             )
 
             // 更多选项设置项
@@ -303,7 +315,7 @@ private fun AdvancedSettingsSection(navController: NavHostController) {
 private fun SettingItem(
     title: String,
     subtitle: String,
-    icon: ImageVector = Icons.Default.ArrowForwardIos,
+    icon: ImageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
     onClick: (() -> Unit)? = null,
     trailingContent: @Composable () -> Unit = { Icon(icon, contentDescription = null) }
 ) {
@@ -315,9 +327,11 @@ private fun SettingItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall)
+        Column(modifier = Modifier
+            .weight(1f)
+            .padding(end = 8.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium)
         }
         trailingContent()
     }

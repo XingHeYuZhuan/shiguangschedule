@@ -1,4 +1,3 @@
-// DoubleDaysLayout.kt
 package com.xingheyuzhuan.shiguangschedule.widget.double_days
 
 import androidx.compose.runtime.Composable
@@ -135,64 +134,50 @@ fun DayColumn(title: String, courses: List<WidgetCourse>, modifier: GlanceModifi
         courses.firstOrNull { !it.isSkipped }
     }
 
-    Column(
+    // 外部使用一个 Box 来包裹所有内容，并强制其填充父容器分配的空间
+    Box(
         modifier = modifier.padding(12.dp),
-        horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+        contentAlignment = Alignment.Center
     ) {
-        // 新的逻辑：将标题作为课程内容的一部分
-        if (nextCourse != null) {
-            CourseItem(course = nextCourse)
-        } else if (isToday && courses.isNotEmpty() && courses.all { LocalTime.parse(it.endTime) < now }) {
-            // 今天，但所有课程已结束
-            Box(
-                modifier = GlanceModifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+        Column(
+            modifier = GlanceModifier.fillMaxSize(), // 让内部的 Column 填充 Box
+            horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+            verticalAlignment = Alignment.Vertical.CenterVertically
+        ) {
+            if (nextCourse != null) {
+                CourseItem(course = nextCourse)
+                Spacer(modifier = GlanceModifier.height(8.dp))
+            } else if (isToday && courses.isNotEmpty() && courses.all { LocalTime.parse(it.endTime) < now }) {
                 Text(
                     text = "今日课程已结束",
                     style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.onSurfaceVariant)
                 )
-            }
-        } else if (isToday) {
-            // 今天，但没有课程
-            Box(
-                modifier = GlanceModifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            } else {
                 Text(
-                    text = "今天没有课程",
-                    style = TextStyle(color = GlanceTheme.colors.onSurface)
-                )
-            }
-        } else {
-            // 明天，但没有课程
-            Box(
-                modifier = GlanceModifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "明天没有课程",
+                    text = "$title 没有课程",
                     style = TextStyle(color = GlanceTheme.colors.onSurface)
                 )
             }
         }
 
-
-        Spacer(modifier = GlanceModifier.defaultWeight())
-
-        // 底部剩余课程数提示
-        val remainingCoursesCount = courses.count {
-            if (isToday) !it.isSkipped && LocalTime.parse(it.endTime) > now
-            else !it.isSkipped
-        }
-
-        if (remainingCoursesCount > 0) {
-            Text(
-                text = "$title 还有 $remainingCoursesCount 节课",
-                style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.onSurfaceVariant)
-            )
-        } else {
-            Spacer(modifier = GlanceModifier.height(12.dp))
+        // 底部剩余课程数提示，独立于主内容区域
+        Box(
+            modifier = GlanceModifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            val remainingCoursesCount = courses.count {
+                if (isToday) !it.isSkipped && LocalTime.parse(it.endTime) > now
+                else !it.isSkipped
+            }
+            if (remainingCoursesCount > 0) {
+                Text(
+                    text = "$title 还有 $remainingCoursesCount 节课",
+                    style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.onSurfaceVariant)
+                )
+            } else {
+                // 即使没有课程，也保留一个高度以保持布局稳定
+                Spacer(modifier = GlanceModifier.height(12.dp))
+            }
         }
     }
 }

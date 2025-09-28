@@ -202,13 +202,15 @@ private fun DayHeader(
                     text = "周$day",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = textColor
+                    color = textColor,
+                    lineHeight = 14.sp
                 )
                 if (dates.size > index) {
                     Text(
                         text = dates[index],
                         fontSize = 10.sp,
-                        color = dateColor
+                        color = dateColor,
+                        lineHeight = 10.sp
                     )
                 }
             }

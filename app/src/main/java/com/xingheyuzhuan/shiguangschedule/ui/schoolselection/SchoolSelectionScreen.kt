@@ -32,8 +32,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,8 +62,10 @@ fun SchoolSelectionScreen(
     val context = LocalContext.current
     var allSchools by remember { mutableStateOf<List<School>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
+    var searchActive by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+
     LaunchedEffect(Unit) {
         allSchools = SchoolRepository.getSchools(context)
     }
@@ -87,109 +87,166 @@ fun SchoolSelectionScreen(
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text("选择学校") },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                        }
-                    }
-                )
-                SearchBar(
-                    expanded = false,
-                    onExpandedChange = {},
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 1.dp),
-                    colors = SearchBarDefaults.colors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                    ),
-                    inputField = {
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "搜索") },
-                            trailingIcon = {
-                                if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(Icons.Default.Close, contentDescription = "清除搜索")
-                                    }
-                                }
-                            },
-                            placeholder = { Text("搜索学校名称或首字母") },
-                            colors = SearchBarDefaults.inputFieldColors(),
-                        )
-                    },
-                    content = { }
-                )
+            // 将 SearchBarWithTitle 及其内容放在这里
+            SearchBarWithTitle(
+                navController = navController,
+                searchQuery = searchQuery,
+                onQueryChange = { newQuery -> searchQuery = newQuery },
+                searchActive = searchActive,
+                onSearchActiveChange = { active -> searchActive = active },
+                placeholderText = "搜索学校名称或首字母",
+                titleText = "选择学校",
+                filteredSchools = filteredSchools
+            ) { selectedSchool ->
+                navController.navigate(Screen.WebView.createRoute(selectedSchool.id))
+                searchActive = false // 点击后收起搜索栏
+                searchQuery = "" // 清空搜索文本
             }
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (allSchools.isEmpty() && searchQuery.isBlank()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("正在加载学校数据...", style = MaterialTheme.typography.bodyLarge)
-                }
-            } else if (filteredSchools.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("没有找到匹配的学校", style = MaterialTheme.typography.bodyLarge)
-                }
-            }
-            else {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    LazyColumn(
-                        state = lazyListState,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+        // 只有当搜索栏不激活时才显示完整列表和字母索引
+        if (!searchActive) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                if (allSchools.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        var currentInitial = ""
-                        filteredSchools.forEach { school ->
-                            val initial = school.initial.uppercase()
-                            if (initial != currentInitial) {
-                                stickyHeader {
-                                    Text(
-                                        text = initial,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .background(MaterialTheme.colorScheme.surface)
-                                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    )
+                        Text("正在加载学校数据...", style = MaterialTheme.typography.bodyLarge)
+                    }
+                } else {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            state = lazyListState,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            var currentInitial = ""
+                            filteredSchools.forEach { school ->
+                                val initial = school.initial.uppercase()
+                                if (initial != currentInitial) {
+                                    stickyHeader {
+                                        Text(
+                                            text = initial,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(MaterialTheme.colorScheme.surface)
+                                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                        )
+                                    }
+                                    currentInitial = initial
                                 }
-                                currentInitial = initial
-                            }
-                            item {
-                                SchoolItem(school = school) { selectedSchool ->
-                                    navController.navigate(Screen.WebView.createRoute(selectedSchool.id))
+                                item {
+                                    SchoolItem(school = school) { selectedSchool ->
+                                        navController.navigate(Screen.WebView.createRoute(selectedSchool.id))
+                                    }
                                 }
                             }
                         }
+                        AlphabetIndex(
+                            initials = initials,
+                            lazyListState = lazyListState,
+                            coroutineScope = coroutineScope,
+                            filteredSchools = filteredSchools
+                        )
                     }
+                }
+            }
+        }
+    }
+}
 
-                    AlphabetIndex(
-                        initials = initials,
-                        lazyListState = lazyListState,
-                        coroutineScope = coroutineScope,
-                        filteredSchools = filteredSchools
-                    )
+/**
+ * 带有标题和搜索功能的自定义 SearchBar 组件。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchBarWithTitle(
+    navController: NavController,
+    searchQuery: String,
+    onQueryChange: (String) -> Unit,
+    searchActive: Boolean,
+    onSearchActiveChange: (Boolean) -> Unit,
+    placeholderText: String,
+    titleText: String,
+    filteredSchools: List<School>,
+    onSchoolSelected: (School) -> Unit
+) {
+    SearchBar(
+        modifier = Modifier.fillMaxWidth(),
+        inputField = {
+            SearchBarDefaults.InputField(
+                query = searchQuery,
+                onQueryChange = onQueryChange,
+                onSearch = { onSearchActiveChange(false) },
+                expanded = searchActive,
+                onExpandedChange = onSearchActiveChange,
+                placeholder = { Text(if (searchActive) placeholderText else titleText) },
+                leadingIcon = {
+                    IconButton(onClick = {
+                        if (searchActive) {
+                            onSearchActiveChange(false)
+                            onQueryChange("")
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "返回"
+                        )
+                    }
+                },
+                trailingIcon = {
+                    if (!searchActive) {
+                        IconButton(onClick = { onSearchActiveChange(true) }) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "搜索"
+                            )
+                        }
+                    } else if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { onQueryChange("") }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "清除搜索"
+                            )
+                        }
+                    }
+                }
+            )
+        },
+        expanded = searchActive,
+        onExpandedChange = onSearchActiveChange,
+    ) {
+        // 搜索结果内容（这里保持不变）
+        if (filteredSchools.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("没有找到匹配的学校", style = MaterialTheme.typography.bodyLarge)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                filteredSchools.forEach { school ->
+                    item {
+                        SchoolItem(school = school) { onSchoolSelected(it) }
+                    }
                 }
             }
         }
@@ -210,7 +267,6 @@ fun SchoolItem(school: School, onClick: (School) -> Unit) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 左侧：图标和学校名称
             Icon(
                 imageVector = Icons.Default.School,
                 contentDescription = "学校图标",
@@ -219,8 +275,6 @@ fun SchoolItem(school: School, onClick: (School) -> Unit) {
                     .padding(end = 8.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
-            // 中间：学校名称，占据剩余大部分空间
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -230,8 +284,6 @@ fun SchoolItem(school: School, onClick: (School) -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            // 右侧：维护者信息
             school.maintainer?.let { maintainer ->
                 Column(
                     modifier = Modifier.padding(start = 8.dp),
@@ -271,7 +323,12 @@ fun AlphabetIndex(
                     .fillMaxWidth()
                     .clickable {
                         val targetInitial = initials[index]
-                        scrollToInitial(targetInitial, lazyListState, coroutineScope, filteredSchools)
+                        scrollToInitial(
+                            targetInitial,
+                            lazyListState,
+                            coroutineScope,
+                            filteredSchools
+                        )
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -286,7 +343,6 @@ fun AlphabetIndex(
     }
 }
 
-
 private fun scrollToInitial(
     targetInitial: String,
     lazyListState: LazyListState,
@@ -294,24 +350,12 @@ private fun scrollToInitial(
     filteredSchools: List<School>
 ) {
     coroutineScope.launch {
-        val targetIndex = filteredSchools.indexOfFirst { it.initial.uppercase() == targetInitial }
-        if (targetIndex != -1) {
-            var scrollTargetIndex = -1
-            var headerCount = 0
-            for (i in 0 until filteredSchools.size) {
-                if (filteredSchools[i].initial.uppercase() == targetInitial) {
-                    scrollTargetIndex = i
-                    break
-                }
-                if (i == 0 || filteredSchools[i].initial.uppercase() != filteredSchools[i-1].initial.uppercase()) {
-                    headerCount++
-                }
-            }
+        val itemIndex = filteredSchools.indexOfFirst {
+            it.initial.uppercase() == targetInitial
+        }
 
-            if (scrollTargetIndex != -1) {
-                val finalIndex = scrollTargetIndex + headerCount
-                lazyListState.animateScrollToItem(finalIndex)
-            }
+        if (itemIndex != -1) {
+            lazyListState.animateScrollToItem(itemIndex)
         }
     }
 }
