@@ -17,9 +17,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,9 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -48,6 +43,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.xingheyuzhuan.shiguangschedule.Screen
 import com.xingheyuzhuan.shiguangschedule.ui.components.BottomNavigationBar
+import com.xingheyuzhuan.shiguangschedule.ui.components.DatePickerModal
 import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -120,7 +116,8 @@ fun SettingsScreen(
                     displayCurrentWeek = displayCurrentWeek,
                     onSemesterStartDateClick = { showDatePickerModal = true },
                     onSemesterTotalWeeksClick = { showTotalWeeksDialog = true },
-                    onManualWeekClick = { showManualWeekDialog = true }
+                    onManualWeekClick = { showManualWeekDialog = true },
+                    onTweakScheduleClick = { navController.navigate(Screen.TweakSchedule.route) }
                 )
             }
             item {
@@ -184,7 +181,8 @@ private fun GeneralSettingsSection(
     displayCurrentWeek: Int?,
     onSemesterStartDateClick: () -> Unit,
     onSemesterTotalWeeksClick: () -> Unit,
-    onManualWeekClick: () -> Unit
+    onManualWeekClick: () -> Unit,
+    onTweakScheduleClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -248,6 +246,13 @@ private fun GeneralSettingsSection(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+
+            // 课程调动设置项
+            SettingItem(
+                title = "课程调动",
+                subtitle = "一键将指定日期的所有课程调整到新日期",
+                onClick = onTweakScheduleClick
+            )
         }
     }
 }
@@ -389,41 +394,6 @@ fun ManualWeekPickerDialog(
     )
 }
 
-/**
- * 日期选择器对话框
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DatePickerModal(
-    onDateSelected: (Long?) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val datePickerState = rememberDatePickerState(
-        initialDisplayMode = DisplayMode.Picker
-    )
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                onDateSelected(datePickerState.selectedDateMillis)
-                onDismiss()
-            }) {
-                Text("确定")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("取消")
-            }
-        }
-    ) {
-        DatePicker(
-            state = datePickerState,
-            showModeToggle = false,
-            modifier = Modifier
-        )
-    }
-}
 
 /**
  * 数字选择器对话框

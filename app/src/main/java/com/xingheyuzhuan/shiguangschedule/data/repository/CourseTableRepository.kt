@@ -1,5 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
+import androidx.room.Transaction
 import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
@@ -94,6 +95,72 @@ class CourseTableRepository(
      */
     suspend fun deleteCourse(course: Course) {
         courseDao.delete(course)
+    }
+
+    /**
+     * 将指定日期（由星期和周次确定）下的所有课程调动到新日期。
+     * 这是一个原子操作，确保数据一致性。
+     *
+     * @param courseTableId 用户选择的课表ID。
+     * @param fromWeekNumber 被移动的周次。
+     * @param fromDay 被移动的星期。
+     * @param toWeekNumber 移动到的周次。
+     * @param toDay 移动到的星期。
+     */
+    @Transaction
+    suspend fun moveCoursesOnDate(
+        courseTableId: String,
+        fromWeekNumber: Int,
+        fromDay: Int,
+        toWeekNumber: Int,
+        toDay: Int
+    ) {
+        // 1. 获取所有待移动的课程
+        val coursesWithWeeksToMove = courseDao.getCoursesWithWeeksByDayAndWeek(
+            courseTableId = courseTableId,
+            day = fromDay,
+            weekNumber = fromWeekNumber
+        ).first()
+
+        // 2. 遍历并处理每一门课程
+        for (courseWithWeeks in coursesWithWeeksToMove) {
+            val originalCourse = courseWithWeeks.course
+            val originalWeeks = courseWithWeeks.weeks.map { it.weekNumber }.toMutableList()
+
+            // 2a. 从原课程中移除被移动的周次
+            originalWeeks.remove(fromWeekNumber)
+            // 使用 courseWeekDao 的 updateCourseWeeks 方法更新周次
+            courseWeekDao.updateCourseWeeks(originalCourse.id, originalWeeks.map {
+                CourseWeek(courseId = originalCourse.id, weekNumber = it)
+            })
+
+            // 2b. 创建新的课程和周次记录
+            val newCourse = originalCourse.copy(
+                id = UUID.randomUUID().toString(), // 新的唯一 ID
+                day = toDay // 设置为移动到的星期
+            )
+            val newCourseWeek = CourseWeek(courseId = newCourse.id, weekNumber = toWeekNumber)
+
+            // 2c. 插入新的课程和周次
+            courseDao.insertAll(listOf(newCourse))
+            courseWeekDao.insertAll(listOf(newCourseWeek))
+        }
+    }
+    /**
+     * 获取指定课表、周次和星期下的课程，并以数据流形式返回。
+     * 这个方法专为 UI 层提供实时更新的数据。
+     */
+    fun getCoursesForDay(
+        courseTableId: String,
+        weekNumber: Int,
+        day: Int
+    ): Flow<List<CourseWithWeeks>> {
+        // 直接调用底层的 DAO 方法
+        return courseDao.getCoursesWithWeeksByDayAndWeek(
+            courseTableId = courseTableId,
+            day = day,
+            weekNumber = weekNumber
+        )
     }
 }
 

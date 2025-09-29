@@ -27,6 +27,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.settings.additional.OpenSourceLicen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.conversion.CourseTableConversionScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.course.AddEditCourseScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.time.TimeSlotManagementScreen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.tweaks.TweakScheduleScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.update.UpdateRepoScreen
 import com.xingheyuzhuan.shiguangschedule.ui.theme.shiguangscheduleTheme
 import com.xingheyuzhuan.shiguangschedule.ui.today.TodayScheduleScreen
@@ -218,6 +219,15 @@ fun AppNavigation() {
             popExitTransition = { ExitTransition.None }
         ) {
             UpdateRepoScreen(navController = navController)
+        }
+        composable(
+            Screen.TweakSchedule.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            TweakScheduleScreen(navController = navController)
         }
     }
 }

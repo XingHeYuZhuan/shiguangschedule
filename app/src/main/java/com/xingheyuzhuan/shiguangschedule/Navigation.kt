@@ -38,4 +38,6 @@ sealed class Screen(val route: String) {
     object OpenSourceLicenses : Screen("open_source_licenses")
 
     object UpdateRepo : Screen("update_repo")
+
+    object TweakSchedule : Screen("tweak_schedule")
 }

@@ -53,4 +53,27 @@ interface CourseDao {
      */
     @Query("DELETE FROM courses WHERE courseTableId = :courseTableId")
     suspend fun deleteCoursesByTableId(courseTableId: String)
+
+    /**
+     * 获取指定课表ID下，在特定星期和周次的所有课程及其周数。
+     *
+     * @param courseTableId 课表ID。
+     * @param day 星期几。
+     * @param weekNumber 周次。
+     */
+    @Transaction
+    @Query(
+        """
+    SELECT * FROM courses AS c
+    INNER JOIN course_weeks AS cw ON c.id = cw.courseId
+    WHERE c.courseTableId = :courseTableId
+      AND c.day = :day
+      AND cw.weekNumber = :weekNumber
+    """
+    )
+    fun getCoursesWithWeeksByDayAndWeek(
+        courseTableId: String,
+        day: Int,
+        weekNumber: Int
+    ): Flow<List<CourseWithWeeks>>
 }
