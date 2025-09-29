@@ -16,7 +16,7 @@
 
 - 项目主页：[https://github.com/XingHeYuZhuan/shiguangschedule](https://github.com/XingHeYuZhuan/shiguangschedule)
 - 适配脚本仓库：[https://github.com/XingHeYuZhuan/shiguang_warehouse](https://github.com/XingHeYuZhuan/shiguang_warehouse)
-- Wiki：[https://github.com/XingHeYuZhuan/shiguangschedule/wiki](https://github.com/XingHeYuZhuan/shiguangschedule/wiki)
+- 查看如何适配,Wiki：[https://github.com/XingHeYuZhuan/shiguangschedule/wiki](https://github.com/XingHeYuZhuan/shiguangschedule/wiki)
 - 浏览器测试插件:[https://github.com/XingHeYuZhuan/shiguang_Tester](https://github.com/XingHeYuZhuan/shiguang_Tester)
 
 ---
