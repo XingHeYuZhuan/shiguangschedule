@@ -40,7 +40,7 @@ jobs:
           # 赋予 Gradle Wrapper 执行权限
           chmod +x ./gradlew
           # 运行 assembleRelease 任务来生成 Release 版本的 APK
-          ./gradlew assembleRelease 
+          ./gradlew assembleRelease --info
 
       - name: 上传构建产物到仓库 (Upload Artifact)
         uses: actions/upload-artifact@v4
