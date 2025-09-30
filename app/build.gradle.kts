@@ -48,6 +48,10 @@ android {
             include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
         }
     }
+    sourceSets.getByName("main") {
+        java.srcDirs("src/main/java")
+        kotlin.srcDirs("src/main/java")
+    }
     buildFeatures {
         compose = true
     }
