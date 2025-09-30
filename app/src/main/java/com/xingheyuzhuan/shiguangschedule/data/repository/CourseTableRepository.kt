@@ -122,28 +122,43 @@ class CourseTableRepository(
             weekNumber = fromWeekNumber
         ).first()
 
-        // 2. 遍历并处理每一门课程
+        // 2. 收集所有需要插入的新课程和新周次记录
+        val newCoursesToInsert = mutableListOf<Course>()
+        val newCourseWeeksToInsert = mutableListOf<CourseWeek>()
+        val courseIdsToUpdate = mutableListOf<String>()
+
+        // 3. 遍历并处理每一门课程
         for (courseWithWeeks in coursesWithWeeksToMove) {
             val originalCourse = courseWithWeeks.course
-            val originalWeeks = courseWithWeeks.weeks.map { it.weekNumber }.toMutableList()
 
-            // 2a. 从原课程中移除被移动的周次
-            originalWeeks.remove(fromWeekNumber)
-            // 使用 courseWeekDao 的 updateCourseWeeks 方法更新周次
-            courseWeekDao.updateCourseWeeks(originalCourse.id, originalWeeks.map {
-                CourseWeek(courseId = originalCourse.id, weekNumber = it)
-            })
+            // 收集原始课程的ID，用于批量删除
+            courseIdsToUpdate.add(originalCourse.id)
 
-            // 2b. 创建新的课程和周次记录
+            // 创建新的课程
             val newCourse = originalCourse.copy(
-                id = UUID.randomUUID().toString(), // 新的唯一 ID
-                day = toDay // 设置为移动到的星期
+                id = UUID.randomUUID().toString(),
+                day = toDay
             )
+            // 创建新的周次记录
             val newCourseWeek = CourseWeek(courseId = newCourse.id, weekNumber = toWeekNumber)
 
-            // 2c. 插入新的课程和周次
-            courseDao.insertAll(listOf(newCourse))
-            courseWeekDao.insertAll(listOf(newCourseWeek))
+            // 将新数据添加到待插入列表中
+            newCoursesToInsert.add(newCourse)
+            newCourseWeeksToInsert.add(newCourseWeek)
+        }
+
+        // 4. 执行批量数据库操作
+        // 批量删除旧的周次记录
+        if (courseIdsToUpdate.isNotEmpty()) {
+            courseWeekDao.deleteCourseWeeksForCourseAndWeek(courseIdsToUpdate, fromWeekNumber)
+        }
+
+        // 批量插入新的课程和周次记录
+        if (newCoursesToInsert.isNotEmpty()) {
+            courseDao.insertAll(newCoursesToInsert)
+        }
+        if (newCourseWeeksToInsert.isNotEmpty()) {
+            courseWeekDao.insertAll(newCourseWeeksToInsert)
         }
     }
     /**

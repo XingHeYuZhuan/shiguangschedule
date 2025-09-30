@@ -41,4 +41,10 @@ interface CourseWeekDao {
      */
     @Query("DELETE FROM course_weeks WHERE courseId = :courseId")
     suspend fun deleteByCourseId(courseId: String)
+    /**
+     * 根据课程ID列表和周次，批量删除周次记录。
+     * 这是实现高效调课的关键方法。
+     */
+    @Query("DELETE FROM course_weeks WHERE courseId IN (:courseIds) AND weekNumber = :weekNumber")
+    suspend fun deleteCourseWeeksForCourseAndWeek(courseIds: List<String>, weekNumber: Int)
 }

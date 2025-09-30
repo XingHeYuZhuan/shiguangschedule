@@ -1,3 +1,4 @@
+// TweakScheduleViewModel.kt
 package com.xingheyuzhuan.shiguangschedule.ui.settings.tweaks
 
 import androidx.lifecycle.ViewModel
@@ -162,7 +163,14 @@ class TweakScheduleViewModel(
                         toDay = toDay
                     )
 
-                    _uiState.update { it.copy(isLoading = false, successMessage = "调课成功！") }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            successMessage = "调课成功！",
+                            fromDate = state.fromDate,
+                            toDate = state.toDate
+                        )
+                    }
                 } catch (e: Exception) {
                     _uiState.update { it.copy(isLoading = false, errorMessage = "调课失败：${e.message}") }
                 }
@@ -174,7 +182,9 @@ class TweakScheduleViewModel(
      * 重置消息状态，用于UI显示Toast后清除。
      */
     fun resetMessages() {
-        _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+        _uiState.update { currentState ->
+            currentState.copy(errorMessage = null, successMessage = null)
+        }
     }
 }
 
