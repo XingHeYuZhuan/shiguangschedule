@@ -49,6 +49,6 @@ jobs:
           name: app-release-apk
           # 上传未签名的 APK 文件。请根据您的项目结构调整实际路径！
           # 典型的路径是 app/build/outputs/apk/release/*.apk
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          path: app/build/outputs/apk/release/*.apk
           # 保留 7 天
           retention-days: 7
