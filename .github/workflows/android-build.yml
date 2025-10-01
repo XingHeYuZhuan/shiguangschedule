@@ -24,7 +24,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: 📦 设置 Gradle 缓存 (Cache Gradle Dependencies)
+      - name: 设置 Gradle 缓存 (Cache Gradle Dependencies)
         uses: actions/cache@v4
         with:
           # 缓存 ~/.gradle/caches 目录
