@@ -34,9 +34,9 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
 
           echo "KEYSTORE_FILE=release.jks" >> local.properties
-          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> local.properties
-          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> local.properties
-          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> local.properties
+          echo "KEYSTORE_PASSWORD=\"${{ secrets.KEYSTORE_PASSWORD }}\"" >> local.properties
+          echo "KEY_ALIAS=\"${{ secrets.KEY_ALIAS }}\"" >> local.properties
+          echo "KEY_PASSWORD=\"${{ secrets.KEY_PASSWORD }}\"" >> local.properties
 
       - name: 运行 Release 构建 (Build Release APK)
         run: |
