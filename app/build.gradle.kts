@@ -17,10 +17,10 @@ if (propertiesFile.exists()) {
     FileInputStream(propertiesFile).use { signingProperties.load(it) }
 }
 
-val keystoreFile = "release.jks" // 文件名通常是固定的
-val keystorePassword: String? = signingProperties.getProperty("storePassword")
-val keyAlias: String? = signingProperties.getProperty("keyAlias")
-val keyPassword: String? = signingProperties.getProperty("keyPassword")
+val keystoreFile = "release.jks"
+val keystorePassword: String? = signingProperties.getProperty("storePassword")?.trim()
+val keyAlias: String? = signingProperties.getProperty("keyAlias")?.trim()
+val keyPassword: String? = signingProperties.getProperty("keyPassword")?.trim()
 
 android {
     namespace = "com.xingheyuzhuan.shiguangschedule"

@@ -33,15 +33,11 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
 
-      - name: 写入签名属性文件 (Write Signing Properties) ⭐
+      - name: 写入签名属性文件
         run: |
-          KEY_ALIAS_CLEANED=$(echo "${{ secrets.KEY_ALIAS }}" | tr -d '[:space:]')
-          KEY_PASS_CLEANED=$(echo "${{ secrets.KEY_PASSWORD }}" | tr -d '[:space:]')
-          STORE_PASS_CLEANED=$(echo "${{ secrets.KEYSTORE_PASSWORD }}" | tr -d '[:space:]')
-
-          echo "keyAlias=${KEY_ALIAS_CLEANED}" > app/keystore.properties
-          echo "keyPassword=${KEY_PASS_CLEANED}" >> app/keystore.properties
-          echo "storePassword=${STORE_PASS_CLEANED}" >> app/keystore.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" > app/keystore.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> app/keystore.properties
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> app/keystore.properties
         shell: bash
 
       - name: 运行 Release 构建 (Build Release APK)
