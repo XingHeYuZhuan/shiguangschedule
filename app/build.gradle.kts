@@ -30,13 +30,20 @@ android {
     signingConfigs {
         create("release") {
             val isCiBuild = System.getenv("GITHUB_ACTIONS") == "true"
+            val keyFileExistsLocally = file("release.jks").exists()
 
-            if (isCiBuild || (keystorePassword != null && keyAlias != null && keyPassword != null)) {
+            if (isCiBuild || keyFileExistsLocally) {
 
-                storeFile = file(keystoreFile ?: "release.jks")
-                storePassword = keystorePassword!!
-                keyAlias = keyAlias!!
-                keyPassword = keyPassword!!
+                storeFile = file(keystoreFile.takeUnless { it.isNullOrEmpty() } ?: "release.jks")
+
+                storePassword = keystorePassword.takeUnless { it.isNullOrEmpty() }
+                    ?: throw IllegalStateException("Gradle 属性 'keyStorePassword' 缺失或为空。请检查您的 GitHub Secrets 和 YAML 配置。")
+
+                keyAlias = keyAlias.takeUnless { it.isNullOrEmpty() }
+                    ?: throw IllegalStateException("Gradle 属性 'keyAlias' 缺失或为空。请检查您的 GitHub Secrets 和 YAML 配置。")
+
+                keyPassword = keyPassword.takeUnless { it.isNullOrEmpty() }
+                    ?: throw IllegalStateException("Gradle 属性 'keyPassword' 缺失或为空。请检查您的 GitHub Secrets 和 YAML 配置。")
             }
         }
     }
