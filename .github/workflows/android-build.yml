@@ -33,24 +33,17 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
 
+      - name: 写入签名属性文件 (Write Signing Properties) ⭐
+        run: |
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" > app/keystore.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> app/keystore.properties
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> app/keystore.properties
+        shell: bash
+
       - name: 运行 Release 构建 (Build Release APK)
         run: |
           chmod +x ./gradlew
-
-          KEYSTORE_PASS_VAL="${{ secrets.KEYSTORE_PASSWORD }}"
-          KEY_ALIAS_VAL="${{ secrets.KEY_ALIAS }}"
-          KEY_PASS_VAL="${{ secrets.KEY_PASSWORD }}"
-          
-          echo "KEYSTORE_PASS_VAL length: ${#KEYSTORE_PASS_VAL}"
-          echo "KEY_ALIAS_VAL length: ${#KEY_ALIAS_VAL}"
-          echo "KEY_PASS_VAL length: ${#KEY_PASS_VAL}"
-
-          ./gradlew assembleRelease \
-            -PkeyStoreFile="release.jks" \
-            -PkeyStorePassword="$KEYSTORE_PASS_VAL" \
-            -PkeyAlias="$KEY_ALIAS_VAL" \
-            -PkeyPassword="$KEY_PASS_VAL" \
-            --stacktrace
+          ./gradlew assembleRelease --stacktrace 
 
       - name: 上传构建产物到仓库 (Upload Artifact)
         uses: actions/upload-artifact@v4

@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,12 +10,17 @@ plugins {
     alias(libs.plugins.gradle.license)
 }
 
-val keystoreFile: String? = project.findProperty("keyStoreFile") as String?
-val keystorePassword: String? = (project.properties["keyStorePassword"] as String?).takeUnless { it.isNullOrEmpty() } ?: project.findProperty("keyStorePassword") as String?
+val propertiesFile = project.rootProject.file("app/keystore.properties")
+val signingProperties = Properties()
 
-val keyAlias: String? = (project.properties["keyAlias"] as String?).takeUnless { it.isNullOrEmpty() } ?: project.findProperty("keyAlias") as String?
+if (propertiesFile.exists()) {
+    FileInputStream(propertiesFile).use { signingProperties.load(it) }
+}
 
-val keyPassword: String? = (project.properties["keyPassword"] as String?).takeUnless { it.isNullOrEmpty() } ?: project.findProperty("keyPassword") as String?
+val keystoreFile = "release.jks" // 文件名通常是固定的
+val keystorePassword: String? = signingProperties.getProperty("storePassword")
+val keyAlias: String? = signingProperties.getProperty("keyAlias")
+val keyPassword: String? = signingProperties.getProperty("keyPassword")
 
 android {
     namespace = "com.xingheyuzhuan.shiguangschedule"
@@ -28,22 +36,19 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
-        create("release") {
-            val isCiBuild = System.getenv("GITHUB_ACTIONS") == "true"
-            val keyFileExistsLocally = file("release.jks").exists()
+        signingConfigs {
+            create("release") {
 
-            if (isCiBuild || keyFileExistsLocally) {
+                storeFile = file(keystoreFile) // 直接使用固定的文件名
 
-                storeFile = file(keystoreFile.takeUnless { it.isNullOrEmpty() } ?: "release.jks")
+                storePassword = keystorePassword
+                    ?: throw IllegalStateException("Gradle 属性 'storePassword' 缺失。请检查 keystore.properties。")
 
-                storePassword = keystorePassword.takeUnless { it.isNullOrEmpty() }
-                    ?: throw IllegalStateException("Gradle 属性 'keyStorePassword' 缺失或为空。请检查您的 GitHub Secrets 和 YAML 配置。")
+                keyAlias = keyAlias
+                    ?: throw IllegalStateException("Gradle 属性 'keyAlias' 缺失。请检查 keystore.properties。")
 
-                keyPassword = keyPassword.takeUnless { it.isNullOrEmpty() }
-                    ?: throw IllegalStateException("Gradle 属性 'keyPassword' 缺失或为空。请检查您的 GitHub Secrets 和 YAML 配置。")
-
-                keyAlias = keyAlias.takeUnless { it.isNullOrEmpty() }
-                    ?: throw IllegalStateException("Gradle 属性 'keyAlias' 缺失或为空。请检查您的 GitHub Secrets 和 YAML 配置。")
+                keyPassword = keyPassword
+                    ?: throw IllegalStateException("Gradle 属性 'keyPassword' 缺失。请检查 keystore.properties。")
             }
         }
     }
