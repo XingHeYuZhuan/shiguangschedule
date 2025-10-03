@@ -39,7 +39,26 @@ jobs:
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> app/keystore.properties
           echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> app/keystore.properties
         shell: bash
+      - name: 🚨 检查 keystore.properties 文件内容 🚨
+        run: |
+          # 确认文件存在
+          if [ ! -f "app/keystore.properties" ]; then
+            echo "错误：keystore.properties 文件未创建！"
+            exit 1
+          fi
 
+          echo "--- 实际的 keystore.properties 文件内容（值已隐藏）---"
+          # 使用 sed 打印文件内容，但将值用 *** 替换以保护 Secret
+          # 同时确保能看到 keyAlias 是否存在
+          cat app/keystore.properties | sed -E 's/=(.*)/=***/g'
+          echo "--------------------------------------------------------"
+
+          # 强制检查 keyAlias 是否存在
+          if ! grep -q "keyAlias=" app/keystore.properties; then
+            echo "严重错误：文件内容中找不到 'keyAlias=' 这一行！"
+            exit 1
+          fi
+        shell: bash
       - name: 运行 Release 构建 (Build Release APK)
         run: |
           chmod +x ./gradlew
