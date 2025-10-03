@@ -1,5 +1,3 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -9,28 +7,12 @@ plugins {
     alias(libs.plugins.gradle.license)
 }
 
-fun loadProperties(): Properties {
-    val properties = Properties()
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        localPropertiesFile.inputStream().use { properties.load(it) }
-    }
-    return properties
-}
-
-val props = loadProperties()
-
+val keystoreFile: String? = project.findProperty("keyStoreFile") as String?
+val keystorePassword: String? = project.findProperty("keyStorePassword") as String?
 @Suppress("unused")
-val keystoreFile: String? = props.getProperty("KEYSTORE_FILE")
-
+val keyAlias: String? = project.findProperty("keyAlias") as String?
 @Suppress("unused")
-val keystorePassword: String? = props.getProperty("KEYSTORE_PASSWORD")
-
-@Suppress("unused")
-val keyAlias: String? = props.getProperty("KEY_ALIAS")
-
-@Suppress("unused")
-val keyPassword: String? = props.getProperty("KEY_PASSWORD")
+val keyPassword: String? = project.findProperty("keyPassword") as String?
 
 android {
     namespace = "com.xingheyuzhuan.shiguangschedule"
@@ -49,11 +31,9 @@ android {
         create("release") {
             val isCiBuild = System.getenv("GITHUB_ACTIONS") == "true"
 
-            val keyFileExistsLocally = file("release.jks").exists()
+            if (isCiBuild || (keystorePassword != null && keyAlias != null && keyPassword != null)) {
 
-            if (isCiBuild || (keyFileExistsLocally && keystorePassword != null && keyAlias != null && keyPassword != null)) {
-
-                storeFile = file("release.jks")
+                storeFile = file(keystoreFile ?: "release.jks")
                 storePassword = keystorePassword!!
                 keyAlias = keyAlias!!
                 keyPassword = keyPassword!!
@@ -67,7 +47,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            val isCiBuild = System.getenv("GITHUB_ACTIONS") == "true"
+            if (isCiBuild || keystorePassword != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
