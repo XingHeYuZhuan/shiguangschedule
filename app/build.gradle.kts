@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +8,29 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.gradle.license)
 }
+
+fun loadProperties(): Properties {
+    val properties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { properties.load(it) }
+    }
+    return properties
+}
+
+val props = loadProperties()
+
+@Suppress("unused")
+val keystoreFile: String? = props.getProperty("KEYSTORE_FILE")
+
+@Suppress("unused")
+val keystorePassword: String? = props.getProperty("KEYSTORE_PASSWORD")
+
+@Suppress("unused")
+val keyAlias: String? = props.getProperty("KEY_ALIAS")
+
+@Suppress("unused")
+val keyPassword: String? = props.getProperty("KEY_PASSWORD")
 
 android {
     namespace = "com.xingheyuzhuan.shiguangschedule"
@@ -20,7 +45,18 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    signingConfigs {
+        create("release") {
+            val keyFile = rootProject.file("app/${keystoreFile}")
 
+            if (keyFile.exists() && keystorePassword != null && keyAlias != null && keyPassword != null) {
+                storeFile = keyFile
+                storePassword = keystorePassword
+                keyAlias = keyAlias
+                keyPassword = keyPassword
+            }
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -28,6 +64,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
