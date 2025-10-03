@@ -21,16 +21,13 @@ if (propertiesFile.exists()) {
         propertiesFile.readLines(Charsets.UTF_8)
             .filter { it.isNotBlank() && !it.startsWith("#") }
             .forEach { line ->
-                // 使用正则表达式安全地分割键和值
                 val match = "(.+?)=(.*)".toRegex().matchEntire(line.trim())
                 if (match != null) {
-                    // ⭐ 关键修正 1：对键只使用标准的 trim()，确保键名匹配
-                    val key = match.groupValues[1].trim()
-                    // 对值使用更强的 cleanAndTrim()
+                    val key = match.groupValues[1].cleanAndTrim()
                     val value = match.groupValues[2].cleanAndTrim()
+
                     signingPropertiesMap[key] = value
 
-                    // 打印实际存储的键名，用于最终验证
                     println("DEBUG: 实际存储的键名: [$key] = [***]")
                 }
             }
@@ -93,7 +90,6 @@ android {
                 "proguard-rules.pro"
             )
             val isCiBuild = System.getenv("GITHUB_ACTIONS") == "true"
-            // 修正：只有当所有密钥都存在时才设置 signingConfig
             if (isCiBuild && keystorePassword != null && keyAlias != null && keyPassword != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
