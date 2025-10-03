@@ -40,6 +40,10 @@ jobs:
           KEYSTORE_PASS_VAL="${{ secrets.KEYSTORE_PASSWORD }}"
           KEY_ALIAS_VAL="${{ secrets.KEY_ALIAS }}"
           KEY_PASS_VAL="${{ secrets.KEY_PASSWORD }}"
+          
+          echo "KEYSTORE_PASS_VAL length: ${#KEYSTORE_PASS_VAL}"
+          echo "KEY_ALIAS_VAL length: ${#KEY_ALIAS_VAL}"
+          echo "KEY_PASS_VAL length: ${#KEY_PASS_VAL}"
 
           ./gradlew assembleRelease \
             -PkeyStoreFile="release.jks" \
