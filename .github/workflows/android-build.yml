@@ -35,7 +35,7 @@ jobs:
 
       - name: 写入签名属性文件 (Write Signing Properties)
         run: |
-          printf "keyAlias=%s\nkeyPassword=%s\nstorePassword=%s\n" \
+          printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\n" \
             "${{ secrets.KEYSTORE_PASSWORD }}" \
             "${{ secrets.KEY_PASSWORD }}" \
             "${{ secrets.KEY_ALIAS }}" > app/keystore.properties

@@ -1,7 +1,3 @@
-import java.io.FileInputStream
-import java.io.InputStreamReader
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -11,21 +7,37 @@ plugins {
     alias(libs.plugins.gradle.license)
 }
 
+fun String.cleanAndTrim(): String {
+    return this.replace("\\p{Cntrl}".toRegex(), "").trim()
+}
+
 val propertiesFile = project.file("keystore.properties")
-val signingProperties = Properties()
+val signingPropertiesMap = mutableMapOf<String, String>()
 
 if (propertiesFile.exists()) {
-    FileInputStream(propertiesFile).use { fileInputStream ->
-        InputStreamReader(fileInputStream, Charsets.UTF_8).use { reader ->
-            signingProperties.load(reader)
-        }
+    try {
+        propertiesFile.readLines(Charsets.UTF_8)
+            .filter { it.isNotBlank() && !it.startsWith("#") }
+            .forEach { line ->
+                val match = "(.+?)=(.*)".toRegex().matchEntire(line.trim())
+                if (match != null) {
+                    val key = match.groupValues[1].cleanAndTrim()
+                    val value = match.groupValues[2].cleanAndTrim()
+                    signingPropertiesMap[key] = value
+                    println("DEBUG: 成功解析键值对: [$key] = [***]")
+                }
+            }
+    } catch (e: Exception) {
+        println("ERROR: 手动读取 keystore.properties 失败: ${e.message}")
+        throw e
     }
 }
 
+// 从手动解析的 Map 中获取值
 val keystoreFile = "release.jks"
-val keystorePassword: String? = signingProperties.getProperty("storePassword")?.trim()
-val keyAlias: String? = signingProperties.getProperty("keyAlias")?.trim()
-val keyPassword: String? = signingProperties.getProperty("keyPassword")?.trim()
+val keystorePassword: String? = signingPropertiesMap["storePassword"]
+val keyAlias: String? = signingPropertiesMap["keyAlias"]
+val keyPassword: String? = signingPropertiesMap["keyPassword"]
 android {
     namespace = "com.xingheyuzhuan.shiguangschedule"
     compileSdk = 36
