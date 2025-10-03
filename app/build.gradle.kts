@@ -37,13 +37,20 @@ if (propertiesFile.exists()) {
     }
 }
 
-// 从手动解析的 Map 中获取值
 val keystoreFile = "release.jks"
 
-println("DEBUG: Map 中所有实际的键: ${signingPropertiesMap.keys}")
-val keystorePassword: String? = signingPropertiesMap["storePassword"]
-val keyAlias: String? = signingPropertiesMap["keyAlias"]
-val keyPassword: String? = signingPropertiesMap["keyPassword"]
+// ⭐ 最终的终极查找函数：使用迭代器而非索引，确保取值成功
+fun getSigningValue(keyName: String, map: Map<String, String>): String? {
+    // 强制使用 Map 迭代器查找与键名匹配的键，确保绕过索引 bug
+    val foundKey = map.keys.firstOrNull { it == keyName }
+
+    // 如果找到键，则返回 Map 中的值
+    return foundKey?.let { map[it] }
+}
+
+val keystorePassword: String? = getSigningValue("storePassword", signingPropertiesMap)
+val keyAlias: String? = getSigningValue("keyAlias", signingPropertiesMap)
+val keyPassword: String? = getSigningValue("keyPassword", signingPropertiesMap)
 
 android {
     namespace = "com.xingheyuzhuan.shiguangschedule"
@@ -59,11 +66,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // ⭐ 关键修正 2：移除重复的 signingConfigs 块！
     signingConfigs {
         create("release") {
             // 调试输出
-            println("--- DEBUG SIGNING CONFIGS (最终验证) ---")
+            println("--- DEBUG SIGNING CONFIGS (最终验证 - 强制查找) ---")
             println("keystoreFile: [${keystoreFile}]")
             println("keystorePassword (storePassword): [${keystorePassword}]")
             println("keyAlias: [${keyAlias}]")
