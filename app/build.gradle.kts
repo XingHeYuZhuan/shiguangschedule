@@ -47,13 +47,16 @@ android {
     }
     signingConfigs {
         create("release") {
-            val keyFile = rootProject.file("app/${keystoreFile}")
+            val isCiBuild = System.getenv("GITHUB_ACTIONS") == "true"
 
-            if (keyFile.exists() && keystorePassword != null && keyAlias != null && keyPassword != null) {
-                storeFile = keyFile
-                storePassword = keystorePassword
-                keyAlias = keyAlias
-                keyPassword = keyPassword
+            val keyFileExistsLocally = file("release.jks").exists()
+
+            if (isCiBuild || (keyFileExistsLocally && keystorePassword != null && keyAlias != null && keyPassword != null)) {
+
+                storeFile = file("release.jks")
+                storePassword = keystorePassword!!
+                keyAlias = keyAlias!!
+                keyPassword = keyPassword!!
             }
         }
     }
