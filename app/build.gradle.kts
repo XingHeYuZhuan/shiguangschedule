@@ -19,8 +19,6 @@ if (propertiesFile.exists()) {
                     val key = match.groupValues[1].trim()
                     val value = match.groupValues[2].trim()
                     project.extra.set(key, value)
-
-                    println("DEBUG: 实际存储的 Extra 键和值: [$key] = [${value}]")
                 }
             }
     } catch (e: Exception) {
@@ -47,7 +45,6 @@ android {
 
     signingConfigs {
         create("release") {
-            // ⭐ 关键：直接从 project.extra 获取值，确保绕过 KTS 变量问题
             val storePasswordValue = if (project.extra.has("storePassword"))
                 project.extra["storePassword"] as? String else null
             val keyAliasValue = if (project.extra.has("keyAlias"))
@@ -55,17 +52,8 @@ android {
             val keyPasswordValue = if (project.extra.has("keyPassword"))
                 project.extra["keyPassword"] as? String else null
 
-            // 调试输出
-            println("--- DEBUG SIGNING CONFIGS (最终验证 - Extra) ---")
-            println("keystoreFile: [${keystoreFile}]")
-            println("keystorePassword (storePassword): [${storePasswordValue}]")
-            println("keyAlias: [${keyAliasValue}]")
-            println("keyPassword: [${keyPasswordValue}]")
-            println("----------------------------------------------")
+            storeFile = file(keystoreFile)
 
-            storeFile = file(keystoreFile) // 直接使用固定的文件名
-
-            // 检查值是否为 null 或空白字符 (isEmpty() 和 isBlank() 都检查)
             storePassword = storePasswordValue
                 ?.takeIf { it.isNotBlank() }
                 ?: throw IllegalStateException("Gradle 属性 'storePassword' 缺失。请检查 keystore.properties。")
