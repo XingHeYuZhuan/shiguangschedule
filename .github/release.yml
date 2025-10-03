@@ -1,33 +1,9 @@
 changelog:
   exclude:
-    # 排除不需要出现在最终发布说明中的 PR 标签
     labels:
-      - 'skip-changelog' # 用于跳过不重要的内部维护 PR
-      - 'duplicate'
-      - 'invalid'
+      - 'skip-changelog' # 只需要控制这个标签，用于隐藏不想展示的 PR
 
   categories:
-    - title: 🎉 新特性与功能增强 (Features & Enhancements)
-      labels:
-        - 'feature'
-        - 'enhancement'
-        - 'feat' # 常用 Git Conventional Commit 标签
-
-    # ⭐️ 类别 2: Bug 修复
-    - title: 🛠️ Bug 修复 (Bug Fixes)
-      labels:
-        - 'bug'
-        - 'fix' # 常用 Git Conventional Commit 标签
-
-    # 类别 3: 重构、文档和性能优化
-    - title: ⚙️ 维护和底层优化 (Maintenance & Optimization)
-      labels:
-        - 'refactor'
-        - 'perf'
-        - 'ci/cd'
-        - 'documentation'
-
-    # 类别 4: 其他改动 (捕获所有未被分类的 PR)
-    - title: 📜 其他改动 (Other Changes)
+    - title: 📝 本版本核心更新内容 (Key Updates in This Version)
       labels:
         - '*'

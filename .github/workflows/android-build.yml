@@ -1,18 +1,14 @@
-# GitHub Actions 工作流名称
 name: Android CI Build
 
-# 触发工作流的事件
-# 使用 workflow_dispatch 启用手动触发
 on:
   workflow_dispatch:
 
-# 定义工作流中的任务
 jobs:
   build:
-    # 任务运行的操作系统环境
+    environment: Release-Signing
+
     runs-on: ubuntu-latest
 
-    # 步骤
     steps:
       - name: 检出代码 (Checkout)
         uses: actions/checkout@v4
@@ -20,14 +16,12 @@ jobs:
       - name: 设置 JDK 21 (Setup JDK)
         uses: actions/setup-java@v4
         with:
-          # 根据您的 build.gradle.kts，使用 Java 21
           distribution: 'temurin'
           java-version: '21'
 
       - name: 设置 Gradle 缓存 (Cache Gradle Dependencies)
         uses: actions/cache@v4
         with:
-          # 缓存 ~/.gradle/caches 目录
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
@@ -35,20 +29,23 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: 配置 Android 签名密钥 (Configure Signing Key)
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
+
+          echo "KEYSTORE_FILE=release.jks" >> local.properties
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> local.properties
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> local.properties
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> local.properties
+
       - name: 运行 Release 构建 (Build Release APK)
         run: |
-          # 赋予 Gradle Wrapper 执行权限
           chmod +x ./gradlew
-          # 运行 assembleRelease 任务来生成 Release 版本的 APK
-          ./gradlew assembleRelease --info
+          ./gradlew assembleRelease
 
       - name: 上传构建产物到仓库 (Upload Artifact)
         uses: actions/upload-artifact@v4
         with:
-          # Artifact 的名称，您可以在 Actions 页面下载
           name: app-release-apk
-          # 上传未签名的 APK 文件。请根据您的项目结构调整实际路径！
-          # 典型的路径是 app/build/outputs/apk/release/*.apk
           path: app/build/outputs/apk/release/*.apk
-          # 保留 7 天
           retention-days: 7
