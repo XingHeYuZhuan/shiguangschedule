@@ -33,11 +33,12 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
 
-      - name: 写入签名属性文件
+      - name: 写入签名属性文件 (Write Signing Properties)
         run: |
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" > app/keystore.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> app/keystore.properties
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> app/keystore.properties
+          printf "keyAlias=%s\nkeyPassword=%s\nstorePassword=%s\n" \
+            "${{ secrets.KEY_ALIAS }}" \
+            "${{ secrets.KEY_PASSWORD }}" \
+            "${{ secrets.KEYSTORE_PASSWORD }}" > app/keystore.properties
         shell: bash
       - name: 🚨 检查 keystore.properties 文件内容 🚨
         run: |

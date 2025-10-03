@@ -1,4 +1,5 @@
 import java.io.FileInputStream
+import java.io.InputStreamReader
 import java.util.Properties
 
 plugins {
@@ -10,18 +11,21 @@ plugins {
     alias(libs.plugins.gradle.license)
 }
 
-val propertiesFile = project.rootProject.file("app/keystore.properties")
+val propertiesFile = project.file("keystore.properties")
 val signingProperties = Properties()
 
 if (propertiesFile.exists()) {
-    FileInputStream(propertiesFile).use { signingProperties.load(it) }
+    FileInputStream(propertiesFile).use { fileInputStream ->
+        InputStreamReader(fileInputStream, Charsets.UTF_8).use { reader ->
+            signingProperties.load(reader)
+        }
+    }
 }
 
 val keystoreFile = "release.jks"
 val keystorePassword: String? = signingProperties.getProperty("storePassword")?.trim()
 val keyAlias: String? = signingProperties.getProperty("keyAlias")?.trim()
 val keyPassword: String? = signingProperties.getProperty("keyPassword")?.trim()
-
 android {
     namespace = "com.xingheyuzhuan.shiguangschedule"
     compileSdk = 36
