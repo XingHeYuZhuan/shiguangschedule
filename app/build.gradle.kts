@@ -42,6 +42,12 @@ android {
     signingConfigs {
         signingConfigs {
             create("release") {
+                println("--- DEBUG SIGNING CONFIGS ---")
+                println("keystoreFile: [${keystoreFile}]")
+                println("keystorePassword (storePassword): [${keystorePassword}]")
+                println("keyAlias: [${keyAlias}]")
+                println("keyPassword: [${keyPassword}]")
+                println("-----------------------------")
 
                 storeFile = file(keystoreFile) // 直接使用固定的文件名
 
