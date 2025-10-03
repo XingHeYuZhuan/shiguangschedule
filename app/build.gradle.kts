@@ -7,14 +7,7 @@ plugins {
     alias(libs.plugins.gradle.license)
 }
 
-// 定义清理函数，仅用于清理值，防止 Secret 包含不可见字符
-fun String.cleanAndTrim(): String {
-    // 移除所有控制字符（\p{Cntrl}），然后进行标准 trim()
-    return this.replace("\\p{Cntrl}".toRegex(), "").trim()
-}
-
 val propertiesFile = project.file("keystore.properties")
-val signingPropertiesMap = mutableMapOf<String, String>()
 
 if (propertiesFile.exists()) {
     try {
@@ -23,15 +16,11 @@ if (propertiesFile.exists()) {
             .forEach { line ->
                 val match = "(.+?)=(.*)".toRegex().matchEntire(line.trim())
                 if (match != null) {
-                    // ⭐ 终极修正：对键和值都只使用标准的 .trim()
                     val key = match.groupValues[1].trim()
-                    // 注意：这里不再调用 cleanAndTrim()，仅使用标准 trim()
                     val value = match.groupValues[2].trim()
+                    project.extra.set(key, value)
 
-                    signingPropertiesMap[key] = value
-
-                    // ⭐ 打印实际值（不再隐藏）
-                    println("DEBUG: 实际存储的键名和值: [$key] = [$value]")
+                    println("DEBUG: 实际存储的 Extra 键和值: [$key] = [${value}]")
                 }
             }
     } catch (e: Exception) {
@@ -41,19 +30,6 @@ if (propertiesFile.exists()) {
 }
 
 val keystoreFile = "release.jks"
-
-// ⭐ 最终的终极查找函数：使用迭代器而非索引，确保取值成功
-fun getSigningValue(keyName: String, map: Map<String, String>): String? {
-    // 强制使用 Map 迭代器查找与键名匹配的键，确保绕过索引 bug
-    val foundKey = map.keys.firstOrNull { it == keyName }
-
-    // 如果找到键，则返回 Map 中的值
-    return foundKey?.let { map[it] }
-}
-
-val keystorePassword: String? = getSigningValue("storePassword", signingPropertiesMap)
-val keyAlias: String? = getSigningValue("keyAlias", signingPropertiesMap)
-val keyPassword: String? = getSigningValue("keyPassword", signingPropertiesMap)
 
 android {
     namespace = "com.xingheyuzhuan.shiguangschedule"
@@ -71,23 +47,35 @@ android {
 
     signingConfigs {
         create("release") {
+            // ⭐ 关键：直接从 project.extra 获取值，确保绕过 KTS 变量问题
+            val storePasswordValue = if (project.extra.has("storePassword"))
+                project.extra["storePassword"] as? String else null
+            val keyAliasValue = if (project.extra.has("keyAlias"))
+                project.extra["keyAlias"] as? String else null
+            val keyPasswordValue = if (project.extra.has("keyPassword"))
+                project.extra["keyPassword"] as? String else null
+
             // 调试输出
-            println("--- DEBUG SIGNING CONFIGS (最终验证 - 强制查找) ---")
+            println("--- DEBUG SIGNING CONFIGS (最终验证 - Extra) ---")
             println("keystoreFile: [${keystoreFile}]")
-            println("keystorePassword (storePassword): [${keystorePassword}]")
-            println("keyAlias: [${keyAlias}]")
-            println("keyPassword: [${keyPassword}]")
+            println("keystorePassword (storePassword): [${storePasswordValue}]")
+            println("keyAlias: [${keyAliasValue}]")
+            println("keyPassword: [${keyPasswordValue}]")
             println("----------------------------------------------")
 
             storeFile = file(keystoreFile) // 直接使用固定的文件名
 
-            storePassword = keystorePassword
+            // 检查值是否为 null 或空白字符 (isEmpty() 和 isBlank() 都检查)
+            storePassword = storePasswordValue
+                ?.takeIf { it.isNotBlank() }
                 ?: throw IllegalStateException("Gradle 属性 'storePassword' 缺失。请检查 keystore.properties。")
 
-            keyAlias = keyAlias
+            keyAlias = keyAliasValue
+                ?.takeIf { it.isNotBlank() }
                 ?: throw IllegalStateException("Gradle 属性 'keyAlias' 缺失。请检查 keystore.properties。")
 
-            keyPassword = keyPassword
+            keyPassword = keyPasswordValue
+                ?.takeIf { it.isNotBlank() }
                 ?: throw IllegalStateException("Gradle 属性 'keyPassword' 缺失。请检查 keystore.properties。")
         }
     }
@@ -100,7 +88,8 @@ android {
                 "proguard-rules.pro"
             )
             val isCiBuild = System.getenv("GITHUB_ACTIONS") == "true"
-            if (isCiBuild && keystorePassword != null && keyAlias != null && keyPassword != null) {
+            // 检查 Extra 属性是否存在且不为空白
+            if (isCiBuild && project.extra.has("keyAlias")) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
