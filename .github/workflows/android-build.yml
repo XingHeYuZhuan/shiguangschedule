@@ -36,9 +36,9 @@ jobs:
       - name: 写入签名属性文件 (Write Signing Properties)
         run: |
           printf "keyAlias=%s\nkeyPassword=%s\nstorePassword=%s\n" \
-            "${{ secrets.KEY_ALIAS }}" \
+            "${{ secrets.KEYSTORE_PASSWORD }}" \
             "${{ secrets.KEY_PASSWORD }}" \
-            "${{ secrets.KEYSTORE_PASSWORD }}" > app/keystore.properties
+            "${{ secrets.KEY_ALIAS }}" > app/keystore.properties
         shell: bash
       - name: 🚨 检查 keystore.properties 文件内容 🚨
         run: |
