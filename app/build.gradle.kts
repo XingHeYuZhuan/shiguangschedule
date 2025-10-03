@@ -39,7 +39,8 @@ if (propertiesFile.exists()) {
 
 // 从手动解析的 Map 中获取值
 val keystoreFile = "release.jks"
-// 确保这里的键名与 Map 中存储的键名完全一致 (例如: "keyAlias", "storePassword")
+
+println("DEBUG: Map 中所有实际的键: ${signingPropertiesMap.keys}")
 val keystorePassword: String? = signingPropertiesMap["storePassword"]
 val keyAlias: String? = signingPropertiesMap["keyAlias"]
 val keyPassword: String? = signingPropertiesMap["keyPassword"]
