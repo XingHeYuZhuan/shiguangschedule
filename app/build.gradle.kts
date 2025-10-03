@@ -8,11 +8,13 @@ plugins {
 }
 
 val keystoreFile: String? = project.findProperty("keyStoreFile") as String?
-val keystorePassword: String? = project.findProperty("keyStorePassword") as String?
+val keystorePassword: String? = (project.properties["keyStorePassword"] as String?).takeUnless { it.isNullOrEmpty() } ?: project.findProperty("keyStorePassword") as String?
+
 @Suppress("unused")
-val keyAlias: String? = project.findProperty("keyAlias") as String?
+val keyAlias: String? = (project.properties["keyAlias"] as String?).takeUnless { it.isNullOrEmpty() } ?: project.findProperty("keyAlias") as String?
+
 @Suppress("unused")
-val keyPassword: String? = project.findProperty("keyPassword") as String?
+val keyPassword: String? = (project.properties["keyPassword"] as String?).takeUnless { it.isNullOrEmpty() } ?: project.findProperty("keyPassword") as String?
 
 android {
     namespace = "com.xingheyuzhuan.shiguangschedule"
@@ -39,11 +41,11 @@ android {
                 storePassword = keystorePassword.takeUnless { it.isNullOrEmpty() }
                     ?: throw IllegalStateException("Gradle 属性 'keyStorePassword' 缺失或为空。请检查您的 GitHub Secrets 和 YAML 配置。")
 
-                keyAlias = keyAlias.takeUnless { it.isNullOrEmpty() }
-                    ?: throw IllegalStateException("Gradle 属性 'keyAlias' 缺失或为空。请检查您的 GitHub Secrets 和 YAML 配置。")
-
                 keyPassword = keyPassword.takeUnless { it.isNullOrEmpty() }
                     ?: throw IllegalStateException("Gradle 属性 'keyPassword' 缺失或为空。请检查您的 GitHub Secrets 和 YAML 配置。")
+
+                keyAlias = keyAlias.takeUnless { it.isNullOrEmpty() }
+                    ?: throw IllegalStateException("Gradle 属性 'keyAlias' 缺失或为空。请检查您的 GitHub Secrets 和 YAML 配置。")
             }
         }
     }
