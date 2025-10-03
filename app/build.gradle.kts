@@ -23,12 +23,15 @@ if (propertiesFile.exists()) {
             .forEach { line ->
                 val match = "(.+?)=(.*)".toRegex().matchEntire(line.trim())
                 if (match != null) {
-                    val key = match.groupValues[1].cleanAndTrim()
-                    val value = match.groupValues[2].cleanAndTrim()
+                    // ⭐ 终极修正：对键和值都只使用标准的 .trim()
+                    val key = match.groupValues[1].trim()
+                    // 注意：这里不再调用 cleanAndTrim()，仅使用标准 trim()
+                    val value = match.groupValues[2].trim()
 
                     signingPropertiesMap[key] = value
 
-                    println("DEBUG: 实际存储的键名: [$key] = [***]")
+                    // ⭐ 打印实际值（不再隐藏）
+                    println("DEBUG: 实际存储的键名和值: [$key] = [$value]")
                 }
             }
     } catch (e: Exception) {
