@@ -10,10 +10,8 @@ plugins {
 val keystoreFile: String? = project.findProperty("keyStoreFile") as String?
 val keystorePassword: String? = (project.properties["keyStorePassword"] as String?).takeUnless { it.isNullOrEmpty() } ?: project.findProperty("keyStorePassword") as String?
 
-@Suppress("unused")
 val keyAlias: String? = (project.properties["keyAlias"] as String?).takeUnless { it.isNullOrEmpty() } ?: project.findProperty("keyAlias") as String?
 
-@Suppress("unused")
 val keyPassword: String? = (project.properties["keyPassword"] as String?).takeUnless { it.isNullOrEmpty() } ?: project.findProperty("keyPassword") as String?
 
 android {
