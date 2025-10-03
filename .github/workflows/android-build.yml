@@ -34,17 +34,18 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
 
       - name: 运行 Release 构建 (Build Release APK)
-        env:
-          KEYSTORE_PASS_ENV: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS_ENV: ${{ secrets.KEY_ALIAS }}
-          KEY_PASS_ENV: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x ./gradlew
+
+          KEYSTORE_PASS_VAL="${{ secrets.KEYSTORE_PASSWORD }}"
+          KEY_ALIAS_VAL="${{ secrets.KEY_ALIAS }}"
+          KEY_PASS_VAL="${{ secrets.KEY_PASSWORD }}"
+
           ./gradlew assembleRelease \
             -PkeyStoreFile="release.jks" \
-            -PkeyStorePassword="$KEYSTORE_PASS_ENV" \
-            -PkeyAlias="$KEY_ALIAS_ENV" \
-            -PkeyPassword="$KEY_PASS_ENV" \
+            -PkeyStorePassword="$KEYSTORE_PASS_VAL" \
+            -PkeyAlias="$KEY_ALIAS_VAL" \
+            -PkeyPassword="$KEY_PASS_VAL" \
             --stacktrace
 
       - name: 上传构建产物到仓库 (Upload Artifact)
