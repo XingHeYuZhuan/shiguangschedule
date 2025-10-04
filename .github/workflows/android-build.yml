@@ -25,6 +25,7 @@ jobs:
           ref: 'main'
           path: 'app/src/main/assets/offline_repo'
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: 设置 JDK 21 (Setup JDK)
         uses: actions/setup-java@v4
