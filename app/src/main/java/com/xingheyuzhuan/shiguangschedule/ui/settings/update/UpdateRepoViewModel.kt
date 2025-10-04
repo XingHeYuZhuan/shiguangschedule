@@ -33,7 +33,7 @@ open class UpdateRepoViewModel(
         val currentEditableUrl: String = "",
         val currentEditableBranch: String = "",
 
-        // 【新增 1】凭证的编辑状态
+        // 凭证的编辑状态
         val currentEditableUsername: String = "",
         val currentEditablePassword: String = "" // 密码或 Token Value
     )
@@ -61,7 +61,7 @@ open class UpdateRepoViewModel(
                     selectedRepo = defaultRepo,
                     currentEditableUrl = defaultRepo?.url ?: "",
                     currentEditableBranch = defaultRepo?.branch ?: "",
-                    // 【修改 2】初始化时填充凭证编辑字段
+                    // 初始化时填充凭证编辑字段
                     currentEditableUsername = getCredentialValue("username"),
                     currentEditablePassword = getCredentialValue("password")
                 )
@@ -82,7 +82,7 @@ open class UpdateRepoViewModel(
             selectedRepo = repo,
             currentEditableUrl = repo.url,
             currentEditableBranch = repo.branch,
-            // 【修改 3】切换仓库时，同步凭证信息
+            // 切换仓库时，同步凭证信息
             currentEditableUsername = getCredentialValue("username"),
             currentEditablePassword = getCredentialValue("password")
         )
@@ -98,12 +98,12 @@ open class UpdateRepoViewModel(
         _uiState.value = _uiState.value.copy(currentEditableBranch = branch)
     }
 
-    // 【新增 4】更新当前编辑的 Username/Token Key
+    // 更新当前编辑的 Username/Token Key
     fun updateCurrentUsername(username: String) {
         _uiState.value = _uiState.value.copy(currentEditableUsername = username)
     }
 
-    // 【新增 4】更新当前编辑的 Password/Token Value
+    // 更新当前编辑的 Password/Token Value
     fun updateCurrentPassword(password: String) {
         _uiState.value = _uiState.value.copy(currentEditablePassword = password)
     }
@@ -114,7 +114,6 @@ open class UpdateRepoViewModel(
         val originalRepo = currentState.selectedRepo ?: return
         if (currentState.isUpdating) return
 
-        // 【修改 5】核心逻辑：构建用于更新的 RepositoryInfo
         val repoToUpdate = if (originalRepo.editable) {
 
             // 只有私有仓库才需要凭证，且只有在用户输入不为空时才设置
@@ -130,7 +129,6 @@ open class UpdateRepoViewModel(
             originalRepo.copy(
                 url = currentState.currentEditableUrl,
                 branch = currentState.currentEditableBranch,
-                // 【修改 5.1】将用户输入的凭证加入到 repoToUpdate 对象中
                 credentials = newCredentials
             )
         } else {
@@ -157,16 +155,12 @@ open class UpdateRepoViewModel(
 }
 
 object UpdateRepoViewModelFactory : ViewModelProvider.Factory {
-    // ... (此部分保持不变)
     override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
-        // 2. 使用 checkNotNull(extras[...]) 安全地从 extras 中获取 Application
         val application = checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY])
 
         if (modelClass.isAssignableFrom(UpdateRepoViewModel::class.java)) {
             val gitUpdater = GitUpdater(application.applicationContext)
             val gitRepository: GitRepository = GitRepositoryImpl(gitUpdater)
-
-            // 3. 依赖（如 assets.open）的获取都在 Factory 内部完成
             val jsonInputStream: InputStream = application.assets.open("git_repos.json")
 
             @Suppress("UNCHECKED_CAST")
