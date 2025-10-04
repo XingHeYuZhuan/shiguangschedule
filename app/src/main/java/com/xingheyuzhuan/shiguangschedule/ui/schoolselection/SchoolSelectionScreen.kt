@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -50,6 +51,7 @@ import androidx.navigation.NavController
 import com.xingheyuzhuan.shiguangschedule.Screen
 import com.xingheyuzhuan.shiguangschedule.data.SchoolRepository
 import com.xingheyuzhuan.shiguangschedule.data.model.School
+import com.xingheyuzhuan.shiguangschedule.data.model.SchoolCategory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -66,19 +68,31 @@ fun SchoolSelectionScreen(
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
+    // 当前选中的类别，默认为本科/专科
+    var selectedCategory by remember { mutableStateOf(SchoolCategory.BACHELOR_AND_ASSOCIATE) }
+
     LaunchedEffect(Unit) {
         allSchools = SchoolRepository.getSchools(context)
     }
 
-    val filteredSchools = remember(allSchools, searchQuery) {
-        if (searchQuery.isBlank()) {
-            allSchools
-        } else {
-            allSchools.filter {
-                it.name.contains(searchQuery, ignoreCase = true) ||
-                        it.initial.contains(searchQuery, ignoreCase = true)
+    // 过滤逻辑现在依赖于 allSchools, searchQuery, 和 selectedCategory
+    val filteredSchools = remember(allSchools, searchQuery, selectedCategory) {
+        allSchools
+            // 1. 优先按选中的类别进行过滤
+            .filter { it.category == selectedCategory }
+            // 2. 然后对该类别的学校应用搜索查询
+            .let { categoryFiltered ->
+                if (searchQuery.isBlank()) {
+                    categoryFiltered
+                } else {
+                    categoryFiltered.filter {
+                        it.name.contains(searchQuery, ignoreCase = true) ||
+                                it.initial.contains(searchQuery, ignoreCase = true)
+                    }
+                }
             }
-        }.sortedBy { it.initial.uppercase() + it.name }
+            // 3. 最后按首字母排序
+            .sortedBy { it.initial.uppercase() + it.name }
     }
 
     val initials = remember(filteredSchools) {
@@ -87,7 +101,6 @@ fun SchoolSelectionScreen(
 
     Scaffold(
         topBar = {
-            // 将 SearchBarWithTitle 及其内容放在这里
             SearchBarWithTitle(
                 navController = navController,
                 searchQuery = searchQuery,
@@ -99,18 +112,27 @@ fun SchoolSelectionScreen(
                 filteredSchools = filteredSchools
             ) { selectedSchool ->
                 navController.navigate(Screen.WebView.createRoute(selectedSchool.id))
-                searchActive = false // 点击后收起搜索栏
-                searchQuery = "" // 清空搜索文本
+                searchActive = false
+                searchQuery = ""
             }
         }
     ) { paddingValues ->
-        // 只有当搜索栏不激活时才显示完整列表和字母索引
         if (!searchActive) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
+                // 类别选择器
+                CategoryTabs(
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = { category ->
+                        selectedCategory = category
+                        // 切换类别时，将列表滚动到顶部，提升用户体验
+                        coroutineScope.launch { lazyListState.scrollToItem(0) }
+                    }
+                )
+
                 if (allSchools.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -119,50 +141,124 @@ fun SchoolSelectionScreen(
                         Text("正在加载学校数据...", style = MaterialTheme.typography.bodyLarge)
                     }
                 } else {
-                    Row(modifier = Modifier.fillMaxSize()) {
-                        LazyColumn(
-                            state = lazyListState,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                    if (filteredSchools.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            var currentInitial = ""
-                            filteredSchools.forEach { school ->
-                                val initial = school.initial.uppercase()
-                                if (initial != currentInitial) {
-                                    stickyHeader {
-                                        Text(
-                                            text = initial,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .background(MaterialTheme.colorScheme.surface)
-                                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                        )
+                            Text(
+                                "当前类别暂无适配，请选择其他类别或检查数据源。",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 24.dp)
+                            )
+                        }
+                    } else {
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            LazyColumn(
+                                state = lazyListState,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                var currentInitial = ""
+                                filteredSchools.forEach { school ->
+                                    val initial = school.initial.uppercase()
+                                    if (initial != currentInitial) {
+                                        stickyHeader {
+                                            Text(
+                                                text = initial,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(MaterialTheme.colorScheme.surface)
+                                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                            )
+                                        }
+                                        currentInitial = initial
                                     }
-                                    currentInitial = initial
-                                }
-                                item {
-                                    SchoolItem(school = school) { selectedSchool ->
-                                        navController.navigate(Screen.WebView.createRoute(selectedSchool.id))
+                                    item {
+                                        SchoolItem(school = school) { selectedSchool ->
+                                            navController.navigate(Screen.WebView.createRoute(selectedSchool.id))
+                                        }
                                     }
                                 }
                             }
+                            AlphabetIndex(
+                                initials = initials,
+                                lazyListState = lazyListState,
+                                coroutineScope = coroutineScope,
+                                filteredSchools = filteredSchools
+                            )
                         }
-                        AlphabetIndex(
-                            initials = initials,
-                            lazyListState = lazyListState,
-                            coroutineScope = coroutineScope,
-                            filteredSchools = filteredSchools
-                        )
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * 类别选择器，将宽度均分为三个部分，使用扁平标签页样式。
+ */
+@Composable
+fun CategoryTabs(
+    selectedCategory: SchoolCategory,
+    onCategorySelected: (SchoolCategory) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(vertical = 4.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // 遍历所有类别
+            SchoolCategory.entries.forEach { category ->
+                val isSelected = category == selectedCategory
+
+                val backgroundColor = if (isSelected) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    androidx.compose.ui.graphics.Color.Transparent
+                }
+
+                val textColor = if (isSelected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(backgroundColor, shape = MaterialTheme.shapes.small)
+                        .clickable { onCategorySelected(category) }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = category.displayName,
+                        color = textColor,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant)
+        )
     }
 }
 
@@ -229,7 +325,7 @@ fun SearchBarWithTitle(
         expanded = searchActive,
         onExpandedChange = onSearchActiveChange,
     ) {
-        // 搜索结果内容（这里保持不变）
+        // 搜索结果内容
         if (filteredSchools.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
