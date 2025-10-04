@@ -1,33 +1,27 @@
-# GitHub Actions 工作流名称
-name: Android Main Build
+name: Android CI Build
 
-# 触发工作流的事件
 on:
-  # 💥 启用手动触发。当代码推送到 main 分支时，此工作流不会自动运行。
   workflow_dispatch:
 
-# 定义工作流中的任务
 jobs:
-  build_main:
-    # 任务运行的操作系统环境
+  build:
+    environment: Release-Signing
+
     runs-on: ubuntu-latest
 
-    # 步骤
     steps:
-      - name: 🔔 检出代码 (Checkout)
+      - name: 检出代码 (Checkout)
         uses: actions/checkout@v4
 
-      - name: ☕ 设置 JDK 21 (Setup JDK)
+      - name: 设置 JDK 21 (Setup JDK)
         uses: actions/setup-java@v4
         with:
-          # 使用您的项目要求的 Java 21 版本
           distribution: 'temurin'
           java-version: '21'
 
-      - name: 📦 设置 Gradle 缓存 (Cache Gradle Dependencies)
+      - name: 设置 Gradle 缓存 (Cache Gradle Dependencies)
         uses: actions/cache@v4
         with:
-          # 缓存 Gradle 依赖，加速后续构建
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
@@ -35,19 +29,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: 🔨 运行 Release 构建 (Build Release APK)
+      - name: 解码并准备签名密钥文件 (Decode and Prepare Signing Key)
         run: |
-          # 赋予 Gradle Wrapper 执行权限
-          chmod +x ./gradlew
-          # 运行 assembleRelease 任务生成未签名的 APK
-          ./gradlew assembleRelease
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
 
-      - name: 📤 上传构建产物到仓库 (Upload Artifact)
+
+      - name: 运行 Release 构建并注入签名配置 (Build Release APK with Injection)
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file="${{ github.workspace }}/app/release.jks" \
+            -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
+            -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
+            -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}" \
+            --stacktrace
+
+
+      - name: 上传构建产物到仓库 (Upload Artifact)
         uses: actions/upload-artifact@v4
         with:
-          # Artifact 的名称，包含分支信息
-          name: main-release-apk
-          # 上传未签名的 APK 文件路径
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
-          # 保留 7 天
+          name: app-release-apk
+          path: app/build/outputs/apk/release/*.apk
           retention-days: 7

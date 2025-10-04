@@ -1,0 +1,9 @@
+changelog:
+  exclude:
+    labels:
+      - 'skip-changelog' # 只需要控制这个标签，用于隐藏不想展示的 PR
+
+  categories:
+    - title: 📝 本版本核心更新内容 (Key Updates in This Version)
+      labels:
+        - '*'

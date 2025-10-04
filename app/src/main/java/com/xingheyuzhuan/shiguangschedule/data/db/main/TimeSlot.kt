@@ -2,6 +2,7 @@ package com.xingheyuzhuan.shiguangschedule.data.db.main
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 
 /**
  * Room 实体类，代表“时间段”数据表。
@@ -18,6 +19,7 @@ import androidx.room.ForeignKey
             onDelete = ForeignKey.CASCADE
         )
     ],
+    indices = [Index(value = ["courseTableId"])],
     // 联合主键，以确保同一个课表中节次编号是唯一的
     primaryKeys = ["number", "courseTableId"]
 )
