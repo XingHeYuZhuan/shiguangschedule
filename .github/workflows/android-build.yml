@@ -29,21 +29,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: 配置 Android 签名密钥 (Configure Signing Key)
+      - name: 解码并准备签名密钥文件 (Decode and Prepare Signing Key)
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
 
-      - name: 写入签名属性文件 (Write Signing Properties)
-        run: |
-          printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\n" \
-          "${{ secrets.KEYSTORE_PASSWORD }}" \
-          "${{ secrets.KEY_PASSWORD }}" \
-          "${{ secrets.KEY_ALIAS }}" > app/keystore.properties
-        shell: bash
-      - name: 运行 Release 构建 (Build Release APK)
+
+      - name: 运行 Release 构建并注入签名配置 (Build Release APK with Injection)
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleRelease --stacktrace 
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=app/release.jks \
+            -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
+            -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
+            -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}" \
+            --stacktrace
 
       - name: 上传构建产物到仓库 (Upload Artifact)
         uses: actions/upload-artifact@v4

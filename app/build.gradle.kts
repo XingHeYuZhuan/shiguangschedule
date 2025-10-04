@@ -7,28 +7,6 @@ plugins {
     alias(libs.plugins.gradle.license)
 }
 
-val propertiesFile = project.file("keystore.properties")
-
-if (propertiesFile.exists()) {
-    try {
-        propertiesFile.readLines(Charsets.UTF_8)
-            .filter { it.isNotBlank() && !it.startsWith("#") }
-            .forEach { line ->
-                val match = "(.+?)=(.*)".toRegex().matchEntire(line.trim())
-                if (match != null) {
-                    val key = match.groupValues[1].trim()
-                    val value = match.groupValues[2].trim()
-                    project.extra.set(key, value)
-                }
-            }
-    } catch (e: Exception) {
-        println("ERROR: 手动读取 keystore.properties 失败: ${e.message}")
-        throw e
-    }
-}
-
-val keystoreFile = "release.jks"
-
 android {
     namespace = "com.xingheyuzhuan.shiguangschedule"
     compileSdk = 36
@@ -43,31 +21,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    signingConfigs {
-        create("release") {
-            val storePasswordValue = if (project.extra.has("storePassword"))
-                project.extra["storePassword"] as? String else null
-            val keyAliasValue = if (project.extra.has("keyAlias"))
-                project.extra["keyAlias"] as? String else null
-            val keyPasswordValue = if (project.extra.has("keyPassword"))
-                project.extra["keyPassword"] as? String else null
-
-            storeFile = file(keystoreFile)
-
-            storePassword = storePasswordValue
-                ?.takeIf { it.isNotBlank() }
-                ?: throw IllegalStateException("Gradle 属性 'storePassword' 缺失。请检查 keystore.properties。")
-
-            keyAlias = keyAliasValue
-                ?.takeIf { it.isNotBlank() }
-                ?: throw IllegalStateException("Gradle 属性 'keyAlias' 缺失。请检查 keystore.properties。")
-
-            keyPassword = keyPasswordValue
-                ?.takeIf { it.isNotBlank() }
-                ?: throw IllegalStateException("Gradle 属性 'keyPassword' 缺失。请检查 keystore.properties。")
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -75,11 +28,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            val isCiBuild = System.getenv("GITHUB_ACTIONS") == "true"
-            // 检查 Extra 属性是否存在且不为空白
-            if (isCiBuild && project.extra.has("keyAlias")) {
-                signingConfig = signingConfigs.getByName("release")
-            }
         }
     }
     compileOptions {
