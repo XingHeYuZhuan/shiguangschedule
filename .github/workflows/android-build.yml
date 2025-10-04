@@ -13,6 +13,19 @@ jobs:
       - name: 检出代码 (Checkout)
         uses: actions/checkout@v4
 
+      - name: 清理资源目标目录 (Clean Target Resource Dir)
+        run: |
+            # 强制删除 app/src/main/assets/offline_repo 下的所有内容
+            rm -rf app/src/main/assets/offline_repo/*
+
+      - name: 克隆资源仓库并保留 .git (Clone Resources with .git)
+        uses: actions/checkout@v4
+        with:
+          repository: 'XingHeYuZhuan/shiguang_warehouse'
+          ref: 'main'
+          path: 'app/src/main/assets/offline_repo'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: 设置 JDK 21 (Setup JDK)
         uses: actions/setup-java@v4
         with:
