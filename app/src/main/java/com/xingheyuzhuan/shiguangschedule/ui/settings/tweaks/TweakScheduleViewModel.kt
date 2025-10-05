@@ -10,12 +10,10 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.first // 引入 first() 来获取 Flow 的当前快照值
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -24,7 +22,6 @@ import java.time.temporal.ChronoUnit
 
 /**
  * 调课页面 UI 状态。
- * 包含所有需要展示给用户的数据和业务逻辑所需的数据快照。
  */
 data class TweakScheduleUiState(
     // UI 显示所需的数据
@@ -45,91 +42,117 @@ data class TweakScheduleUiState(
 
 /**
  * 课程调动页面的 ViewModel。
- * 负责处理调动逻辑，包括日期转换和调用 Repository。
+ * 采用命令式状态管理模式，所有状态更新都由显式函数调用触发。
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class TweakScheduleViewModel(
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository
 ) : ViewModel() {
 
+    // UI 暴露的状态
     private val _uiState = MutableStateFlow(TweakScheduleUiState())
     val uiState: StateFlow<TweakScheduleUiState> = _uiState.asStateFlow()
 
+    // 内部 Flow 用于存储用户选择，但它们不再参与 combine 管道，仅作为稳定数据源
     private val _fromDate = MutableStateFlow(LocalDate.now())
     private val _toDate = MutableStateFlow(LocalDate.now())
     private val _selectedCourseTableByUser = MutableStateFlow<CourseTable?>(null)
 
     init {
+        // ViewModel 初始化时，仅加载一次初始数据
         viewModelScope.launch {
-            combine(
-                appSettingsRepository.getAppSettings(),
-                courseTableRepository.getAllCourseTables(),
-                _selectedCourseTableByUser,
-                _fromDate,
-                _toDate
-            ) { settings, allTables, selectedTableByUser, fromDate, toDate ->
-                val defaultSelectedTable = if (settings.currentCourseTableId != null) {
-                    allTables.find { it.id == settings.currentCourseTableId }
-                } else {
-                    allTables.firstOrNull()
-                }
-                val selectedTable = selectedTableByUser ?: defaultSelectedTable
-
-                val semesterStartDate = try {
-                    settings.semesterStartDate?.let { LocalDate.parse(it) }
-                } catch (e: DateTimeParseException) {
-                    null
-                }
-                val isSemesterSet = semesterStartDate != null
-
-                // 如果学期未设置，则不进行课程查询
-                if (!isSemesterSet || selectedTable == null) {
-                    _uiState.value = TweakScheduleUiState(
-                        allCourseTables = allTables,
-                        isSemesterSet = isSemesterSet,
-                        selectedCourseTable = selectedTable,
-                        fromDate = fromDate,
-                        toDate = toDate,
-                        semesterStartDate = semesterStartDate
-                    )
-                } else {
-                    val fromWeekNumber = ChronoUnit.WEEKS.between(semesterStartDate, fromDate).toInt() + 1
-                    val fromDay = fromDate.dayOfWeek.value
-                    val toWeekNumber = ChronoUnit.WEEKS.between(semesterStartDate, toDate).toInt() + 1
-                    val toDay = toDate.dayOfWeek.value
-
-                    combine(
-                        courseTableRepository.getCoursesForDay(selectedTable.id, fromWeekNumber, fromDay),
-                        courseTableRepository.getCoursesForDay(selectedTable.id, toWeekNumber, toDay)
-                    ) { fromCourses, toCourses ->
-                        _uiState.value = TweakScheduleUiState(
-                            allCourseTables = allTables,
-                            isSemesterSet = isSemesterSet,
-                            selectedCourseTable = selectedTable,
-                            fromDate = fromDate,
-                            toDate = toDate,
-                            fromCourses = fromCourses,
-                            toCourses = toCourses,
-                            semesterStartDate = semesterStartDate
-                        )
-                    }.launchIn(viewModelScope)
-                }
-            }.launchIn(viewModelScope)
+            refreshUiState(isInitialLoad = true)
         }
     }
 
-    // 处理用户交互的函数
+    /**
+     * 【新的核心函数】
+     * 显式地加载所有依赖数据（配置、课表、课程）并一次性更新 UI 状态。
+     * 这完全取代了之前的 combine 逻辑。
+     *
+     * @param isInitialLoad 是否为初始化加载，用于确定默认选中的课表。
+     */
+    private suspend fun refreshUiState(isInitialLoad: Boolean = false) {
+        // 1. 获取所有依赖数据的快照（不再持续监听）
+        val settings = appSettingsRepository.getAppSettings().first()
+        val allTables = courseTableRepository.getAllCourseTables().first()
+
+        // 2. 确定当前选中的课表
+        val selectedTable = if (isInitialLoad) {
+            val defaultSelectedTable = if (settings.currentCourseTableId != null) {
+                allTables.find { it.id == settings.currentCourseTableId }
+            } else {
+                allTables.firstOrNull()
+            }
+            _selectedCourseTableByUser.value = defaultSelectedTable
+            defaultSelectedTable
+        } else {
+            _selectedCourseTableByUser.value
+        }
+
+        // 3. 确定日期，使用内部 Flow 的当前值 (用户设置的稳定值)
+        val currentFromDate = _fromDate.value
+        val currentToDate = _toDate.value
+
+        val semesterStartDate = try {
+            settings.semesterStartDate?.let { LocalDate.parse(it) }
+        } catch (e: DateTimeParseException) {
+            null
+        }
+        val isSemesterSet = semesterStartDate != null
+
+        var fromCourses = emptyList<CourseWithWeeks>()
+        var toCourses = emptyList<CourseWithWeeks>()
+
+        // 4. 查询课程
+        if (isSemesterSet && selectedTable != null) {
+            val fromWeekNumber = ChronoUnit.WEEKS.between(semesterStartDate, currentFromDate).toInt() + 1
+            val fromDay = currentFromDate.dayOfWeek.value
+            val toWeekNumber = ChronoUnit.WEEKS.between(semesterStartDate, currentToDate).toInt() + 1
+            val toDay = currentToDate.dayOfWeek.value
+
+            // 显式获取课程数据快照
+            fromCourses = courseTableRepository.getCoursesForDay(selectedTable.id, fromWeekNumber, fromDay).first()
+            toCourses = courseTableRepository.getCoursesForDay(selectedTable.id, toWeekNumber, toDay).first()
+        }
+
+        // 5. 一次性原子更新 UI 状态
+        _uiState.update {
+            it.copy(
+                allCourseTables = allTables,
+                isSemesterSet = isSemesterSet,
+                selectedCourseTable = selectedTable,
+                fromDate = currentFromDate, // 使用稳定日期
+                toDate = currentToDate,     // 使用稳定日期
+                fromCourses = fromCourses,
+                toCourses = toCourses,
+                semesterStartDate = semesterStartDate,
+                isLoading = false
+            )
+        }
+    }
+
+
+    // 处理用户交互的函数：更新内部 Flow 后，显式调用 refreshUiState()
     fun onCourseTableSelected(courseTable: CourseTable) {
         _selectedCourseTableByUser.value = courseTable
+        viewModelScope.launch {
+            refreshUiState()
+        }
     }
 
     fun onFromDateSelected(date: LocalDate) {
         _fromDate.value = date
+        viewModelScope.launch {
+            refreshUiState()
+        }
     }
 
     fun onToDateSelected(date: LocalDate) {
         _toDate.value = date
+        viewModelScope.launch {
+            refreshUiState()
+        }
     }
 
     /**
@@ -149,12 +172,17 @@ class TweakScheduleViewModel(
                     return@launch
                 }
 
-                try {
-                    val fromWeekNumber = ChronoUnit.WEEKS.between(state.semesterStartDate, state.fromDate).toInt() + 1
-                    val fromDay = state.fromDate.dayOfWeek.value
-                    val toWeekNumber = ChronoUnit.WEEKS.between(state.semesterStartDate, state.toDate).toInt() + 1
-                    val toDay = state.toDate.dayOfWeek.value
+                // 使用 UI 状态中稳定的日期快照进行计算
+                val currentFromDate = state.fromDate
+                val currentToDate = state.toDate
 
+                try {
+                    val fromWeekNumber = ChronoUnit.WEEKS.between(state.semesterStartDate, currentFromDate).toInt() + 1
+                    val fromDay = currentFromDate.dayOfWeek.value
+                    val toWeekNumber = ChronoUnit.WEEKS.between(state.semesterStartDate, currentToDate).toInt() + 1
+                    val toDay = currentToDate.dayOfWeek.value
+
+                    // 1. 执行数据库操作
                     courseTableRepository.moveCoursesOnDate(
                         courseTableId = state.selectedCourseTable.id,
                         fromWeekNumber = fromWeekNumber,
@@ -163,14 +191,18 @@ class TweakScheduleViewModel(
                         toDay = toDay
                     )
 
+                    // 2. 数据库更新后，立即手动刷新 UI 状态：
+                    //    这将读取新的课程数据，并使用稳定日期更新 _uiState，日期绝不会被重置。
+                    refreshUiState()
+
+                    // 3. 更新成功消息
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            successMessage = "调课成功！",
-                            fromDate = state.fromDate,
-                            toDate = state.toDate
+                            successMessage = "调课成功！"
                         )
                     }
+
                 } catch (e: Exception) {
                     _uiState.update { it.copy(isLoading = false, errorMessage = "调课失败：${e.message}") }
                 }
