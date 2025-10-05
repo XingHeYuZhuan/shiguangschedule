@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,6 +31,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.xingheyuzhuan.shiguangschedule.Screen
-import com.xingheyuzhuan.shiguangschedule.data.SchoolRepository
+import com.xingheyuzhuan.shiguangschedule.data.repository.SchoolRepository
 import com.xingheyuzhuan.shiguangschedule.data.model.School
 import com.xingheyuzhuan.shiguangschedule.data.model.SchoolCategory
 import kotlinx.coroutines.CoroutineScope
@@ -123,12 +124,10 @@ fun SchoolSelectionScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // 类别选择器
                 CategoryTabs(
                     selectedCategory = selectedCategory,
                     onCategorySelected = { category ->
                         selectedCategory = category
-                        // 切换类别时，将列表滚动到顶部，提升用户体验
                         coroutineScope.launch { lazyListState.scrollToItem(0) }
                     }
                 )
@@ -204,61 +203,27 @@ fun SchoolSelectionScreen(
 }
 
 /**
- * 类别选择器，将宽度均分为三个部分，使用扁平标签页样式。
+ * 类别选择器，使用 Material 3 TabRow 实现动画指示条。
  */
 @Composable
 fun CategoryTabs(
     selectedCategory: SchoolCategory,
     onCategorySelected: (SchoolCategory) -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(vertical = 4.dp, horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 遍历所有类别
-            SchoolCategory.entries.forEach { category ->
-                val isSelected = category == selectedCategory
+    val categories = SchoolCategory.entries
+    val selectedIndex = categories.indexOf(selectedCategory)
 
-                val backgroundColor = if (isSelected) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    androidx.compose.ui.graphics.Color.Transparent
-                }
-
-                val textColor = if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(backgroundColor, shape = MaterialTheme.shapes.small)
-                        .clickable { onCategorySelected(category) }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = category.displayName,
-                        color = textColor,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
+    TabRow(
+        selectedTabIndex = selectedIndex,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        categories.forEachIndexed { index, category ->
+            Tab(
+                selected = index == selectedIndex,
+                onClick = { onCategorySelected(category) },
+                text = { Text(text = category.displayName) }
+            )
         }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(MaterialTheme.colorScheme.outlineVariant)
-        )
     }
 }
 

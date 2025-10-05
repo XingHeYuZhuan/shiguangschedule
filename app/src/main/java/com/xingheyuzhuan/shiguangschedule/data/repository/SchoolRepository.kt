@@ -1,13 +1,13 @@
-package com.xingheyuzhuan.shiguangschedule.data
+package com.xingheyuzhuan.shiguangschedule.data.repository
 
 import android.content.Context
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.xingheyuzhuan.shiguangschedule.data.model.School
-import kotlinx.serialization.json.Json
-import java.io.File
-import java.io.IOException
-
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.IOException
 
 object SchoolRepository {
     /**
@@ -31,7 +31,11 @@ object SchoolRepository {
                 return@withContext emptyList() // 发生错误时返回空列表
             }
 
-            val schools = Json.decodeFromString<List<School>>(jsonString)
+            val gson = Gson()
+            val listType = object : TypeToken<List<School>>() {}.type
+
+            val schools = gson.fromJson<List<School>>(jsonString, listType)
+
             // 排序，方便索引和显示
             val sortedSchools = schools.sortedBy { it.initial.uppercase() + it.name }
 

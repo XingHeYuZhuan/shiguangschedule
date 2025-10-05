@@ -65,6 +65,7 @@ import com.xingheyuzhuan.shiguangschedule.tool.shareFile
 import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
+import android.provider.OpenableColumns
 
 // 自定义文件选择器 Contract，用于导入，只允许选择 JSON 文件
 class OpenJsonDocumentContract : ActivityResultContract<Unit, Uri?>() {
@@ -538,7 +539,23 @@ fun CourseTableConversionScreen(
             text = { Text("文件已成功导出到您的下载目录，您想分享它吗？") },
             confirmButton = {
                 TextButton(onClick = {
-                    val (publicUri, mimeType, filename) = showShareDialog!!
+                    val (publicUri, mimeType, defaultFilename) = showShareDialog!!
+
+                    val userDefinedFilename = context.contentResolver.query(
+                        publicUri,
+                        arrayOf(OpenableColumns.DISPLAY_NAME), // 明确指定要查询的列名
+                        null,
+                        null,
+                        null
+                    )?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                            // 检查索引是否有效
+                            if (nameIndex >= 0) {
+                                cursor.getString(nameIndex)
+                            } else null
+                        } else null
+                    } ?: defaultFilename // 如果查询失败，回退到代码中的默认时间戳文件名
 
                     // 确保 share_temp 目录存在
                     val shareTempDir = File(context.cacheDir, "share_temp")
@@ -546,22 +563,29 @@ fun CourseTableConversionScreen(
                         shareTempDir.mkdirs()
                     }
 
-                    // 1. 将公共目录的文件内容复制到应用的专用临时目录
-                    val tempFile = File(shareTempDir, filename)
-                    context.contentResolver.openInputStream(publicUri)?.use { input ->
-                        FileOutputStream(tempFile).use { output ->
-                            input.copyTo(output)
+                    val tempFile = File(shareTempDir, userDefinedFilename)
+
+                    try {
+                        context.contentResolver.openInputStream(publicUri)?.use { input ->
+                            FileOutputStream(tempFile).use { output ->
+                                input.copyTo(output)
+                            }
                         }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        coroutineScope.launch { snackbarHostState.showSnackbar("文件复制失败，无法分享。") }
+                        showShareDialog = null
+                        return@TextButton
                     }
 
-                    // 2. 使用 FileProvider 为缓存文件生成一个 Uri
+                    // FileProvider 将会根据 tempFile 的名称来设置分享的文件名
                     val shareUri = FileProvider.getUriForFile(
                         context,
                         "${context.packageName}.fileprovider",
                         tempFile
                     )
 
-                    // 3. 使用 FileProvider 的 Uri 来分享
+                    // 使用 FileProvider 的 Uri 来分享
                     shareFile(context, shareUri, mimeType)
 
                     showShareDialog = null

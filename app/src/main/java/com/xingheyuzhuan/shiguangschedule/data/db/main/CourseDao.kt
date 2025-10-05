@@ -5,7 +5,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Delete
-import androidx.room.Transaction // 确保导入这个注解
+import androidx.room.RoomWarnings
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -27,6 +28,7 @@ interface CourseDao {
      */
     @Transaction
     @Query("SELECT * FROM courses WHERE courseTableId = :courseTableId ORDER BY day ASC, startSection ASC, endSection ASC")
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     fun getCoursesWithWeeksByTableId(courseTableId: String): Flow<List<CourseWithWeeks>>
 
     /**
@@ -71,6 +73,7 @@ interface CourseDao {
       AND cw.weekNumber = :weekNumber
     """
     )
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     fun getCoursesWithWeeksByDayAndWeek(
         courseTableId: String,
         day: Int,

@@ -24,6 +24,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.settings.notification.NotificationS
 import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.additional.MoreOptionsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.additional.OpenSourceLicensesScreen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.contribution.ContributionScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.conversion.CourseTableConversionScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.course.AddEditCourseScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.time.TimeSlotManagementScreen
@@ -228,6 +229,15 @@ fun AppNavigation() {
             popExitTransition = { ExitTransition.None }
         ) {
             TweakScheduleScreen(navController = navController)
+        }
+        composable(
+            Screen.ContributionList.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            ContributionScreen(navController = navController)
         }
     }
 }
