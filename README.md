@@ -22,3 +22,11 @@
 ---
 
 如有问题或建议，欢迎提交 Issue 或 PR。
+
+## 贡献  
+欢迎任何人提交你的贡献  
+### 教务适配贡献  
+[![app-Contributors](https://contributors-img.web.app/image?repo=XingHeYuZhuan/shiguang_warehouse&max=105&columns=15)](https://github.com/XingHeYuZhuan/shiguang_warehouse/graphs/contributors)  
+
+### 软件开发贡献  
+[![app-Contributors](https://contributors-img.web.app/image?repo=XingHeYuZhuan/shiguangschedule&max=105&columns=15)](https://github.com/XingHeYuZhuan/shiguangschedule/graphs/contributors)  
