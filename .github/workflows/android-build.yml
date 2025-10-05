@@ -15,8 +15,8 @@ jobs:
 
       - name: 清理资源目标目录 (Clean Target Resource Dir)
         run: |
-            # 强制删除 app/src/main/assets/offline_repo 下的所有内容
-            rm -rf app/src/main/assets/offline_repo/*
+          # 强制删除 app/src/main/assets/offline_repo 下的所有内容
+          rm -rf app/src/main/assets/offline_repo/*
 
       - name: 克隆资源仓库并保留 .git (Clone Resources with .git)
         uses: actions/checkout@v4
@@ -26,6 +26,16 @@ jobs:
           path: 'app/src/main/assets/offline_repo'
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+
+      - name: 运行贡献者数据生成脚本 (Generate Contributors Data)
+        run: |
+          echo "--- 正在赋予脚本执行权限 ---"
+          # 确保脚本路径正确，并赋予执行权限
+          chmod +x .github/scripts/build_contributors.sh
+
+          echo "--- 正在执行贡献者数据生成 ---"
+          # 运行脚本，它将生成 app/src/main/assets/contributors_data 目录
+          .github/scripts/build_contributors.sh    
 
       - name: 设置 JDK 21 (Setup JDK)
         uses: actions/setup-java@v4

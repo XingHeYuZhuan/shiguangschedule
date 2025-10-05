@@ -56,7 +56,6 @@ fun ManageCourseTablesScreen(
     navController: NavHostController,
     viewModel: ManageCourseTablesViewModel = viewModel(
         factory = ManageCourseTablesViewModel.provideFactory(LocalContext.current.applicationContext as Application)
-
     )
 ) {
     val context = LocalContext.current

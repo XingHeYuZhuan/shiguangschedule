@@ -59,7 +59,7 @@ import androidx.navigation.NavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.xingheyuzhuan.shiguangschedule.MyApplication
 import com.xingheyuzhuan.shiguangschedule.Screen
-import com.xingheyuzhuan.shiguangschedule.data.SchoolRepository
+import com.xingheyuzhuan.shiguangschedule.data.repository.SchoolRepository
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -250,9 +250,14 @@ fun WebViewScreen(
                     """, null)
                 }
 
-                override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
-                    super.onReceivedError(view, errorCode, description, failingUrl)
-                    Toast.makeText(context, "网页加载错误: $description", Toast.LENGTH_LONG).show()
+                override fun onReceivedError(view: WebView, request: android.webkit.WebResourceRequest, error: android.webkit.WebResourceError) {
+                    if (request.isForMainFrame) {
+                        val description = error.description.toString()
+                        val context = view.context
+                        view.post {
+                            Toast.makeText(context, "网页加载错误: $description", Toast.LENGTH_LONG).show()
+                        }
+                    }
                 }
             }
 

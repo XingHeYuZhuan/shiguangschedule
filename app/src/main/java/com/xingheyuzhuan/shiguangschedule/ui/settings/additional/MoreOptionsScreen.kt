@@ -62,6 +62,16 @@ fun MoreOptionsScreen(navController: NavController) {
                     }
                     .padding(16.dp)
             )
+            Text(
+                text = "贡献者列表",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        // 导航到贡献者列表页面
+                        navController.navigate(Screen.ContributionList.route)
+                    }
+                    .padding(16.dp)
+            )
         }
     }
 }

@@ -40,4 +40,6 @@ sealed class Screen(val route: String) {
     object UpdateRepo : Screen("update_repo")
 
     object TweakSchedule : Screen("tweak_schedule")
+
+    object ContributionList : Screen("contribution_list")
 }
