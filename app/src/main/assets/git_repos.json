@@ -1,15 +1,15 @@
 [
   {
-    "name": "官方仓库",
+    "name": "官方Github仓库",
     "type": "OFFICIAL",
     "url": "https://github.com/XingHeYuZhuan/shiguang_warehouse.git",
     "branch": "main",
     "editable": false
   },
   {
-    "name": "第三方官方认证镜像站",
+    "name": "Gitee官方仓库镜像站(CN)",
     "type": "PUBLIC_FORK",
-    "url": "https://github.com/XingHeYuZhuan/shiguang_warehouse.git",
+    "url": "https://gitee.com/XingHeYuZhuan-gh/shiguang_warehouse.git",
     "branch": "main",
     "editable": false
   },

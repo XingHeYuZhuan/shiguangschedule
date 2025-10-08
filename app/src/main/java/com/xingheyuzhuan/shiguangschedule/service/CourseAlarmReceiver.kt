@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.MainActivity
 import androidx.core.app.NotificationCompat
@@ -78,8 +79,15 @@ class CourseAlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // 1. 获取彩色大图标的 Bitmap
+        val largeIconBitmap = BitmapFactory.decodeResource(
+            context.resources,
+            R.mipmap.ic_launcher
+        )
+
         val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(largeIconBitmap)
             .setContentTitle("上课提醒")
             .setContentText("$name - $position")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
