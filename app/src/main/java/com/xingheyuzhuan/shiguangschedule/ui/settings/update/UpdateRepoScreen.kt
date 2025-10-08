@@ -42,7 +42,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.xingheyuzhuan.shiguangschedule.data.model.RepositoryInfo
-import com.xingheyuzhuan.shiguangschedule.data.model.RepoType // 引入 RepoType
+import com.xingheyuzhuan.shiguangschedule.data.model.RepoType
+import com.xingheyuzhuan.shiguangschedule.BuildConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -154,7 +155,17 @@ fun RepoSelectionCard(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    repoList.forEach { repo ->
+                    val displayRepos = repoList.filter { repo ->
+                        // 检查 BuildConfig.HIDE_CUSTOM_REPOS
+                        if (BuildConfig.HIDE_CUSTOM_REPOS) {
+                            repo.repoType != RepoType.CUSTOM && repo.repoType != RepoType.PRIVATE_REPO
+                        } else {
+                            true
+                        }
+                    }
+
+                    // 遍历筛选后的列表
+                    displayRepos.forEach { repo ->
                         DropdownMenuItem(
                             text = { Text(repo.name) },
                             onClick = {

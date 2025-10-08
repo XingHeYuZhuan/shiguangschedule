@@ -30,6 +30,26 @@ android {
             )
         }
     }
+    flavorDimensions += "version"
+
+    productFlavors {
+        create("dev") {
+            dimension = "version"
+            // 开发者版本的包名后缀，使其可以和正式版共存
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-DEV"
+
+            // 注入开关：开发者版本不隐藏，显示自定义/私有仓库
+            buildConfigField("Boolean", "HIDE_CUSTOM_REPOS", "false")
+        }
+
+        create("prod") {
+            dimension = "version"
+
+            // 注入开关：正式版本隐藏自定义/私有仓库
+            buildConfigField("Boolean", "HIDE_CUSTOM_REPOS", "true")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -54,14 +74,21 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 afterEvaluate {
-    tasks.named("assembleRelease") {
-        dependsOn("licenseReleaseReport")
+    // 现在 assembleProdRelease 应该依赖于 licenseProdReleaseReport
+    tasks.named("assembleProdRelease") {
+        dependsOn("licenseProdReleaseReport")
+    }
+    // 现在 assembleDevRelease 应该依赖于 licenseDevReleaseReport
+    tasks.named("assembleDevRelease") {
+        dependsOn("licenseDevReleaseReport")
     }
 }
+
 dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.compose.material.icons.extended)
