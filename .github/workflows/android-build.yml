@@ -2,6 +2,15 @@ name: Android CI Build
 
 on:
   workflow_dispatch:
+    inputs:
+      build_label:
+        description: '请选择要构建的发布版本 (Choose Build Variant)'
+        required: true
+        default: '正式版'
+        type: choice
+        options:
+          - 正式版
+          - 开发者版
 
 jobs:
   build:
@@ -37,6 +46,26 @@ jobs:
           # 运行脚本，它将生成 app/src/main/assets/contributors_data 目录
           .github/scripts/build_contributors.sh    
 
+      - name: 步骤：解析构建标签，确定任务和风味
+        id: resolve_vars
+        run: |
+          LABEL="${{ github.event.inputs.build_label }}"
+
+          case "$LABEL" in
+            "正式版")
+              TASK="assembleProdRelease"
+              FLAVOR="prod"
+              ;;
+            "开发者版")
+              TASK="assembleDevRelease"
+              FLAVOR="dev"
+              ;;
+          esac
+
+          echo "task=$TASK" >> $GITHUB_OUTPUT
+          echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
+          echo "已选择：$LABEL，对应 Gradle 任务：$TASK"
+
       - name: 设置 JDK 21 (Setup JDK)
         uses: actions/setup-java@v4
         with:
@@ -58,10 +87,10 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
 
 
-      - name: 运行 Release 构建并注入签名配置 (Build Release APK with Injection)
+      - name: 运行动态构建任务 (Build with Dynamic Flavor)
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleRelease \
+          ./gradlew ${{ steps.resolve_vars.outputs.task }} \
             -Pandroid.injected.signing.store.file="${{ github.workspace }}/app/release.jks" \
             -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
             -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
@@ -72,6 +101,6 @@ jobs:
       - name: 上传构建产物到仓库 (Upload Artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          name: app-${{ steps.resolve_vars.outputs.flavor }}-release-apk
+          path: app/build/outputs/apk/${{ steps.resolve_vars.outputs.flavor }}/release/*.apk
           retention-days: 7

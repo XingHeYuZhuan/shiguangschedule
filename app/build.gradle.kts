@@ -79,11 +79,9 @@ android {
 }
 
 afterEvaluate {
-    // 现在 assembleProdRelease 应该依赖于 licenseProdReleaseReport
     tasks.named("assembleProdRelease") {
         dependsOn("licenseProdReleaseReport")
     }
-    // 现在 assembleDevRelease 应该依赖于 licenseDevReleaseReport
     tasks.named("assembleDevRelease") {
         dependsOn("licenseDevReleaseReport")
     }
