@@ -9,6 +9,7 @@ import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.transport.CredentialsProvider
 import org.eclipse.jgit.transport.URIish
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
+import com.xingheyuzhuan.shiguangschedule.BuildConfig
 import java.io.File
 
 /**
@@ -109,16 +110,22 @@ class GitUpdater(private val context: Context) {
 
         // 2. 对所有非官方仓库进行合法性验证 (在克隆/拉取文件前执行)
         if (repoInfo.repoType != RepoType.OFFICIAL) {
-            onLog("正在执行安全验证（基准灯塔标签检查）...")
 
-            if (!isLegitimateFork(repoInfo.url, credentialsProvider)) {
-                onLog("错误：仓库未通过合法性验证或认证失败。")
-                if (repoInfo.repoType == RepoType.PRIVATE_REPO) {
-                    onLog("提示：请检查 PAT 权限和 Token 字符串是否正确。")
+            if (BuildConfig.ENABLE_LIGHTHOUSE_VERIFICATION) {
+
+                onLog("正在执行安全验证（基准灯塔标签检查）...")
+
+                if (!isLegitimateFork(repoInfo.url, credentialsProvider)) {
+                    onLog("错误：仓库未通过合法性验证或认证失败。")
+                    if (repoInfo.repoType == RepoType.PRIVATE_REPO) {
+                        onLog("提示：请检查 PAT 权限和 Token 字符串是否正确。")
+                    }
+                    return
                 }
-                return
+                onLog("安全验证通过：找到官方基准灯塔标签。")
+            } else {
+                onLog("安全提示：已根据构建配置跳过基准灯塔标签验证（非官方仓库）。")
             }
-            onLog("安全验证通过：找到官方基准灯塔标签。")
         }
 
         val targetUrl = repoInfo.url

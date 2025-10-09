@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
@@ -38,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -57,6 +59,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.xingheyuzhuan.shiguangschedule.BuildConfig
 import com.xingheyuzhuan.shiguangschedule.MyApplication
 import com.xingheyuzhuan.shiguangschedule.Screen
 import com.xingheyuzhuan.shiguangschedule.data.repository.SchoolRepository
@@ -64,6 +67,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +86,9 @@ fun WebViewScreen(
     var pageTitle by remember { mutableStateOf("加载中...") }
     var expanded by remember { mutableStateOf(false) }
     var isDesktopMode by remember { mutableStateOf(false) }
+
+    // DevTools 开关状态
+    var isDevToolsEnabled by remember { mutableStateOf(false) }
 
     val defaultUserAgent = remember { WebSettings.getDefaultUserAgent(context) }
     val desktopUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -326,6 +333,7 @@ fun WebViewScreen(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
+                        // 刷新
                         DropdownMenuItem(
                             text = { Text("刷新") },
                             onClick = {
@@ -336,6 +344,8 @@ fun WebViewScreen(
                                 Icon(Icons.Filled.Refresh, contentDescription = "刷新")
                             }
                         )
+
+                        // 电脑/手机模式切换
                         DropdownMenuItem(
                             text = {
                                 Text(if (isDesktopMode) "切换到手机模式" else "切换到电脑模式")
@@ -363,6 +373,36 @@ fun WebViewScreen(
                                 )
                             }
                         )
+
+                        // DevTools 开关选项 (仅在 dev 版本中显示)
+                        if (BuildConfig.ENABLE_DEV_TOOLS_OPTION_IN_UI) {
+                            DropdownMenuItem(
+                                onClick = {
+                                    isDevToolsEnabled = !isDevToolsEnabled
+
+                                    WebView.setWebContentsDebuggingEnabled(isDevToolsEnabled)
+
+                                    Toast.makeText(
+                                        context,
+                                        "DevTools 网页调试已 ${if (isDevToolsEnabled) "启用" else "关闭"}。",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Filled.Build, contentDescription = "DevTools")
+                                },
+                                text = { Text("DevTools 网页调试") },
+                                trailingIcon = {
+                                    Switch(
+                                        checked = isDevToolsEnabled,
+                                        // 关键：确保点击由父级的 DropdownMenuItem 处理
+                                        onCheckedChange = null
+                                    )
+                                }
+                            )
+                        }
+
+                        // 导入课程
                         DropdownMenuItem(
                             text = { Text("导入课程") },
                             onClick = {
