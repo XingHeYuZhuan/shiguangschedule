@@ -31,20 +31,17 @@ runs:
         if [[ -z "$PREVIOUS_TAG" ]]; then
             echo "未提供对比标签，开始自动推导（基于时间排序）..."
         
-            # 使用 --sort=-committerdate (时间降序) 进行排序
-        
             if [[ "$VERSION_TITLE" == *"-dev"* ]]; then
-                # 【关键修正】：使用 || true 确保即使没有标签找到，管道命令也不会使脚本退出
+                # 【Dev 版本】：只列出包含 *-dev* 的标签，然后排除当前版本
                 PREVIOUS_TAG=$(git tag --list "*-dev*" --sort=-committerdate | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1) || true
             else
-                # 【关键修正】：使用 || true 确保即使没有标签找到，管道命令也不会使脚本退出
-                PREVIOUS_TAG=$(git tag --list --sort=-committerdate --exclude="*-dev*" | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1) || true
+                # 【标准版本】：列出所有标签，使用 grep -v 排除 *-dev* 标签，然后排除当前版本
+                PREVIOUS_TAG=$(git tag --list --sort=-committerdate | grep -v -- "-dev" | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1) || true
             fi
         
             if [[ -n "$PREVIOUS_TAG" ]]; then
                 echo "自动推导的上一个标签为: $PREVIOUS_TAG"
             else
-                # 如果没有标签，PREVIOUS_TAG 仍然是空，Python 脚本会安全地回退到初始 Commit
                 echo "警告：未找到合适的上一个标签，将依赖Python脚本回退到仓库初始提交。"
             fi
         fi

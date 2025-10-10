@@ -139,20 +139,31 @@ jobs:
           BUILD_FLAVOR=${{ needs.prepare_review.outputs.build_flavor_out }}
           VERSION_NAME=${{ needs.prepare_review.outputs.version_name_out }}
           
-          # 构造标签名、Release 显示名和 Changelog 标题 (与 Job 1 的预检逻辑一致)
-          if [ "$BUILD_FLAVOR" == "prod" ]; then
-            # Prod 版本：标签名不带后缀 (e.g., v1.0.0)
-            RELEASE_TAG="v${VERSION_NAME}"
-            RELEASE_NAME="v${VERSION_NAME} (Production)"
-            CHANGELOG_TITLE="v${VERSION_NAME}"
-          else
-            # Dev 版本：标签名带后缀 (e.g., v1.0.0-dev)
-            RELEASE_TAG="v${VERSION_NAME}-${BUILD_FLAVOR}"
-            RELEASE_NAME="v${VERSION_NAME} (${BUILD_FLAVOR})"
-            CHANGELOG_TITLE="v${VERSION_NAME}-${BUILD_FLAVOR}"
-          fi
+          # 构造标签名、Release 显示名和 Changelog 标题
+          
+          FLAVOR_NAME="$BUILD_FLAVOR"
+          case "$BUILD_FLAVOR" in
+            "prod")
+              RELEASE_TAG="v${VERSION_NAME}"
+              FLAVOR_NAME="正式版"
+              CHANGELOG_TITLE="v${VERSION_NAME}"
+              ;;
+            "dev")
+              RELEASE_TAG="v${VERSION_NAME}-${BUILD_FLAVOR}"
+              FLAVOR_NAME="开发者版"
+              CHANGELOG_TITLE="v${VERSION_NAME}-${BUILD_FLAVOR}"
+              ;;
+            *)
+              # 其他未定义风味 (防止错误)
+              RELEASE_TAG="v${VERSION_NAME}-${BUILD_FLAVOR}"
+              CHANGELOG_TITLE="v${VERSION_NAME}-${BUILD_FLAVOR}"
+              ;;
+          esac
+
+          RELEASE_NAME="v${VERSION_NAME} (${FLAVOR_NAME})"
 
           echo "Release Tag: $RELEASE_TAG"
+          echo "Release Name: $RELEASE_NAME" 
           
           # 设置输出变量供后续步骤使用
           echo "changelog_title=$CHANGELOG_TITLE" >> $GITHUB_OUTPUT
