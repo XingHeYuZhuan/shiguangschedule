@@ -121,7 +121,7 @@ def generate_changelog(version_title, previous_tag):
         if category_title not in categories:
             categories[category_title] = []
 
-        categories[category_title].append(f"- {description} (@{author_name})")
+        categories[category_title].append(f"- {description}")
 
     # 5. 生成新的 Markdown 内容
     new_changelog = f"## {version_title}\n\n"
