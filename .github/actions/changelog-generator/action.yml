@@ -1,0 +1,73 @@
+name: '生成并输出更新日志'
+description: '运行 generate_changelog.py 脚本，自动推导上一个版本标签，并将生成的更新日志内容作为字符串变量输出。'
+
+# --- 输入定义 ---
+inputs:
+  version_title:
+    description: '本次更新日志的版本号 (e.g., v1.0.0)'
+    required: true
+  previous_tag:
+    description: '用于 Git log 比较的起始标签或Commit哈希 (可选，如果提供则覆盖自动推导)'
+    required: false
+    default: ''
+
+# --- 输出定义 ---
+outputs:
+  changelog_content:
+    description: '生成的 CHANGELOG.md 文件的全部 Markdown 内容 (字符串)'
+    value: ${{ steps.generate.outputs.changelog_content }}
+
+# --- 实际执行的步骤 ---
+runs:
+  using: "composite"
+  steps:
+    - name: 🐍 设置 Python 环境 (Action 内部)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: ⚙️ 执行脚本并捕获输出
+      id: generate
+      shell: bash
+      run: |
+        VERSION_TITLE="${{ inputs.version_title }}"
+        PREVIOUS_TAG="${{ inputs.previous_tag }}"
+        
+        # --- 自动推导比较标签逻辑 (基于时间排序) ---
+        if [[ -z "$PREVIOUS_TAG" ]]; then
+            echo "未提供对比标签，开始自动推导（基于时间排序）..."
+        
+            # 使用 --sort=-committerdate (时间降序) 进行排序
+        
+            if [[ "$VERSION_TITLE" == *"-dev"* ]]; then
+                # 情况一：当前是开发版本 (vX.Y.Z-dev...)
+                PREVIOUS_TAG=$(git tag --list "*-dev*" --sort=-committerdate | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1)
+            else
+                # 情况二：当前是稳定版本 (vX.Y.Z)
+                PREVIOUS_TAG=$(git tag --list --sort=-committerdate --exclude="*-dev*" | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1)
+            fi
+        
+            if [[ -n "$PREVIOUS_TAG" ]]; then
+                echo "自动推导的上一个标签为: $PREVIOUS_TAG"
+            else
+                echo "警告：未找到合适的上一个标签，将依赖Python脚本回退到仓库初始提交。"
+            fi
+        fi
+        # --- 自动推导逻辑结束 ---
+        
+        # 执行 Python 脚本
+        python ${{ github.action_path }}/generate_changelog.py "$VERSION_TITLE" "$PREVIOUS_TAG"
+
+        # 检查文件是否生成成功
+        if [ ! -f CHANGELOG.md ]; then
+          echo "警告：CHANGELOG.md 文件未生成，可能范围内没有有效提交。"
+          CHANGELOG_CONTENT=""
+        else
+          # 读取 CHANGELOG.md 文件内容
+          CHANGELOG_CONTENT=$(cat CHANGELOG.md)
+        fi
+        
+        # 【关键】将多行内容设置为 Action 的输出变量，使用 EOF 方式
+        echo "changelog_content<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
