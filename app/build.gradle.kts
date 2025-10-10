@@ -37,7 +37,7 @@ android {
             dimension = "version"
             // 开发者版本的包名后缀，使其可以和正式版共存
             applicationIdSuffix = ".dev"
-            versionNameSuffix = "-DEV"
+            versionNameSuffix = "-dev"
 
             // 注入开关：开发者版本不隐藏，显示自定义/私有仓库
             buildConfigField("Boolean", "HIDE_CUSTOM_REPOS", "false")
