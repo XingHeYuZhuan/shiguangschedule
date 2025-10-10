@@ -16,88 +16,147 @@ on:
         options:
           - prod
           - dev
-      # 新增：手动输入版本号，确保标签和标题正确
       version_name:
         description: '请输入要发布的软件版本号 (例如: 1.0.0)'
         required: true
         type: string
 
 jobs:
-  release:
-    name: 审批并发布到 GitHub Releases
+  # Job 1: 准备和审核
+  prepare_review:
+    name: 准备、预检并显示发布参数
     runs-on: ubuntu-latest
 
-    # 核心控制：链接到受保护的环境，强制管理员审批
-    environment: Production-Release
+    outputs:
+      build_run_id_out: ${{ github.event.inputs.build_run_id }}
+      build_flavor_out: ${{ github.event.inputs.build_flavor }}
+      version_name_out: ${{ github.event.inputs.version_name }}
+      artifact_id_out: ${{ steps.validate_artifact.outputs.artifact_id_out }}
 
     steps:
-      - name: 检出代码 (Checkout)
-        uses: actions/checkout@v4
+      - name: 关键参数展示 (请审核者核对)
+        run: |
+          echo "--- 待审核发布参数 ---"
+          echo "版本号 (Version): ${{ github.event.inputs.version_name }}"
+          echo "发布风味 (Flavor): ${{ github.event.inputs.build_flavor }}"
+          echo "基于构建 Run ID: ${{ github.event.inputs.build_run_id }}"
+          echo "------------------------"
 
-      # ----------------------------------------------------
-      # 1. 查找、下载指定的 Artifact，并设置版本号变量
-      # ----------------------------------------------------
-      - name: 查找并下载指定的 Artifact
+      - name: 预检：验证 Artifact 和源 Run 状态
+        id: validate_artifact
         uses: actions/github-script@v7
-        id: download_artifact
         with:
           script: |
-            const { build_run_id, build_flavor, version_name } = context.payload.inputs;
+            const { build_run_id, build_flavor } = context.payload.inputs;
             const artifactName = `app-${build_flavor}-release-apk`;
-            
-            core.info(`准备发布版本：${version_name}，风味：${build_flavor}，基于 Run ID：${build_run_id}`);
-            
-            // 1. 查找目标 run_id 中的 Artifact 列表
+
+            core.info(`执行预检：验证 Run ID ${build_run_id} 是否成功且包含 Artifact: ${artifactName}`);
+
+            // 1. 检查源 Run 的状态是否为 'success'
+            const sourceRun = await github.rest.actions.getWorkflowRun({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: build_run_id,
+            });
+
+            if (sourceRun.data.conclusion !== 'success') {
+                core.setFailed(`源构建 Run ID ${build_run_id} 状态为 ${sourceRun.data.conclusion}，必须是 'success' 才能发布！`);
+                return;
+            }
+            core.info(`✅ 源构建 Run 状态检查通过: ${sourceRun.data.conclusion}`);
+
+            // 2. 查找 Artifact 是否存在
             const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
                owner: context.repo.owner,
                repo: context.repo.repo,
-               run_id: build_run_id, // 使用用户输入的 ID
+               run_id: build_run_id,
             });
 
-            // 2. 过滤出正确的 Artifact
             const matchArtifact = artifacts.data.artifacts.filter(artifact => {
               return artifact.name === artifactName
             })[0];
-            
+
             if (!matchArtifact) {
               core.setFailed(`在 Run ID ${build_run_id} 中未找到 Artifact: ${artifactName}！请检查 Run ID 和风味是否正确。`);
               return;
             }
 
-            // 3. 下载 Artifact 并解压
+            core.info(`✅ Artifact 存在性检查通过。Artifact ID: ${matchArtifact.id}`);
+            core.setOutput('artifact_id_out', matchArtifact.id);
+
+  # Job 2: 审核并发布 (受环境锁限制，只有在 Job 1 成功预检并通过审核后才运行)
+  release:
+    name: 批准后执行发布到 GitHub Releases
+    runs-on: ubuntu-latest
+
+    needs: prepare_review
+    environment: Production-Release
+
+    permissions:
+      contents: write
+
+    steps:
+      # 1. 下载指定的 Artifact ZIP 文件 (不再重复查找和校验)
+      - name: 下载指定的 Artifact ZIP 文件
+        uses: actions/github-script@v7
+        id: download_artifact
+        with:
+          script: |
+            // 从 Job 1 的 outputs 中获取所有参数
+            const build_flavor = process.env.BUILD_FLAVOR;
+            const version_name = process.env.VERSION_NAME;
+            const artifactId = process.env.ARTIFACT_ID; 
+
+            const artifactName = `app-${build_flavor}-release-apk`;
+            const zipFileName = `${artifactName}.zip`; 
+            
+            core.info(`准备发布版本：${version_name}，风味：${build_flavor}，开始下载 Artifact ID: ${artifactId}`);
+            
+            // 直接下载 Artifact 的二进制数据
             const download = await github.rest.actions.downloadArtifact({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              artifact_id: matchArtifact.id,
+              artifact_id: artifactId, 
               archive_format: 'zip',
             });
             
+            // 将二进制数据写入到文件系统
             const fs = require('fs');
-            fs.writeFileSync(`${artifactName}.zip`, Buffer.from(download.data));
+            fs.writeFileSync(zipFileName, Buffer.from(download.data)); 
             
-            const AdmZip = require('adm-zip');
-            const zip = new AdmZip(`${artifactName}.zip`);
-            zip.extractAllTo('./artifacts/', true);
-            
-            // 4. 设置输出变量：APK路径、风味 和 手动输入的版本号
-            const apkFile = fs.readdirSync('./artifacts/')[0];
-            core.setOutput('artifact_path', `./artifacts/${apkFile}`);
+            // 设置输出变量：ZIP 文件名、风味 和 版本号
+            core.setOutput('zip_file', zipFileName);
             core.setOutput('flavor', build_flavor);
             core.setOutput('version', version_name);
 
-      # ----------------------------------------------------
-      # 2. 创建 GitHub Release
-      # ----------------------------------------------------
+        env:
+          BUILD_FLAVOR: ${{ needs.prepare_review.outputs.build_flavor_out }}
+          VERSION_NAME: ${{ needs.prepare_review.outputs.version_name_out }}
+          ARTIFACT_ID: ${{ needs.prepare_review.outputs.artifact_id_out }}
+
+      # 2. 解压 Artifact
+      - name: 解压 Artifact 并设置所有 APK 路径
+        id: unzip_and_set_path
+        run: |
+          ARTIFACT_ZIP_FILE=${{ steps.download_artifact.outputs.zip_file }}          
+          
+          echo "开始解压文件：$ARTIFACT_ZIP_FILE"
+          mkdir -p artifacts/
+          unzip -o $ARTIFACT_ZIP_FILE -d ./artifacts/
+          
+          ALL_APKS_PATH='./artifacts/*.apk'
+          
+          echo "设置文件上传路径（通配符）：$ALL_APKS_PATH"
+          echo "artifact_path=$ALL_APKS_PATH" >> $GITHUB_OUTPUT
+
+      # 3. 创建 GitHub Release
       - name: 创建/更新 GitHub Release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # 标签名称：v版本号-风味 (例如: v1.0.0-prod)
           tag_name: v${{ steps.download_artifact.outputs.version }}-${{ steps.download_artifact.outputs.flavor }}
-          # 发布标题：Android Release v版本号 (风味) (例如: Android Release v1.0.0 (prod))
           name: Android Release v${{ steps.download_artifact.outputs.version }} (${{ steps.download_artifact.outputs.flavor }})
-          # 如果是 prod，则立即发布；如果是 dev，则设置为预发布草稿
           draft: ${{ steps.download_artifact.outputs.flavor != 'prod' }}
           prerelease: ${{ steps.download_artifact.outputs.flavor == 'dev' }}
-          files: ${{ steps.download_artifact.outputs.artifact_path }}
+          files: ${{ steps.unzip_and_set_path.outputs.artifact_path }}
