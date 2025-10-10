@@ -26,8 +26,10 @@ jobs:
     name: 审批并发布到 GitHub Releases
     runs-on: ubuntu-latest
 
-    # 核心控制：链接到受保护的环境，强制管理员审批
     environment: Production-Release
+
+    permissions:
+      contents: write
 
     steps:
       - name: 检出代码 (Checkout)
@@ -77,9 +79,7 @@ jobs:
             core.setOutput('flavor', build_flavor);
             core.setOutput('version', version_name);
 
-      # ----------------------------------------------------
-      # 2. 解压 Artifact 文件并设置 APK 路径 (使用 Shell 的 unzip 和 glob 模式)
-      # ----------------------------------------------------
+      # 2. 解压 Artifact
       - name: 解压 Artifact 并设置所有 APK 路径
         id: unzip_and_set_path
         run: |
@@ -98,9 +98,7 @@ jobs:
           # 使用 GITHUB_OUTPUT 设置 artifact_path 变量，供下一个步骤的 files 参数使用
           echo "artifact_path=$ALL_APKS_PATH" >> $GITHUB_OUTPUT
 
-      # ----------------------------------------------------
       # 3. 创建 GitHub Release
-      # ----------------------------------------------------
       - name: 创建/更新 GitHub Release
         uses: softprops/action-gh-release@v2
         env:
