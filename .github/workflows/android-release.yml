@@ -1,6 +1,5 @@
-name: Android Production Release (Manual)
+name: 需要审核的发布操作
 
-# 只能手动触发
 on:
   workflow_dispatch:
     inputs:
@@ -27,6 +26,9 @@ jobs:
     name: 准备、预检并显示发布参数
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     outputs:
       build_run_id_out: ${{ github.event.inputs.build_run_id }}
       build_flavor_out: ${{ github.event.inputs.build_flavor }}
@@ -34,6 +36,11 @@ jobs:
       artifact_id_out: ${{ steps.validate_artifact.outputs.artifact_id_out }}
 
     steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: 关键参数展示 (请审核者核对)
         run: |
           echo "--- 待审核发布参数 ---"
@@ -41,6 +48,28 @@ jobs:
           echo "发布风味 (Flavor): ${{ github.event.inputs.build_flavor }}"
           echo "基于构建 Run ID: ${{ github.event.inputs.build_run_id }}"
           echo "------------------------"
+
+      - name: 🔐 预检：检查目标标签是否已存在
+        run: |
+          BUILD_FLAVOR=${{ github.event.inputs.build_flavor }}
+          VERSION_NAME=${{ github.event.inputs.version_name }}
+          
+          # 计算目标标签名（保持与 Job 2 的标签命名规则一致）
+          if [ "$BUILD_FLAVOR" == "prod" ]; then
+            RELEASE_TAG="v${VERSION_NAME}"
+          else
+            RELEASE_TAG="v${VERSION_NAME}-${BUILD_FLAVOR}" 
+          fi
+
+          echo "目标 Release 标签名: $RELEASE_TAG"
+          
+          # 使用 git rev-parse 检查标签是否存在
+          if git rev-parse --verify "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+             echo "🚨 严重错误：目标 Release 标签 [$RELEASE_TAG] 已存在于 Git 仓库中。"
+             echo "请修改版本号或手动删除旧标签后重试。"
+             exit 1 # 强制工作流失败
+          fi
+          echo "✅ 目标标签 [$RELEASE_TAG] 检查通过，可以创建。"
 
       - name: 预检：验证 Artifact 和源 Run 状态
         id: validate_artifact
@@ -84,6 +113,7 @@ jobs:
             core.info(`✅ Artifact 存在性检查通过。Artifact ID: ${matchArtifact.id}`);
             core.setOutput('artifact_id_out', matchArtifact.id);
 
+
   # Job 2: 审核并发布 (受环境锁限制，只有在 Job 1 成功预检并通过审核后才运行)
   release:
     name: 批准后执行发布到 GitHub Releases
@@ -96,13 +126,55 @@ jobs:
       contents: write
 
     steps:
-      # 1. 下载指定的 Artifact ZIP 文件 (不再重复查找和校验)
+      # 0. 检出代码 (Action 必备，用于访问 changelog-generator 和 git 历史)
+      - name: ⬇️ 检出仓库代码 (获取完整历史)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 必须获取全部历史，以便 git log/tag
+
+      # 1. 计算 Release 名称和 Changelog 标题/标签
+      - name: ⚙️ 计算最终标签名和 Changelog 标题
+        id: compute_names
+        run: |
+          BUILD_FLAVOR=${{ needs.prepare_review.outputs.build_flavor_out }}
+          VERSION_NAME=${{ needs.prepare_review.outputs.version_name_out }}
+          
+          # 构造标签名、Release 显示名和 Changelog 标题 (与 Job 1 的预检逻辑一致)
+          if [ "$BUILD_FLAVOR" == "prod" ]; then
+            # Prod 版本：标签名不带后缀 (e.g., v1.0.0)
+            RELEASE_TAG="v${VERSION_NAME}"
+            RELEASE_NAME="v${VERSION_NAME} (Production)"
+            CHANGELOG_TITLE="v${VERSION_NAME}"
+          else
+            # Dev 版本：标签名带后缀 (e.g., v1.0.0-dev)
+            RELEASE_TAG="v${VERSION_NAME}-${BUILD_FLAVOR}"
+            RELEASE_NAME="v${VERSION_NAME} (${BUILD_FLAVOR})"
+            CHANGELOG_TITLE="v${VERSION_NAME}-${BUILD_FLAVOR}"
+          fi
+
+          echo "Release Tag: $RELEASE_TAG"
+          
+          # 设置输出变量供后续步骤使用
+          echo "changelog_title=$CHANGELOG_TITLE" >> $GITHUB_OUTPUT
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+
+      # 2. 调用 Changelog Generator 并获取内容
+      - name: 📄 生成并获取更新日志内容
+        id: generate_changelog
+        # 假设您的 Action 路径为 ./.github/actions/changelog-generator/
+        uses: ./.github/actions/changelog-generator
+        with:
+          version_title: ${{ steps.compute_names.outputs.changelog_title }}
+          # previous_tag 留空，让 Action 内部的逻辑自动推导出上一个版本标签
+
+      # 3. 下载指定的 Artifact ZIP 文件
       - name: 下载指定的 Artifact ZIP 文件
         uses: actions/github-script@v7
         id: download_artifact
         with:
           script: |
-            // 从 Job 1 的 outputs 中获取所有参数
+            // 从环境变量中获取参数
             const build_flavor = process.env.BUILD_FLAVOR;
             const version_name = process.env.VERSION_NAME;
             const artifactId = process.env.ARTIFACT_ID; 
@@ -112,7 +184,6 @@ jobs:
             
             core.info(`准备发布版本：${version_name}，风味：${build_flavor}，开始下载 Artifact ID: ${artifactId}`);
             
-            // 直接下载 Artifact 的二进制数据
             const download = await github.rest.actions.downloadArtifact({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -120,21 +191,17 @@ jobs:
               archive_format: 'zip',
             });
             
-            // 将二进制数据写入到文件系统
             const fs = require('fs');
             fs.writeFileSync(zipFileName, Buffer.from(download.data)); 
             
-            // 设置输出变量：ZIP 文件名、风味 和 版本号
             core.setOutput('zip_file', zipFileName);
-            core.setOutput('flavor', build_flavor);
-            core.setOutput('version', version_name);
 
         env:
           BUILD_FLAVOR: ${{ needs.prepare_review.outputs.build_flavor_out }}
           VERSION_NAME: ${{ needs.prepare_review.outputs.version_name_out }}
           ARTIFACT_ID: ${{ needs.prepare_review.outputs.artifact_id_out }}
 
-      # 2. 解压 Artifact
+      # 4. 解压 Artifact
       - name: 解压 Artifact 并设置所有 APK 路径
         id: unzip_and_set_path
         run: |
@@ -149,14 +216,20 @@ jobs:
           echo "设置文件上传路径（通配符）：$ALL_APKS_PATH"
           echo "artifact_path=$ALL_APKS_PATH" >> $GITHUB_OUTPUT
 
-      # 3. 创建 GitHub Release
+      # 5. 创建 GitHub Release
       - name: 创建/更新 GitHub Release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.download_artifact.outputs.version }}-${{ steps.download_artifact.outputs.flavor }}
-          name: Android Release v${{ steps.download_artifact.outputs.version }} (${{ steps.download_artifact.outputs.flavor }})
-          draft: ${{ steps.download_artifact.outputs.flavor != 'prod' }}
-          prerelease: ${{ steps.download_artifact.outputs.flavor == 'dev' }}
+          # 使用计算出的最终标签名
+          tag_name: ${{ steps.compute_names.outputs.release_tag }}
+          # 使用计算出的 Release 显示名称
+          name: ${{ steps.compute_names.outputs.release_name }}
+          # 使用 Changelog Generator 的输出作为 Release 正文
+          body: ${{ steps.generate_changelog.outputs.changelog_content }}
+          # 只有非 Prod 版本才设置为 Draft
+          draft: ${{ needs.prepare_review.outputs.build_flavor_out != 'prod' }}
+          # 只有 Dev 版本才设置为 Prerelease
+          prerelease: ${{ needs.prepare_review.outputs.build_flavor_out == 'dev' }}
           files: ${{ steps.unzip_and_set_path.outputs.artifact_path }}

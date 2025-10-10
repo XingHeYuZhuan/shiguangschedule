@@ -1,0 +1,72 @@
+name: 'Changelog Generator'
+description: 'Generates a formatted changelog from Git history.'
+
+inputs:
+  version_title:
+    required: true
+  previous_tag:
+    required: false
+    default: ''
+
+outputs:
+  changelog_content:
+    description: "The generated Markdown content for the Release body."
+    value: ${{ steps.generate_content.outputs.changelog_content }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: 强制获取完整标签历史
+      shell: bash
+      run: git fetch --tags
+
+    - name: 📄 生成更新日志并设置输出
+      id: generate_content # <--- 关键修正：为 run 步骤添加 ID
+      shell: bash
+      run: |
+        VERSION_TITLE="${{ inputs.version_title }}"
+        PREVIOUS_TAG="${{ inputs.previous_tag }}"
+        
+        # --- 自动推导比较标签逻辑 (基于时间排序) ---
+        if [[ -z "$PREVIOUS_TAG" ]]; then
+            echo "未提供对比标签，开始自动推导（基于时间排序）..."
+        
+            # 使用 --sort=-committerdate (时间降序) 进行排序
+        
+            if [[ "$VERSION_TITLE" == *"-dev"* ]]; then
+                # 【关键修正】：使用 || true 确保即使没有标签找到，管道命令也不会使脚本退出
+                PREVIOUS_TAG=$(git tag --list "*-dev*" --sort=-committerdate | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1) || true
+            else
+                # 【关键修正】：使用 || true 确保即使没有标签找到，管道命令也不会使脚本退出
+                PREVIOUS_TAG=$(git tag --list --sort=-committerdate --exclude="*-dev*" | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1) || true
+            fi
+        
+            if [[ -n "$PREVIOUS_TAG" ]]; then
+                echo "自动推导的上一个标签为: $PREVIOUS_TAG"
+            else
+                # 如果没有标签，PREVIOUS_TAG 仍然是空，Python 脚本会安全地回退到初始 Commit
+                echo "警告：未找到合适的上一个标签，将依赖Python脚本回退到仓库初始提交。"
+            fi
+        fi
+        # --- 自动推导逻辑结束 ---
+        
+        # 【新增调试代码】打印 Python 脚本的路径，用于排查问题
+        echo "DEBUG: GITHUB_ACTION_PATH is $GITHUB_ACTION_PATH"
+        
+        # 执行 Python 脚本
+        python $GITHUB_ACTION_PATH/generate_changelog.py "$VERSION_TITLE" "$PREVIOUS_TAG" 2>&1
+        
+        # 检查文件是否生成成功
+        if [ ! -f CHANGELOG.md ]; then
+          echo "警告：CHANGELOG.md 文件未生成，可能范围内没有有效提交。"
+          CHANGELOG_CONTENT=""
+        else
+          # 读取 CHANGELOG.md 文件内容
+          CHANGELOG_CONTENT=$(cat CHANGELOG.md)
+        fi
+        
+        # 【关键】将多行内容设置为 Action 的输出变量，使用 EOF 方式
+        # 设置内部步骤的输出 (steps.<step_id>.outputs.<output_name>)
+        echo "changelog_content<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
