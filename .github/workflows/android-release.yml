@@ -163,7 +163,7 @@ jobs:
       - name: 📄 生成并获取更新日志内容
         id: generate_changelog
         # 假设您的 Action 路径为 ./.github/actions/changelog-generator/
-        uses: ./.github/actions/changelog-generator/@main
+        uses: ./.github/actions/changelog-generator
         with:
           version_title: ${{ steps.compute_names.outputs.changelog_title }}
           # previous_tag 留空，让 Action 内部的逻辑自动推导出上一个版本标签
