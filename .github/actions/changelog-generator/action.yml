@@ -1,12 +1,15 @@
+name: 'Changelog Generator'
+description: 'Generates a formatted changelog from Git history.'
+
+inputs: # <--- 已移到顶层
+  version_title:
+    required: true
+  previous_tag:
+    required: false
+    default: ''
+
 runs:
   using: "composite"
-  inputs: # 确保这里定义了 inputs
-    version_title:
-      required: true
-    previous_tag:
-      required: false
-      default: ''
-
   steps:
     - name: 强制获取完整标签历史
       shell: bash
