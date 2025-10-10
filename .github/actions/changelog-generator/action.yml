@@ -1,22 +1,27 @@
 name: 'Changelog Generator'
 description: 'Generates a formatted changelog from Git history.'
 
-inputs: # <--- 已移到顶层
+inputs:
   version_title:
     required: true
   previous_tag:
     required: false
     default: ''
 
+outputs:
+  changelog_content:
+    description: "The generated Markdown content for the Release body."
+    value: ${{ steps.generate_content.outputs.changelog_content }}
+
 runs:
   using: "composite"
   steps:
     - name: 强制获取完整标签历史
       shell: bash
-      # 确保您在某个步骤中执行了 git fetch --tags，或者将其放在这里
       run: git fetch --tags
 
-    - name: 生成更新日志并设置输出
+    - name: 📄 生成更新日志并设置输出
+      id: generate_content # <--- 关键修正：为 run 步骤添加 ID
       shell: bash
       run: |
         VERSION_TITLE="${{ inputs.version_title }}"
@@ -49,7 +54,6 @@ runs:
         echo "DEBUG: GITHUB_ACTION_PATH is $GITHUB_ACTION_PATH"
         
         # 执行 Python 脚本
-        # 现在 Shell 脚本应该能够安全到达这里
         python $GITHUB_ACTION_PATH/generate_changelog.py "$VERSION_TITLE" "$PREVIOUS_TAG" 2>&1
         
         # 检查文件是否生成成功
@@ -62,6 +66,7 @@ runs:
         fi
         
         # 【关键】将多行内容设置为 Action 的输出变量，使用 EOF 方式
+        # 设置内部步骤的输出 (steps.<step_id>.outputs.<output_name>)
         echo "changelog_content<<EOF" >> $GITHUB_OUTPUT
         echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
