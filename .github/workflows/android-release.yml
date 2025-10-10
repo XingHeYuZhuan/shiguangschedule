@@ -1,0 +1,103 @@
+name: Android Production Release (Manual)
+
+# 只能手动触发
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: '请填写 Build CI 成功的 Run ID (例如：123456789)'
+        required: true
+        type: string
+      build_flavor:
+        description: '请选择要发布的版本风味'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - dev
+      # 新增：手动输入版本号，确保标签和标题正确
+      version_name:
+        description: '请输入要发布的软件版本号 (例如: 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: 审批并发布到 GitHub Releases
+    runs-on: ubuntu-latest
+
+    # 核心控制：链接到受保护的环境，强制管理员审批
+    environment: Production-Release
+
+    steps:
+      - name: 检出代码 (Checkout)
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------
+      # 1. 查找、下载指定的 Artifact，并设置版本号变量
+      # ----------------------------------------------------
+      - name: 查找并下载指定的 Artifact
+        uses: actions/github-script@v7
+        id: download_artifact
+        with:
+          script: |
+            const { build_run_id, build_flavor, version_name } = context.payload.inputs;
+            const artifactName = `app-${build_flavor}-release-apk`;
+            
+            core.info(`准备发布版本：${version_name}，风味：${build_flavor}，基于 Run ID：${build_run_id}`);
+            
+            // 1. 查找目标 run_id 中的 Artifact 列表
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: build_run_id, // 使用用户输入的 ID
+            });
+
+            // 2. 过滤出正确的 Artifact
+            const matchArtifact = artifacts.data.artifacts.filter(artifact => {
+              return artifact.name === artifactName
+            })[0];
+            
+            if (!matchArtifact) {
+              core.setFailed(`在 Run ID ${build_run_id} 中未找到 Artifact: ${artifactName}！请检查 Run ID 和风味是否正确。`);
+              return;
+            }
+
+            // 3. 下载 Artifact 并解压
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: matchArtifact.id,
+              archive_format: 'zip',
+            });
+            
+            const fs = require('fs');
+            fs.writeFileSync(`${artifactName}.zip`, Buffer.from(download.data));
+            
+            const AdmZip = require('adm-zip');
+            const zip = new AdmZip(`${artifactName}.zip`);
+            zip.extractAllTo('./artifacts/', true);
+            
+            // 4. 设置输出变量：APK路径、风味 和 手动输入的版本号
+            const apkFile = fs.readdirSync('./artifacts/')[0];
+            core.setOutput('artifact_path', `./artifacts/${apkFile}`);
+            core.setOutput('flavor', build_flavor);
+            core.setOutput('version', version_name);
+
+      # ----------------------------------------------------
+      # 2. 创建 GitHub Release
+      # ----------------------------------------------------
+      - name: 创建/更新 GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # 标签名称：v版本号-风味 (例如: v1.0.0-prod)
+          tag_name: v${{ steps.download_artifact.outputs.version }}-${{ steps.download_artifact.outputs.flavor }}
+          # 发布标题：Android Release v版本号 (风味) (例如: Android Release v1.0.0 (prod))
+          name: Android Release v${{ steps.download_artifact.outputs.version }} (${{ steps.download_artifact.outputs.flavor }})
+          # 如果是 prod，则立即发布；如果是 dev，则设置为预发布草稿
+          draft: ${{ steps.download_artifact.outputs.flavor != 'prod' }}
+          prerelease: ${{ steps.download_artifact.outputs.flavor == 'dev' }}
+          files: ${{ steps.download_artifact.outputs.artifact_path }}

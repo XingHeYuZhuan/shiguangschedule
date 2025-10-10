@@ -27,14 +27,16 @@ jobs:
           # 强制删除 app/src/main/assets/offline_repo 下的所有内容
           rm -rf app/src/main/assets/offline_repo/*
 
-      - name: 克隆资源仓库并保留 .git (Clone Resources with .git)
-        uses: actions/checkout@v4
-        with:
-          repository: 'XingHeYuZhuan/shiguang_warehouse'
-          ref: 'main'
-          path: 'app/src/main/assets/offline_repo'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
+      - name: 克隆适配代码资源仓库
+        run: |
+          TARGET_PATH="app/src/main/assets/offline_repo"
+          mkdir -p $TARGET_PATH
+          REPO_URL="https://${{ secrets.GITHUB_TOKEN }}@github.com/XingHeYuZhuan/shiguang_warehouse.git"
+          echo "--- 正在使用 git clone --depth 1 进行浅克隆，以提高CI速度 ---"
+          git clone --depth 1 $REPO_URL $TARGET_PATH
+            
+          echo "检查 .git 目录是否存在于目标路径:"
+          ls -a $TARGET_PATH
 
       - name: 运行贡献者数据生成脚本 (Generate Contributors Data)
         run: |
