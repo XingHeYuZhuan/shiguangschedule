@@ -16,7 +16,6 @@ on:
         options:
           - prod
           - dev
-      # 新增：手动输入版本号，确保标签和标题正确
       version_name:
         description: '请输入要发布的软件版本号 (例如: 1.0.0)'
         required: true
@@ -34,16 +33,14 @@ jobs:
       - name: 检出代码 (Checkout)
         uses: actions/checkout@v4
 
-      # ----------------------------------------------------
-      # 1. 查找、下载指定的 Artifact，并设置版本号变量
-      # ----------------------------------------------------
-      - name: 查找并下载指定的 Artifact
+      - name: 查找、下载指定的 Artifact ZIP 文件
         uses: actions/github-script@v7
         id: download_artifact
         with:
           script: |
             const { build_run_id, build_flavor, version_name } = context.payload.inputs;
             const artifactName = `app-${build_flavor}-release-apk`;
+            const zipFileName = `${artifactName}.zip`; 
             
             core.info(`准备发布版本：${version_name}，风味：${build_flavor}，基于 Run ID：${build_run_id}`);
             
@@ -51,9 +48,8 @@ jobs:
             const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
                owner: context.repo.owner,
                repo: context.repo.repo,
-               run_id: build_run_id, // 使用用户输入的 ID
+               run_id: build_run_id,
             });
-
             // 2. 过滤出正确的 Artifact
             const matchArtifact = artifacts.data.artifacts.filter(artifact => {
               return artifact.name === artifactName
@@ -64,7 +60,7 @@ jobs:
               return;
             }
 
-            // 3. 下载 Artifact 并解压
+            // 3. 下载 Artifact 的二进制数据
             const download = await github.rest.actions.downloadArtifact({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -72,21 +68,38 @@ jobs:
               archive_format: 'zip',
             });
             
+            // 4. 将二进制数据写入到文件系统
             const fs = require('fs');
-            fs.writeFileSync(`${artifactName}.zip`, Buffer.from(download.data));
+            fs.writeFileSync(zipFileName, Buffer.from(download.data)); 
             
-            const AdmZip = require('adm-zip');
-            const zip = new AdmZip(`${artifactName}.zip`);
-            zip.extractAllTo('./artifacts/', true);
-            
-            // 4. 设置输出变量：APK路径、风味 和 手动输入的版本号
-            const apkFile = fs.readdirSync('./artifacts/')[0];
-            core.setOutput('artifact_path', `./artifacts/${apkFile}`);
+            // 5. 设置输出变量：ZIP 文件名、风味 和 版本号
+            core.setOutput('zip_file', zipFileName);
             core.setOutput('flavor', build_flavor);
             core.setOutput('version', version_name);
 
       # ----------------------------------------------------
-      # 2. 创建 GitHub Release
+      # 2. 解压 Artifact 文件并设置 APK 路径 (使用 Shell 的 unzip 和 glob 模式)
+      # ----------------------------------------------------
+      - name: 解压 Artifact 并设置所有 APK 路径
+        id: unzip_and_set_path
+        run: |
+          ARTIFACT_ZIP_FILE=${{ steps.download_artifact.outputs.zip_file }}          
+          
+          echo "开始解压文件：$ARTIFACT_ZIP_FILE"
+          mkdir -p artifacts/
+          # 使用系统自带的 unzip 命令解压
+          unzip -o $ARTIFACT_ZIP_FILE -d ./artifacts/
+          
+          # 设置通配符路径，以包含所有解压出来的 APK 文件
+          ALL_APKS_PATH='./artifacts/*.apk'
+          
+          echo "设置文件上传路径（通配符）：$ALL_APKS_PATH"
+          
+          # 使用 GITHUB_OUTPUT 设置 artifact_path 变量，供下一个步骤的 files 参数使用
+          echo "artifact_path=$ALL_APKS_PATH" >> $GITHUB_OUTPUT
+
+      # ----------------------------------------------------
+      # 3. 创建 GitHub Release
       # ----------------------------------------------------
       - name: 创建/更新 GitHub Release
         uses: softprops/action-gh-release@v2
@@ -100,4 +113,5 @@ jobs:
           # 如果是 prod，则立即发布；如果是 dev，则设置为预发布草稿
           draft: ${{ steps.download_artifact.outputs.flavor != 'prod' }}
           prerelease: ${{ steps.download_artifact.outputs.flavor == 'dev' }}
-          files: ${{ steps.download_artifact.outputs.artifact_path }}
+          # 引用解压步骤的输出，files 参数将自动匹配所有 *.apk 文件并上传
+          files: ${{ steps.unzip_and_set_path.outputs.artifact_path }}
