@@ -1,33 +1,19 @@
-name: '生成并输出更新日志'
-description: '运行 generate_changelog.py 脚本，自动推导上一个版本标签，并将生成的更新日志内容作为字符串变量输出。'
-
-# --- 输入定义 ---
-inputs:
-  version_title:
-    description: '本次更新日志的版本号 (e.g., v1.0.0)'
-    required: true
-  previous_tag:
-    description: '用于 Git log 比较的起始标签或Commit哈希 (可选，如果提供则覆盖自动推导)'
-    required: false
-    default: ''
-
-# --- 输出定义 ---
-outputs:
-  changelog_content:
-    description: '生成的 CHANGELOG.md 文件的全部 Markdown 内容 (字符串)'
-    value: ${{ steps.generate.outputs.changelog_content }}
-
-# --- 实际执行的步骤 ---
 runs:
   using: "composite"
-  steps:
-    - name: 🐍 设置 Python 环境 (Action 内部)
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
+  inputs: # 确保这里定义了 inputs
+    version_title:
+      required: true
+    previous_tag:
+      required: false
+      default: ''
 
-    - name: ⚙️ 执行脚本并捕获输出
-      id: generate
+  steps:
+    - name: 强制获取完整标签历史
+      shell: bash
+      # 确保您在某个步骤中执行了 git fetch --tags，或者将其放在这里
+      run: git fetch --tags
+
+    - name: 生成更新日志并设置输出
       shell: bash
       run: |
         VERSION_TITLE="${{ inputs.version_title }}"
@@ -40,24 +26,29 @@ runs:
             # 使用 --sort=-committerdate (时间降序) 进行排序
         
             if [[ "$VERSION_TITLE" == *"-dev"* ]]; then
-                # 情况一：当前是开发版本 (vX.Y.Z-dev...)
-                PREVIOUS_TAG=$(git tag --list "*-dev*" --sort=-committerdate | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1)
+                # 【关键修正】：使用 || true 确保即使没有标签找到，管道命令也不会使脚本退出
+                PREVIOUS_TAG=$(git tag --list "*-dev*" --sort=-committerdate | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1) || true
             else
-                # 情况二：当前是稳定版本 (vX.Y.Z)
-                PREVIOUS_TAG=$(git tag --list --sort=-committerdate --exclude="*-dev*" | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1)
+                # 【关键修正】：使用 || true 确保即使没有标签找到，管道命令也不会使脚本退出
+                PREVIOUS_TAG=$(git tag --list --sort=-committerdate --exclude="*-dev*" | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1) || true
             fi
         
             if [[ -n "$PREVIOUS_TAG" ]]; then
                 echo "自动推导的上一个标签为: $PREVIOUS_TAG"
             else
+                # 如果没有标签，PREVIOUS_TAG 仍然是空，Python 脚本会安全地回退到初始 Commit
                 echo "警告：未找到合适的上一个标签，将依赖Python脚本回退到仓库初始提交。"
             fi
         fi
         # --- 自动推导逻辑结束 ---
         
+        # 【新增调试代码】打印 Python 脚本的路径，用于排查问题
+        echo "DEBUG: GITHUB_ACTION_PATH is $GITHUB_ACTION_PATH"
+        
         # 执行 Python 脚本
+        # 现在 Shell 脚本应该能够安全到达这里
         python $GITHUB_ACTION_PATH/generate_changelog.py "$VERSION_TITLE" "$PREVIOUS_TAG" 2>&1
-
+        
         # 检查文件是否生成成功
         if [ ! -f CHANGELOG.md ]; then
           echo "警告：CHANGELOG.md 文件未生成，可能范围内没有有效提交。"
