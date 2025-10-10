@@ -56,7 +56,7 @@ runs:
         # --- 自动推导逻辑结束 ---
         
         # 执行 Python 脚本
-        python ${{ github.action_path }}/generate_changelog.py "$VERSION_TITLE" "$PREVIOUS_TAG"
+        python ${{ github.action_path }}/generate_changelog.py "$VERSION_TITLE" "$PREVIOUS_TAG" 2>&1
 
         # 检查文件是否生成成功
         if [ ! -f CHANGELOG.md ]; then
