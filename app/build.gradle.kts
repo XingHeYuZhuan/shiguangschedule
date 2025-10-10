@@ -30,6 +30,35 @@ android {
             )
         }
     }
+    flavorDimensions += "version"
+
+    productFlavors {
+        create("dev") {
+            dimension = "version"
+            // 开发者版本的包名后缀，使其可以和正式版共存
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-DEV"
+
+            // 注入开关：开发者版本不隐藏，显示自定义/私有仓库
+            buildConfigField("Boolean", "HIDE_CUSTOM_REPOS", "false")
+            // 注入开关：开发者版本关闭基准灯塔标签验证
+            buildConfigField("Boolean", "ENABLE_LIGHTHOUSE_VERIFICATION", "false")
+
+            // 开发者版本：允许在 UI 中显示 v
+            buildConfigField("Boolean", "ENABLE_DEV_TOOLS_OPTION_IN_UI", "true")
+        }
+
+        create("prod") {
+            dimension = "version"
+
+            // 注入开关：正式版本隐藏自定义/私有仓库
+            buildConfigField("Boolean", "HIDE_CUSTOM_REPOS", "true")
+            // 注入开关：正式版本开启基准灯塔标签验证
+            buildConfigField("Boolean", "ENABLE_LIGHTHOUSE_VERIFICATION", "true")
+            // 正式版本：禁止在 UI 中显示 DevTools 选项
+            buildConfigField("Boolean", "ENABLE_DEV_TOOLS_OPTION_IN_UI", "false")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -54,14 +83,19 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 afterEvaluate {
-    tasks.named("assembleRelease") {
-        dependsOn("licenseReleaseReport")
+    tasks.named("assembleProdRelease") {
+        dependsOn("licenseProdReleaseReport")
+    }
+    tasks.named("assembleDevRelease") {
+        dependsOn("licenseDevReleaseReport")
     }
 }
+
 dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.compose.material.icons.extended)
