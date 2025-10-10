@@ -22,7 +22,7 @@ on:
         type: string
 
 jobs:
-  # Job 1: 准备和审核 (不受环境锁限制，立即运行并执行预检)
+  # Job 1: 准备和审核
   prepare_review:
     name: 准备、预检并显示发布参数
     runs-on: ubuntu-latest
@@ -31,11 +31,10 @@ jobs:
       build_run_id_out: ${{ github.event.inputs.build_run_id }}
       build_flavor_out: ${{ github.event.inputs.build_flavor }}
       version_name_out: ${{ github.event.inputs.version_name }}
-      # 传递查找到的 Artifact ID，供 Job 2 直接下载
       artifact_id_out: ${{ steps.validate_artifact.outputs.artifact_id_out }}
 
     steps:
-      - name: 📝 关键参数展示 (请审核者核对)
+      - name: 关键参数展示 (请审核者核对)
         run: |
           echo "--- 待审核发布参数 ---"
           echo "版本号 (Version): ${{ github.event.inputs.version_name }}"
@@ -43,23 +42,23 @@ jobs:
           echo "基于构建 Run ID: ${{ github.event.inputs.build_run_id }}"
           echo "------------------------"
 
-      - name: 🔍 预检：验证 Artifact 和源 Run 状态
+      - name: 预检：验证 Artifact 和源 Run 状态
         id: validate_artifact
         uses: actions/github-script@v7
         with:
           script: |
             const { build_run_id, build_flavor } = context.payload.inputs;
             const artifactName = `app-${build_flavor}-release-apk`;
-            
+
             core.info(`执行预检：验证 Run ID ${build_run_id} 是否成功且包含 Artifact: ${artifactName}`);
-            
+
             // 1. 检查源 Run 的状态是否为 'success'
             const sourceRun = await github.rest.actions.getWorkflowRun({
                owner: context.repo.owner,
                repo: context.repo.repo,
                run_id: build_run_id,
             });
-            
+
             if (sourceRun.data.conclusion !== 'success') {
                 core.setFailed(`源构建 Run ID ${build_run_id} 状态为 ${sourceRun.data.conclusion}，必须是 'success' 才能发布！`);
                 return;
@@ -72,18 +71,18 @@ jobs:
                repo: context.repo.repo,
                run_id: build_run_id,
             });
-            
+
             const matchArtifact = artifacts.data.artifacts.filter(artifact => {
               return artifact.name === artifactName
             })[0];
-            
+
             if (!matchArtifact) {
               core.setFailed(`在 Run ID ${build_run_id} 中未找到 Artifact: ${artifactName}！请检查 Run ID 和风味是否正确。`);
               return;
             }
-            
+
             core.info(`✅ Artifact 存在性检查通过。Artifact ID: ${matchArtifact.id}`);
-            core.setOutput('artifact_id_out', matchArtifact.id); # 传递 Artifact ID
+            core.setOutput('artifact_id_out', matchArtifact.id);
 
   # Job 2: 审核并发布 (受环境锁限制，只有在 Job 1 成功预检并通过审核后才运行)
   release:
@@ -133,7 +132,7 @@ jobs:
         env:
           BUILD_FLAVOR: ${{ needs.prepare_review.outputs.build_flavor_out }}
           VERSION_NAME: ${{ needs.prepare_review.outputs.version_name_out }}
-          ARTIFACT_ID: ${{ needs.prepare_review.outputs.artifact_id_out }} # 使用 Job 1 查找到的 ID
+          ARTIFACT_ID: ${{ needs.prepare_review.outputs.artifact_id_out }}
 
       # 2. 解压 Artifact
       - name: 解压 Artifact 并设置所有 APK 路径
