@@ -15,18 +15,21 @@ import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.DesktopWindows
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -56,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -133,12 +137,7 @@ fun WebViewScreen(
                 context = context,
                 coroutineScope = coroutineScope,
                 onTaskCompleted = {
-                    // 这是在 JS 脚本调用 AndroidBridge.notifyTaskCompletion() 后执行的 Native 逻辑
-
-                    // 1. 实现您提出的交互性 Toast/弹窗 (Toast是最简单且有效的)
                     Toast.makeText(context, "导入脚本执行完毕，返回课表页面。", Toast.LENGTH_LONG).show()
-
-                    // 2. 执行导航逻辑
                     navController.popBackStack(
                         route = Screen.CourseSchedule.route,
                         inclusive = false
@@ -401,26 +400,45 @@ fun WebViewScreen(
                                 }
                             )
                         }
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            BottomAppBar(
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                content = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "请登录教务系统后切换到有课表显示的页面再点击导入课程，点击右上角的更多查看其他选项",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
-                        // 导入课程
-                        DropdownMenuItem(
-                            text = { Text("导入课程") },
+                        Spacer(Modifier.width(12.dp))
+
+                        // 右侧导入按钮
+                        Button(
                             onClick = {
-                                expanded = false
                                 schoolAssetJsPath?.let { assetPath ->
                                     showCourseTablePicker = true
                                 } ?: run {
                                     Toast.makeText(context, "该学校没有适配代码，请手动导入。", Toast.LENGTH_LONG).show()
                                 }
                             },
-                            leadingIcon = {
-                                Icon(Icons.Filled.Download, contentDescription = "导入课程")
-                            }
-                        )
+                            enabled = schoolAssetJsPath != null
+                        ) {
+                            Text("执行导入")
+                        }
                     }
                 }
             )
-        },
+        }
     ) { paddingValues ->
         Box(modifier = Modifier
             .padding(paddingValues)
