@@ -57,7 +57,7 @@ fun UpdateRepoScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "更新仓库") },
+                title = { Text(text = "更新教务适配仓库") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
