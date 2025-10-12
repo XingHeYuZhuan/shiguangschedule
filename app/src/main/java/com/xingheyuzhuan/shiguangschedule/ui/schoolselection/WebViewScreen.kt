@@ -123,7 +123,6 @@ fun WebViewScreen(
             settings.javaScriptEnabled = true
             settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             settings.useWideViewPort = true
-            settings.loadWithOverviewMode = true
             settings.setSupportZoom(true)
             settings.builtInZoomControls = true
             settings.displayZoomControls = false
@@ -190,70 +189,114 @@ fun WebViewScreen(
 
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
-                    pageTitle = view?.title ?: "未知页面"
-                    view?.evaluateJavascript("""
-                        window._androidPromiseResolvers = {};
-                        window._androidPromiseRejectors = {};
+                    view?.let { webView ->
+                        val desktopWidth = 1920
 
-                        window._resolveAndroidPromise = function(promiseId, result) {
-                            if (window._androidPromiseResolvers[promiseId]) {
-                                window._androidPromiseResolvers[promiseId](result);
-                                delete window._androidPromiseResolvers[promiseId];
-                                delete window._androidPromiseRejectors[promiseId];
-                            }
-                        };
+                        pageTitle = webView.title ?: "未知页面"
 
-                        window._rejectAndroidPromise = function(promiseId, error) {
-                            if (window._androidPromiseRejectors[promiseId]) {
-                                window._androidPromiseRejectors[promiseId](new Error(error));
-                                delete window._androidPromiseResolvers[promiseId];
-                                delete window._androidPromiseRejectors[promiseId];
-                            }
-                        };
+                        val currentUa = webView.settings.userAgentString
 
-                        window.AndroidBridgePromise = {
-                            showAlert: function(title, content, confirmText) {
-                                return new Promise((resolve, reject) => {
-                                    const promiseId = 'alert_' + Date.now() + Math.random().toString(36).substring(2);
-                                    window._androidPromiseResolvers[promiseId] = resolve;
-                                    window._androidPromiseRejectors[promiseId] = reject;
-                                    AndroidBridge.showAlert(title, content, confirmText, promiseId);
-                                });
-                            },
-                            showPrompt: function(title, tip, defaultText, validatorJsFunction) {
-                                return new Promise((resolve, reject) => {
-                                    const promiseId = 'prompt_' + Date.now() + Math.random().toString(36).substring(2);
-                                    window._androidPromiseResolvers[promiseId] = resolve;
-                                    window._androidPromiseRejectors[promiseId] = reject;
-                                    AndroidBridge.showPrompt(title, tip, defaultText, validatorJsFunction, promiseId);
-                                });
-                            },
-                            showSingleSelection: function(title, itemsJsonString, defaultSelectedIndex) {
-                                return new Promise((resolve, reject) => {
-                                    const promiseId = 'singleSelect_' + Date.now() + Math.random().toString(36).substring(2);
-                                    window._androidPromiseResolvers[promiseId] = resolve;
-                                    window._androidPromiseRejectors[promiseId] = reject;
-                                    AndroidBridge.showSingleSelection(title, itemsJsonString, defaultSelectedIndex, promiseId);
-                                });
-                            },
-                            saveImportedCourses: function(coursesJsonString) {
-                                return new Promise((resolve, reject) => {
-                                    const promiseId = 'saveCourses_' + Date.now() + Math.random().toString(36).substring(2);
-                                    window._androidPromiseResolvers[promiseId] = resolve;
-                                    window._androidPromiseRejectors[promiseId] = reject;
-                                    AndroidBridge.saveImportedCourses(coursesJsonString, promiseId);
-                                });
-                            },
-                            savePresetTimeSlots: function(timeSlotsJsonString) {
-                                return new Promise((resolve, reject) => {
-                                    const promiseId = 'saveTimeSlots_' + Date.now() + Math.random().toString(36).substring(2);
-                                    window._androidPromiseResolvers[promiseId] = resolve;
-                                    window._androidPromiseRejectors[promiseId] = reject;
-                                    AndroidBridge.savePresetTimeSlots(timeSlotsJsonString, promiseId);
-                                });
-                            }
-                        };
-                    """, null)
+                        if (currentUa == desktopUserAgent) {
+                            webView.evaluateJavascript("""
+                                (function() {
+                                    var desktopWidth = ${desktopWidth};
+                                    
+                                    // 1. 强制视口注入
+                                    var existingMeta = document.querySelector('meta[name=viewport]');
+                                    if (existingMeta) {
+                                        existingMeta.parentNode.removeChild(existingMeta);
+                                    }
+                                    
+                                    var meta = document.createElement('meta');
+                                    meta.setAttribute('name', 'viewport');
+                                    meta.setAttribute('content', 'width=' + desktopWidth + ', initial-scale=0.5, maximum-scale=3.0, user-scalable=yes'); 
+                                    
+                                    var head = document.getElementsByTagName('head')[0];
+                                    if (head) {
+                                        head.appendChild(meta);
+                                    }
+    
+                                    // 2. 强制 CSS 注入
+                                    var style = document.createElement('style');
+                                    style.innerHTML = 'html, body { ' +
+                                                      'overflow-x: visible !important; ' + 
+                                                      'min-width: ' + desktopWidth + 'px !important; ' + 
+                                                      'width: auto !important; ' + 
+                                                      'position: static !important; ' + // 消除可能的定位问题
+                                                      'padding: 0 !important; margin: 0 !important;' +
+                                                      '}';
+                                    if (head) {
+                                        head.appendChild(style);
+                                    }
+                                })();
+                            """, null)
+                        }
+
+                        // 3. 注入 Promise 垫片代码
+                        webView.evaluateJavascript("""
+                            window._androidPromiseResolvers = {};
+                            window._androidPromiseRejectors = {};
+
+                            window._resolveAndroidPromise = function(promiseId, result) {
+                                if (window._androidPromiseResolvers[promiseId]) {
+                                    window._androidPromiseResolvers[promiseId](result);
+                                    delete window._androidPromiseResolvers[promiseId];
+                                    delete window._androidPromiseRejectors[promiseId];
+                                }
+                            };
+
+                            window._rejectAndroidPromise = function(promiseId, error) {
+                                if (window._androidPromiseRejectors[promiseId]) {
+                                    window._androidPromiseRejectors[promiseId](new Error(error));
+                                    delete window._androidPromiseResolvers[promiseId];
+                                    delete window._androidPromiseRejectors[promiseId];
+                                }
+                            };
+
+                            window.AndroidBridgePromise = {
+                                showAlert: function(title, content, confirmText) {
+                                    return new Promise((resolve, reject) => {
+                                        const promiseId = 'alert_' + Date.now() + Math.random().toString(36).substring(2);
+                                        window._androidPromiseResolvers[promiseId] = resolve;
+                                        window._androidPromiseRejectors[promiseId] = reject;
+                                        AndroidBridge.showAlert(title, content, confirmText, promiseId);
+                                    });
+                                },
+                                showPrompt: function(title, tip, defaultText, validatorJsFunction) {
+                                    return new Promise((resolve, reject) => {
+                                        const promiseId = 'prompt_' + Date.now() + Math.random().toString(36).substring(2);
+                                        window._androidPromiseResolvers[promiseId] = resolve;
+                                        window._androidPromiseRejectors[promiseId] = reject;
+                                        AndroidBridge.showPrompt(title, tip, defaultText, validatorJsFunction, promiseId);
+                                    });
+                                },
+                                showSingleSelection: function(title, itemsJsonString, defaultSelectedIndex) {
+                                    return new Promise((resolve, reject) => {
+                                        const promiseId = 'singleSelect_' + Date.now() + Math.random().toString(36).substring(2);
+                                        window._androidPromiseResolvers[promiseId] = resolve;
+                                        window._androidPromiseRejectors[promiseId] = reject;
+                                        AndroidBridge.showSingleSelection(title, itemsJsonString, defaultSelectedIndex, promiseId);
+                                    });
+                                },
+                                saveImportedCourses: function(coursesJsonString) {
+                                    return new Promise((resolve, reject) => {
+                                        const promiseId = 'saveCourses_' + Date.now() + Math.random().toString(36).substring(2);
+                                        window._androidPromiseResolvers[promiseId] = resolve;
+                                        window._androidPromiseRejectors[promiseId] = reject;
+                                        AndroidBridge.saveImportedCourses(coursesJsonString, promiseId);
+                                    });
+                                },
+                                savePresetTimeSlots: function(timeSlotsJsonString) {
+                                    return new Promise((resolve, reject) => {
+                                        const promiseId = 'saveTimeSlots_' + Date.now() + Math.random().toString(36).substring(2);
+                                        window._androidPromiseResolvers[promiseId] = resolve;
+                                        window._androidPromiseRejectors[promiseId] = reject;
+                                        AndroidBridge.savePresetTimeSlots(timeSlotsJsonString, promiseId);
+                                    });
+                                }
+                            };
+                        """, null)
+                    }
                 }
 
                 override fun onReceivedError(view: WebView, request: android.webkit.WebResourceRequest, error: android.webkit.WebResourceError) {
@@ -353,9 +396,11 @@ fun WebViewScreen(
                                 isDesktopMode = !isDesktopMode
                                 if (isDesktopMode) {
                                     webView.settings.userAgentString = desktopUserAgent
+                                    webView.settings.loadWithOverviewMode = false
                                     Toast.makeText(context, "已切换到电脑模式", Toast.LENGTH_SHORT).show()
                                 } else {
                                     webView.settings.userAgentString = defaultUserAgent
+                                    webView.settings.loadWithOverviewMode = true
                                     Toast.makeText(context, "已切换到手机模式", Toast.LENGTH_SHORT).show()
                                 }
                                 schoolImportUrl?.let { url ->
@@ -604,6 +649,7 @@ fun WebViewScreen(
                         val jsFile = File(context.filesDir, "repo/$assetPath")
                         if (jsFile.exists()) {
                             val jsCode = jsFile.readText()
+                            // webView 是 remember 出来的非空实例，直接使用非空调用
                             webView.evaluateJavascript(jsCode, null)
                             Toast.makeText(context, "正在执行导入脚本...", Toast.LENGTH_SHORT).show()
                         } else {
