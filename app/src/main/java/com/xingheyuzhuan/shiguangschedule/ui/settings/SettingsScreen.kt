@@ -102,7 +102,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(SETTING_PADDING),
+                .padding(horizontal = SETTING_PADDING),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(SECTION_SPACING)
         ) {

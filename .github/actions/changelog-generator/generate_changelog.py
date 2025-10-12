@@ -9,6 +9,7 @@ from datetime import date
 COMMIT_TYPES = {
     'feat': '✨ 新增功能 (Features)',
     'fix': '🐛 Bug 修复 (Bug Fixes)',
+    'improve': '💡 功能与体验优化 (Improvements)'
     'perf': '🚀 性能与代码改进 (Improvements)',
     'refactor': '🚀 性能与代码改进 (Improvements)',
     'style': '🚀 性能与代码改进 (Improvements)',
@@ -26,10 +27,9 @@ CHANGELOG_PATH = 'CHANGELOG.md'
 def get_first_commit_hash():
     """获取仓库的第一个提交的哈希值"""
     try:
-        # 修正：明确指定 UTF-8 编码
+        # UTF-8 编码
         return subprocess.check_output('git rev-list --max-parents=0 HEAD', shell=True, text=True, encoding='utf-8').strip()
     except subprocess.CalledProcessError:
-        # 【关键修正点】Git 命令失败时，安全返回 None，而不是强制退出
         return None
 
 def is_valid_ref(ref):
@@ -76,7 +76,7 @@ def generate_changelog(version_title, previous_tag):
     # 3. 执行 git log 获取提交信息
     log_format = '%H|||%s|||%an'
     try:
-        # 修正：明确指定 UTF-8 编码
+        # 明确指定 UTF-8 编码
         logs_output = subprocess.check_output(f'git log --pretty=format:"{log_format}" {range_str}', shell=True, text=True, encoding='utf-8').strip()
         logs = logs_output.split('\n')
     except subprocess.CalledProcessError as e:
@@ -127,10 +127,11 @@ def generate_changelog(version_title, previous_tag):
     new_changelog = f"## {version_title}\n\n"
 
     ordered_titles = [
-        COMMIT_TYPES['feat'],
-        COMMIT_TYPES['fix'],
-        COMMIT_TYPES['perf'],
-        COMMIT_TYPES['docs'],
+        COMMIT_TYPES.get('feat'),
+        COMMIT_TYPES.get('fix'),
+        COMMIT_TYPES.get('improve'),
+        COMMIT_TYPES.get('perf'),
+        COMMIT_TYPES.get('docs'),
         OTHER_CATEGORY
     ]
 
