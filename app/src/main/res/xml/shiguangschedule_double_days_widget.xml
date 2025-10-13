@@ -6,9 +6,9 @@
     android:minResizeHeight="100dp"
     android:targetCellWidth="4"
     android:targetCellHeight="2"
-    android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="1800000"
+    android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:initialLayout="@layout/widget_loading_placeholder"
-    android:previewImage="@drawable/widget_preview_moderate">
+    android:previewImage="@drawable/widget_preview_double_days">
 </appwidget-provider>

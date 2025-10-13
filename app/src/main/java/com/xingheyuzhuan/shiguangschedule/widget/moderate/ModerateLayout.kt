@@ -56,7 +56,7 @@ fun ModerateLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
         !it.isSkipped && LocalTime.parse(it.endTime) > now
     }
 
-    val systemCornerRadius = 16.dp
+    val systemCornerRadius = 21.dp
 
     Box(
         modifier = GlanceModifier
@@ -186,7 +186,7 @@ fun ModerateLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                         }
                         
                         // 底部区域：剩余课程数
-                        if (remainingCoursesCount > nextCourses.size) {
+                        if (remainingCoursesCount > 0) {
                             Row(
                                 modifier = GlanceModifier
                                     .fillMaxWidth()
