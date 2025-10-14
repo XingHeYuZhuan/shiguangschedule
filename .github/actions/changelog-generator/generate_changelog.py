@@ -9,7 +9,7 @@ from datetime import date
 COMMIT_TYPES = {
     'feat': '✨ 新增功能 (Features)',
     'fix': '🐛 Bug 修复 (Bug Fixes)',
-    'improve': '💡 功能与体验优化 (Improvements)'
+    'improve': '💡 功能与体验优化 (Improvements)',
     'perf': '🚀 性能与代码改进 (Improvements)',
     'refactor': '🚀 性能与代码改进 (Improvements)',
     'style': '🚀 性能与代码改进 (Improvements)',
