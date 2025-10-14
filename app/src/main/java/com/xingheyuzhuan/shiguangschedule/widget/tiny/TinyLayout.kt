@@ -48,7 +48,7 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
         !it.isSkipped && LocalTime.parse(it.endTime) > now
     }
 
-    val systemCornerRadius = 21.dp
+    val systemCornerRadius = 12.dp
 
     Box(
         modifier = GlanceModifier

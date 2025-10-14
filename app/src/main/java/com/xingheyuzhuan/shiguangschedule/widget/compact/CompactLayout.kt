@@ -55,7 +55,7 @@ fun CompactLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
         !it.isSkipped && LocalTime.parse(it.endTime) > now
     }
 
-    val systemCornerRadius = 21.dp
+    val systemCornerRadius = 16.dp
 
     Box(
         modifier = GlanceModifier
@@ -79,7 +79,7 @@ fun CompactLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                 Spacer(modifier = GlanceModifier.defaultWeight())
                 Text(
                     text = if (currentWeek != null) "第${currentWeek}周 $todayDateString $todayDayOfWeekString" else "$todayDateString $todayDayOfWeekString",
-                    style = TextStyle(fontSize = 12.sp, color = WidgetColors.textHint)
+                    style = TextStyle(fontSize = 10.sp, color = WidgetColors.textHint)
                 )
             }
 
@@ -133,7 +133,7 @@ fun CompactLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                 }
 
                 // 底部区域：剩余课程数
-                if (remainingCoursesCount > 0) {
+                if (remainingCoursesCount > nextCourses.size) {
                     Row(
                         modifier = GlanceModifier
                             .fillMaxWidth()

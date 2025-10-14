@@ -3,6 +3,5 @@
     <string name="widget_name_tiny">超小课程2x1</string>
     <string name="widget_name_compact">紧凑课程2x2</string>
     <string name="widget_name_moderate">今日课程4x2</string>
-    <string name="widget_name_double_days">近日课程4x2</string>
     <string name="widget_name_large">今日课程4x3</string>
 </resources>

@@ -6,7 +6,6 @@ import android.util.Log
 import androidx.glance.appwidget.updateAll
 import com.xingheyuzhuan.shiguangschedule.widget.tiny.TinyScheduleWidget
 import com.xingheyuzhuan.shiguangschedule.widget.compact.TodayScheduleWidget
-import com.xingheyuzhuan.shiguangschedule.widget.double_days.DoubleDaysScheduleWidget
 import com.xingheyuzhuan.shiguangschedule.widget.large.LargeScheduleWidget
 import com.xingheyuzhuan.shiguangschedule.widget.moderate.ModerateScheduleWidget
 
@@ -22,7 +21,6 @@ suspend fun updateAllWidgets(context: Context) {
         TinyScheduleWidget(),
         TodayScheduleWidget(),
         ModerateScheduleWidget(),
-        DoubleDaysScheduleWidget(),
         LargeScheduleWidget()
     )
 

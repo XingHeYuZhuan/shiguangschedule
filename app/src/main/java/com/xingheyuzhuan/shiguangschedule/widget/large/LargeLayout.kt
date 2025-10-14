@@ -57,7 +57,7 @@ fun LargeLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
         !it.isSkipped && LocalTime.parse(it.endTime) > now
     }
 
-    val systemCornerRadius = 21.dp
+    val systemCornerRadius = 16.dp
 
     Box(
         modifier = GlanceModifier
@@ -187,7 +187,7 @@ fun LargeLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                         }
                         
                         // 底部区域：剩余课程数
-                        if (remainingCoursesCount > 0) {
+                        if (remainingCoursesCount > nextCourses.size) {
                             Row(
                                 modifier = GlanceModifier
                                     .fillMaxWidth()
