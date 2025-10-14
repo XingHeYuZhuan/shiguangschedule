@@ -2,9 +2,9 @@ package com.xingheyuzhuan.shiguangschedule.ui.components
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.ViewAgenda
+import androidx.compose.material.icons.filled.ViewWeek
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -20,19 +20,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.ViewAgenda
+import androidx.compose.material.icons.outlined.ViewWeek
 
 
 @Composable
 fun BottomNavigationBar(navController: NavHostController, currentRoute: String?) {
+
     val navItems = listOf(
         "今日课表" to Screen.TodaySchedule.route,
         "课表" to Screen.CourseSchedule.route,
         "我的" to Screen.Settings.route
     )
 
+    val iconSize = 24.dp
+    val textSize = 12.sp
+
+
     NavigationBar {
         navItems.forEach { (label, route) ->
             val isSelected = currentRoute == route
+
             NavigationBarItem(
                 selected = isSelected,
                 onClick = {
@@ -47,30 +56,36 @@ fun BottomNavigationBar(navController: NavHostController, currentRoute: String?)
                     }
                 },
                 icon = {
-                    val icon = when (route) {
-                        Screen.TodaySchedule.route -> Icons.Filled.Today
-                        Screen.CourseSchedule.route -> Icons.Filled.Schedule
-                        Screen.Settings.route -> Icons.Filled.Person
-                        else -> Icons.Filled.Schedule
+                    val (selectedIcon, unselectedIcon) = when (route) {
+                        Screen.TodaySchedule.route -> Icons.Filled.ViewAgenda to Icons.Outlined.ViewAgenda
+                        Screen.CourseSchedule.route -> Icons.Filled.ViewWeek to Icons.Outlined.ViewWeek
+                        Screen.Settings.route -> Icons.Filled.AccountCircle to Icons.Outlined.AccountCircle
+                        else -> Icons.Filled.AccountCircle to Icons.Outlined.AccountCircle
                     }
-                    Icon(icon, contentDescription = label,modifier = if (isSelected) Modifier.size(28.8.dp) else Modifier.size(24.dp))
+
+                    val icon = if (isSelected) selectedIcon else unselectedIcon
+
+                    Icon(
+                        icon,
+                        contentDescription = label,
+                        modifier = Modifier.size(iconSize)
+                    )
                 },
                 label = {
                     Text(
                         label,
-                        fontSize = if (isSelected) 14.4.sp else 12.sp
+                        fontSize = textSize
                     )
                 },
-                // 在这里设置颜色来移除背景指示器
                 colors = NavigationBarItemDefaults.colors(
-                    // 隐藏胶囊形指示器的颜色
                     indicatorColor = Color.Transparent,
-                    // 设置未选中状态的颜色
+
                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+
                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    // 设置选中状态的颜色
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary
+
+                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    selectedTextColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -80,5 +95,5 @@ fun BottomNavigationBar(navController: NavHostController, currentRoute: String?)
 @Preview(showBackground = true)
 @Composable
 fun BottomNavigationBarPreview() {
-    BottomNavigationBar(navController = rememberNavController(), currentRoute = "today")
+    BottomNavigationBar(navController = rememberNavController(), currentRoute = Screen.Settings.route)
 }
