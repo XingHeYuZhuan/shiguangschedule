@@ -14,6 +14,13 @@
     "editable": false
   },
   {
+    "name": "自定义仓库",
+    "type": "CUSTOM",
+    "url": "",
+    "branch": "",
+    "editable": true
+  },
+  {
     "name": "ITDONG镜像库(三网优化)",
     "type": "PUBLIC_FORK",
     "url": "https://git.itdong.me/XingHeYuZhuan/shiguang_warehouse.git",
