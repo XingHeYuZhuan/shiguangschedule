@@ -10,5 +10,5 @@
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen"
     android:initialLayout="@layout/widget_loading_placeholder"
-    android:previewImage="@drawable/widget_preview_compact">
+    android:previewImage="@drawable/widget_preview_tiny">
 </appwidget-provider>

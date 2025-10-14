@@ -1,0 +1,40 @@
+name: Check PR Source Branch
+
+on:
+  pull_request:
+    branches:
+      - main # 只有合并到 main 分支的 PR 才会触发
+
+jobs:
+  check_branch_and_repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检查分支名称和仓库来源
+        run: |
+          # 获取目标仓库的完整名称 (例如: MyOrg/MyRepo)
+          TARGET_REPO="${{ github.repository }}"
+          # 获取PR来源仓库的完整名称 (如果是Fork, 名称会不同)
+          SOURCE_REPO="${{ github.event.pull_request.head.repo.full_name }}"
+          # 获取PR来源分支的名称 (例如: dev)
+          SOURCE_BRANCH="${{ github.head_ref }}"
+          REQUIRED_BRANCH="dev"
+
+          echo "--- 检查信息 ---"
+          echo "目标仓库 (本仓库): $TARGET_REPO"
+          echo "PR来源仓库: $SOURCE_REPO"
+          echo "PR来源分支名称: $SOURCE_BRANCH"
+          echo "----------------"
+          
+          # 1. 检查来源是否为本仓库（即阻止来自 Fork 仓库的 PR）
+          if [ "$SOURCE_REPO" != "$TARGET_REPO" ]; then
+            echo "::error file=check-pr-source.yml::[错误] main 分支只接受来自【本仓库】的合并请求。来源仓库 ($SOURCE_REPO) 与目标仓库 ($TARGET_REPO) 不一致。"
+            exit 1
+          fi
+          
+          # 2. 检查来源分支名称是否为 dev
+          if [ "$SOURCE_BRANCH" != "$REQUIRED_BRANCH" ]; then
+            echo "::error file=check-pr-source.yml::[错误] main 分支只允许接受来自 '$REQUIRED_BRANCH' 分支的合并请求。当前来源分支为 '$SOURCE_BRANCH'。"
+            exit 1
+          fi
+          
+          echo "[通过] 检查成功：PR 来自本仓库，并且来源分支是 '$REQUIRED_BRANCH'。"
