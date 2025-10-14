@@ -62,18 +62,27 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
         Column(
             modifier = GlanceModifier.fillMaxSize()
         ) {
-            // 顶部区域：日期、星期和周数（右上角显示）
+            // 顶部区域：星期X（左侧显示）和 周数（右侧显示）
             Row(
                 modifier = GlanceModifier
                     .fillMaxWidth()
                     .padding(horizontal = 6.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = GlanceModifier.defaultWeight())
+                // 左侧
                 Text(
-                    text = if (currentWeek != null) "第${currentWeek}周 $todayDayOfWeekString" else "$todayDateString $todayDayOfWeekString",
+                    text = if (currentWeek != null) todayDayOfWeekString else "$todayDateString $todayDayOfWeekString",
                     style = TextStyle(fontSize = 10.sp, color = WidgetColors.textHint)
                 )
+
+                Spacer(modifier = GlanceModifier.defaultWeight())
+                // 右侧
+                if (currentWeek != null) {
+                    Text(
+                        text = "第${currentWeek}周",
+                        style = TextStyle(fontSize = 10.sp, color = WidgetColors.textHint)
+                    )
+                }
             }
 
             // 主要内容区域
@@ -97,9 +106,9 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                                 .background(WidgetColors.courseIndicator1),
                             content = {}
                         )
-                        
+
                         Spacer(modifier = GlanceModifier.width(6.dp))
-                        
+
                         // 右侧课程内容（紧凑显示）
                         Column(
                             modifier = GlanceModifier.defaultWeight(),
@@ -111,7 +120,7 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                                 style = TextStyle(fontSize = 14.sp, color = WidgetColors.textPrimary, fontWeight = FontWeight.Bold),
                                 maxLines = 1
                             )
-                            
+
                             // 时间和教师在同一行
                             Row(
                                 modifier = GlanceModifier.fillMaxWidth(),
@@ -122,7 +131,7 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                                     text = "${nextCourse.startTime.substring(0, 5)}-${nextCourse.endTime.substring(0, 5)}",
                                     style = TextStyle(fontSize = 11.sp, color = WidgetColors.textTertiary)
                                 )
-                                
+
                                 // 教师信息
                                 if (nextCourse.teacher.isNotBlank()) {
                                     Text(
@@ -136,7 +145,7 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                                     )
                                 }
                             }
-                            
+
                             // 地点在下一行
                             if (nextCourse.position.isNotBlank()) {
                                 Text(

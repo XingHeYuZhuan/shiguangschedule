@@ -1,4 +1,3 @@
-// ModerateLayout.kt
 package com.xingheyuzhuan.shiguangschedule.widget.moderate
 
 import androidx.compose.runtime.Composable
@@ -70,18 +69,28 @@ fun ModerateLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
         Column(
             modifier = GlanceModifier.fillMaxSize()
         ) {
-            // 顶部区域：日期、星期和周数（右上角显示）
+            // 顶部区域：日期、星期（左侧显示）和周数（右侧显示）
             Row(
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = GlanceModifier.defaultWeight())
+                // 左侧
                 Text(
-                    text = if (currentWeek != null) "第${currentWeek}周 $todayDateString $todayDayOfWeekString" else "$todayDateString $todayDayOfWeekString",
+                    text = "$todayDateString $todayDayOfWeekString",
                     style = TextStyle(fontSize = 12.sp, color = WidgetColors.textHint)
                 )
+
+                Spacer(modifier = GlanceModifier.defaultWeight())
+
+                // 右侧
+                if (currentWeek != null) {
+                    Text(
+                        text = "第${currentWeek}周",
+                        style = TextStyle(fontSize = 12.sp, color = WidgetColors.textHint)
+                    )
+                }
             }
 
             // 主要内容区域：根据不同的状态显示不同的布局
@@ -121,7 +130,7 @@ fun ModerateLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                     ) {
                         // 两列网格布局：2列×2行 = 4个课程
                         Row(
-                            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+                            modifier = GlanceModifier.fillMaxWidth(),
                             verticalAlignment = Alignment.Top
                         ) {
                             // 左列
@@ -152,9 +161,9 @@ fun ModerateLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                                     }
                                 }
                             }
-                            
+
                             Spacer(modifier = GlanceModifier.width(4.dp))
-                            
+
                             // 右列
                             Column(
                                 modifier = GlanceModifier.defaultWeight(),
@@ -184,7 +193,8 @@ fun ModerateLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                                 }
                             }
                         }
-                        
+                        Spacer(modifier = GlanceModifier.defaultWeight())
+
                         // 底部区域：剩余课程数
                         if (remainingCoursesCount > 0) {
                             Row(
@@ -245,11 +255,11 @@ fun CourseItemModerateGrid(course: WidgetCourse, index: Int) {
             contentDescription = null,
             modifier = GlanceModifier
                 .width(4.dp)
-                .height(58.dp)
+                .height(52.dp)
         )
-        
+
         Spacer(modifier = GlanceModifier.width(8.dp))
-        
+
         // 右侧课程内容
         Column(
             modifier = GlanceModifier.defaultWeight(),
@@ -261,19 +271,19 @@ fun CourseItemModerateGrid(course: WidgetCourse, index: Int) {
                 style = TextStyle(fontSize = 13.sp, color = WidgetColors.textPrimary, fontWeight = FontWeight.Bold),
                 maxLines = 1
             )
-            Spacer(modifier = GlanceModifier.height(3.dp))
-            
+            Spacer(modifier = GlanceModifier.height(1.dp))
+
             // 教师信息
             if (course.teacher.isNotBlank()) {
                 Text(
                     text = course.teacher,
-                    style = TextStyle(fontSize = 12.sp, color = WidgetColors.textSecondary),
+                    style = TextStyle(fontSize = 11.sp, color = WidgetColors.textSecondary),
                     maxLines = 1
                 )
-                Spacer(modifier = GlanceModifier.height(3.dp))
+                Spacer(modifier = GlanceModifier.height(1.dp))
             }
-            
-            // 时间和地点（在同一行）
+
+            // 时间和地点
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically

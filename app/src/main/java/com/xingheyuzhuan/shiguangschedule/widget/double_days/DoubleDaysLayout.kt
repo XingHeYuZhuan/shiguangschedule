@@ -81,7 +81,7 @@ fun DoubleDaysLayout(coursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, Int
             Row(
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Spacer(modifier = GlanceModifier.defaultWeight())
@@ -183,7 +183,7 @@ fun DayScheduleColumn(
             )
         }
 
-        Spacer(modifier = GlanceModifier.height(4.dp))
+        Spacer(modifier = GlanceModifier.height(0.dp))
 
         if (totalRemainingCount == 0) {
             Box(
@@ -272,7 +272,7 @@ fun CourseItemDoubleDay(course: WidgetCourse, index: Int) {
             modifier = GlanceModifier
                 .width(4.dp)
                 // 调整高度以适应更多信息行
-                .height(44.dp)
+                .height(42.dp)
         )
 
         Spacer(modifier = GlanceModifier.width(6.dp))
@@ -282,7 +282,7 @@ fun CourseItemDoubleDay(course: WidgetCourse, index: Int) {
             modifier = GlanceModifier.defaultWeight(),
             horizontalAlignment = Alignment.Horizontal.Start
         ) {
-            // 课程名称 (保持 Medium 字体)
+            // 课程名称
             Text(
                 text = course.name,
                 style = TextStyle(fontSize = 12.sp, color = WidgetColors.textPrimary, fontWeight = FontWeight.Medium),
@@ -291,7 +291,7 @@ fun CourseItemDoubleDay(course: WidgetCourse, index: Int) {
 
             // 教师信息
             if (course.teacher.isNotBlank()) {
-                Spacer(modifier = GlanceModifier.height(2.dp)) // 课程名和教师之间的间距
+                Spacer(modifier = GlanceModifier.height(1.dp)) // 课程名和教师之间的间距
                 Text(
                     text = course.teacher,
                     style = TextStyle(fontSize = 10.sp, color = WidgetColors.textSecondary), // 使用次级颜色
