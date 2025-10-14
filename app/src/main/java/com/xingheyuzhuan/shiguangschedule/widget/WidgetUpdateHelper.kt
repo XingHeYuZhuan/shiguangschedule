@@ -4,6 +4,7 @@ package com.xingheyuzhuan.shiguangschedule.widget
 import android.content.Context
 import android.util.Log
 import androidx.glance.appwidget.updateAll
+import com.xingheyuzhuan.shiguangschedule.widget.tiny.TinyScheduleWidget
 import com.xingheyuzhuan.shiguangschedule.widget.compact.TodayScheduleWidget
 import com.xingheyuzhuan.shiguangschedule.widget.double_days.DoubleDaysScheduleWidget
 import com.xingheyuzhuan.shiguangschedule.widget.large.LargeScheduleWidget
@@ -18,6 +19,7 @@ suspend fun updateAllWidgets(context: Context) {
 
     // 集中维护需要更新的小组件列表
     val widgetsToUpdate = listOf(
+        TinyScheduleWidget(),
         TodayScheduleWidget(),
         ModerateScheduleWidget(),
         DoubleDaysScheduleWidget(),
