@@ -57,17 +57,6 @@
                 android:resource="@xml/shiguangschedule_moderate_widget" />
         </receiver>
         <receiver
-            android:name=".widget.double_days.DoubleDaysScheduleWidgetReceiver"
-            android:label="@string/widget_name_double_days"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/shiguangschedule_double_days_widget" />
-        </receiver>
-        <receiver
             android:name=".widget.large.LargeScheduleWidgetReceiver"
             android:label="@string/widget_name_large"
             android:exported="true">

@@ -57,7 +57,7 @@ fun ModerateLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
         !it.isSkipped && LocalTime.parse(it.endTime) > now
     }
 
-    val systemCornerRadius = 21.dp
+    val systemCornerRadius = 16.dp
 
     Box(
         modifier = GlanceModifier
@@ -136,7 +136,7 @@ fun ModerateLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                         // 修复：在这里添加一个Spacer，将底部文字推到底部
                         Spacer(modifier = GlanceModifier.defaultWeight())
                         // 底部区域：剩余课程数
-                        if (remainingCoursesCount > 0) {
+                        if (remainingCoursesCount > nextCourses.size) {
                             Row(
                                 modifier = GlanceModifier
                                     .fillMaxWidth()
