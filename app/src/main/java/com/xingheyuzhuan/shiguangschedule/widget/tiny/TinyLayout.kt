@@ -93,7 +93,7 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                         Box(
                             modifier = GlanceModifier
                                 .width(2.dp)
-                                .height(50.dp)
+                                .height(40.dp)
                                 .background(WidgetColors.courseIndicator1),
                             content = {}
                         )
@@ -194,4 +194,3 @@ fun TinyNoCoursesLayout() {
         )
     }
 }
-
