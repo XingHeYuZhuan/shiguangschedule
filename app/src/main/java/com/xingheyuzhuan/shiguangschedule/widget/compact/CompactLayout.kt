@@ -32,7 +32,6 @@ import com.xingheyuzhuan.shiguangschedule.widget.WidgetColors
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle as LocalDateTextStyle
 import java.util.Locale
 
@@ -41,7 +40,6 @@ fun CompactLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
     val coursesAndWeekState = coursesAndWeekFlow.collectAsState(initial = Pair(emptyList(), null))
     val (courses, currentWeek) = coursesAndWeekState.value
     val today = LocalDate.now()
-    val todayDateString = today.format(DateTimeFormatter.ofPattern("M.d", Locale.getDefault()))
     val todayDayOfWeekString = today.dayOfWeek.getDisplayName(LocalDateTextStyle.SHORT, Locale.getDefault())
 
     val isVacation = currentWeek == null
@@ -69,18 +67,26 @@ fun CompactLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
         Column(
             modifier = GlanceModifier.fillMaxSize()
         ) {
-            // 顶部区域：日期、星期和周数（右上角显示）
+            // 顶部区域
             Row(
                 modifier = GlanceModifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = GlanceModifier.defaultWeight())
                 Text(
-                    text = if (currentWeek != null) "第${currentWeek}周 $todayDateString $todayDayOfWeekString" else "$todayDateString $todayDayOfWeekString",
+                    text = todayDayOfWeekString,
                     style = TextStyle(fontSize = 12.sp, color = WidgetColors.textHint)
                 )
+
+                Spacer(modifier = GlanceModifier.defaultWeight())
+
+                if (currentWeek != null) {
+                    Text(
+                        text = "第${currentWeek}周",
+                        style = TextStyle(fontSize = 12.sp, color = WidgetColors.textHint)
+                    )
+                }
             }
 
             // 主要内容区域：根据不同的状态显示不同的布局
@@ -139,7 +145,7 @@ fun CompactLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp)
                             .padding(bottom = 6.dp),
-                        horizontalAlignment = Alignment.Horizontal.Start
+                        horizontalAlignment = Alignment.Horizontal.CenterHorizontally
                     ) {
                         Text(
                             text = "今天还有 $remainingCoursesCount 节课",
@@ -215,9 +221,9 @@ fun CourseItemCompact(course: WidgetCourse, index: Int) {
                 .width(4.dp)
                 .height(52.dp)
         )
-        
+
         Spacer(modifier = GlanceModifier.width(8.dp))
-        
+
         // 右侧课程内容
         Column(
             modifier = GlanceModifier.defaultWeight(),
@@ -230,7 +236,7 @@ fun CourseItemCompact(course: WidgetCourse, index: Int) {
                 maxLines = 1
             )
             Spacer(modifier = GlanceModifier.height(2.dp))
-            
+
             // 教师信息
             if (course.teacher.isNotBlank()) {
                 Text(
@@ -240,7 +246,7 @@ fun CourseItemCompact(course: WidgetCourse, index: Int) {
                 )
                 Spacer(modifier = GlanceModifier.height(2.dp))
             }
-            
+
             // 时间和地点
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
