@@ -16,8 +16,8 @@ android {
         applicationId = "com.xingheyuzhuan.shiguangschedule"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.0.9-beta2"
+        versionCode = 10
+        versionName = "1.1.10-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
