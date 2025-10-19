@@ -26,6 +26,8 @@ slf4j = "1.7.30"
 desugar-jdk-libs = "2.1.5"
 compose-animation = "1.9.2"
 coil = "2.6.0"
+protobuf = "4.32.1"
+protobufPlugin = "0.9.5"
 
 
 [libraries]
@@ -68,6 +70,8 @@ slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4
 desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar-jdk-libs" }
 androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "compose-animation" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+protobuf-kotlin-lite = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobuf" }
+protobuf-java-lite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -76,3 +80,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 gradle-license = { id = "com.jaredsburrows.license", version.ref = "gradle-license-plugin" }
+protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }

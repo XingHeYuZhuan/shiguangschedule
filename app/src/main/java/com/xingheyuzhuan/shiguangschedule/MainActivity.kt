@@ -7,9 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,16 +17,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleScreen
-import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.SchoolSelectionScreen
-import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.WebViewScreen
-import com.xingheyuzhuan.shiguangschedule.ui.settings.coursetables.ManageCourseTablesScreen
-import com.xingheyuzhuan.shiguangschedule.ui.settings.notification.NotificationSettingsScreen
+import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.AdapterSelectionScreen
+import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.SchoolSelectionListScreen
+import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web.WebViewScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.additional.MoreOptionsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.additional.OpenSourceLicensesScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.contribution.ContributionScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.conversion.CourseTableConversionScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.course.AddEditCourseScreen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.coursetables.ManageCourseTablesScreen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.notification.NotificationSettingsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.time.TimeSlotManagementScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.tweaks.TweakScheduleScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.update.UpdateRepoScreen
@@ -104,30 +105,70 @@ fun AppNavigation() {
         ) {
             ManageCourseTablesScreen(navController = navController)
         }
+        // 学校选择
         composable(
-            Screen.SchoolSelection.route,
+            Screen.SchoolSelectionListScreen.route,
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            SchoolSelectionScreen(navController = navController)
+            SchoolSelectionListScreen(navController = navController)
         }
+
         composable(
-            route = Screen.WebView.route,
-            arguments = listOf(navArgument("schoolId") { type = NavType.StringType }),
+            route = "adapterSelection/{schoolId}/{schoolName}/{categoryNumber}/{resourceFolder}",
+            arguments = listOf(
+                navArgument("schoolId") { type = NavType.StringType },
+                navArgument("schoolName") { type = NavType.StringType },
+                navArgument("categoryNumber") { type = NavType.IntType },
+                navArgument("resourceFolder") { type = NavType.StringType }
+            ),
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) { backStackEntry ->
-            val schoolId = backStackEntry.arguments?.getString("schoolId")
-            if (schoolId != null) {
-                WebViewScreen(navController = navController, schoolId = schoolId)
-            } else {
-                Text("School ID 参数缺失或无效")
-                navController.popBackStack()
-            }
+            val schoolId = backStackEntry.arguments?.getString("schoolId") ?: ""
+            val schoolName = backStackEntry.arguments?.getString("schoolName") ?: "未知学校"
+            val categoryNumber = backStackEntry.arguments?.getInt("categoryNumber") ?: 0
+            val resourceFolder = backStackEntry.arguments?.getString("resourceFolder") ?: ""
+
+            AdapterSelectionScreen(
+                navController = navController,
+                schoolId = schoolId,
+                schoolName = schoolName,
+                categoryNumber = categoryNumber,
+                resourceFolder = resourceFolder
+            )
+        }
+        composable(
+            route = Screen.WebView.route,
+            arguments = listOf(
+                navArgument("initialUrl") { type = NavType.StringType },
+                navArgument("assetJsPath") { type = NavType.StringType }
+            ),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) { backStackEntry ->
+            val initialUrl = backStackEntry.arguments?.getString("initialUrl")
+            val assetJsPath = backStackEntry.arguments?.getString("assetJsPath")
+
+            val context = LocalContext.current
+            val app = context.applicationContext as MyApplication
+
+            val courseConversionRepository = app.courseConversionRepository
+            val timeSlotRepository = app.timeSlotRepository
+
+            WebViewScreen(
+                navController = navController,
+                initialUrl = initialUrl,
+                assetJsPath = assetJsPath,
+                courseConversionRepository = courseConversionRepository,
+                timeSlotRepository = timeSlotRepository,
+            )
         }
         composable(
             Screen.NotificationSettings.route,

@@ -468,7 +468,7 @@ fun CourseTableConversionScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { navController.navigate(Screen.SchoolSelection.route) }
+                            .clickable { navController.navigate(Screen.SchoolSelectionListScreen.route) }
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
