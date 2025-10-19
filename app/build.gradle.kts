@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.gradle.license)
+    alias(libs.plugins.protobuf)
 }
 
 android {
@@ -46,6 +47,11 @@ android {
 
             // 开发者版本：允许在 UI 中显示 v
             buildConfigField("Boolean", "ENABLE_DEV_TOOLS_OPTION_IN_UI", "true")
+
+            // 允许在 UI 中显示地址栏切换按钮
+            buildConfigField("Boolean", "ENABLE_ADDRESS_BAR_TOGGLE_BUTTON", "true")
+
+
         }
 
         create("prod") {
@@ -57,6 +63,9 @@ android {
             buildConfigField("Boolean", "ENABLE_LIGHTHOUSE_VERIFICATION", "true")
             // 正式版本：禁止在 UI 中显示 DevTools 选项
             buildConfigField("Boolean", "ENABLE_DEV_TOOLS_OPTION_IN_UI", "false")
+
+            // 禁止在 UI 中显示地址栏切换按钮
+            buildConfigField("Boolean", "ENABLE_ADDRESS_BAR_TOGGLE_BUTTON", "false")
         }
     }
     compileOptions {
@@ -77,9 +86,14 @@ android {
             include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
         }
     }
-    sourceSets.getByName("main") {
-        java.srcDirs("src/main/java")
-        kotlin.srcDirs("src/main/java")
+    sourceSets {
+        getByName("main") {
+            withGroovyBuilder {
+                "proto" {
+                    "srcDir"("src/main/proto")
+                }
+            }
+        }
     }
     buildFeatures {
         compose = true
@@ -128,6 +142,8 @@ dependencies {
     implementation(libs.slf4j.simple)
     implementation(libs.androidx.compose.animation)
     implementation(libs.coil.compose)
+    implementation(libs.protobuf.kotlin.lite)
+    implementation(libs.protobuf.java.lite)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
@@ -138,4 +154,26 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
+}
+
+// Protobuf插件配置 (保持简洁，不需要 sourceSets)
+protobuf {
+    protoc {
+        // 从版本目录中获取 protoc 编译器
+        artifact = "com.google.protobuf:protoc:${libs.versions.protobuf.get()}"
+    }
+
+    // 配置代码生成任务
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                create("java") {
+                    option("lite")
+                }
+                create("kotlin") {
+                    option("lite")
+                }
+            }
+        }
+    }
 }

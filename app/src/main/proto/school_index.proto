@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+
+option java_package = "school_index";
+
+// 定义包名，影响生成的 Python/Kotlin/Swift 模块名
+package school_index;
+
+// --- 1. 适配器类别枚举 ---
+// 使用枚举保证类型安全和编译期检查
+enum AdapterCategory {
+    // 必须从 0 开始
+    ADAPTER_CATEGORY_UNKNOWN = 0; 
+    
+    // 明确定义所有类别，编号不可更改！
+    GENERAL_TOOL = 1;               // 通用工具
+    BACHELOR_AND_ASSOCIATE = 2;     // 本科/专科教务系统
+    POSTGRADUATE = 3;               // 研究生教务系统
+
+}
+
+
+// --- 2. 顶层消息：整个索引文件 ---
+message SchoolIndex {
+  // 字段编号 1：显式协议版本号，用于客户端发现不兼容的大改动
+  int32 protocol_version = 1;
+
+  // 字段编号 2：数据文件的版本ID (CI/CD自动生成的时间戳)
+  string version_id = 2; 
+
+  // 字段编号 3：所有学校和通用工具的列表
+  repeated School schools = 3;
+}
+
+
+// --- 3. 消息：单个学校或通用工具集 ---
+message School {
+    // 字段编号 1：主键 (例如 CUST, YNUFE, GLOBAL_TOOLS)
+    string id = 1;
+    // 字段编号 2：用于显示的名称
+    string name = 2;
+    // 字段编号 3：拼音首字母，用于搜索和排序
+    string initial = 3; 
+    // 字段编号 4：资源文件夹名称 (与 id 相同，但保持独立字段以增加灵活性)
+    string resource_folder = 4; 
+    
+    // 字段编号 5：该学校下的所有适配器列表
+    repeated Adapter adapters = 5;
+}
+
+
+// --- 4. 消息：单个适配器的结构 ---
+message Adapter {
+    // 字段编号 1：适配器唯一 ID (例如 CUST_01, SHZQ_01)
+    string adapter_id = 1; 
+
+    // 字段编号 2：适配器名称
+    string adapter_name = 2;
+
+    // 字段编号 3：适配器类别，使用强类型枚举
+    AdapterCategory category = 3; 
+
+    // 字段编号 4：JS 文件的相对路径 (例如 cust.js)
+    string asset_js_path = 4;
+
+    // 字段编号 5：可选的外部导入 URL
+    optional string import_url = 5; 
+    
+    // 字段编号 6：适配器的详细描述（新增）
+    string description = 6; 
+    
+    // 字段编号 7：维护者信息（新增）
+    string maintainer = 7;
+}

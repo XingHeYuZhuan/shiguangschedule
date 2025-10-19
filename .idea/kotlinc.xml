@@ -6,7 +6,8 @@
   <component name="Kotlin2JvmCompilerArguments">
     <option name="jvmTarget" value="21" />
   </component>
-  <component name="KotlinJpsPluginSettings">
-    <option name="version" value="2.0.21" />
+  <component name="KotlinCommonCompilerArguments">
+    <option name="apiVersion" value="2.2" />
+    <option name="languageVersion" value="2.2" />
   </component>
 </project>

@@ -1,5 +1,6 @@
-// com/xingheyuzhuan/shiguangschedule/Navigation.kt
 package com.xingheyuzhuan.shiguangschedule
+
+import android.net.Uri // 必须导入 Uri 来进行 URL 编码
 
 sealed class Screen(val route: String) {
     object CourseSchedule : Screen("course_schedule")
@@ -12,13 +13,24 @@ sealed class Screen(val route: String) {
 
     object ManageCourseTables : Screen("manage_course_tables")
 
-    object SchoolSelection : Screen("school_selection")
+    object SchoolSelectionListScreen : Screen("school_selection")
 
     object CourseTableConversion : Screen("course_table_conversion")
 
-    // 修改：WebView 页面，使用路径参数传递 schoolId
-    object WebView : Screen("web_view/{schoolId}") { // 路由现在是路径参数
-        fun createRoute(schoolId: String) = "web_view/$schoolId" // 修改创建路由的方式
+    object AdapterSelection : Screen("adapterSelection/{schoolId}/{schoolName}/{categoryNumber}/{resourceFolder}") {
+
+        fun createRoute(schoolId: String, schoolName: String, categoryNumber: Int, resourceFolder: String): String {
+            val encodedSchoolName = Uri.encode(schoolName)
+            val encodedResourceFolder = Uri.encode(resourceFolder)
+            return "adapterSelection/$schoolId/$encodedSchoolName/$categoryNumber/$encodedResourceFolder"
+        }
+    }
+    object WebView : Screen("web_view/{initialUrl}/{assetJsPath}") {
+        fun createRoute(initialUrl: String?, assetJsPath: String?): String {
+            val urlParam = Uri.encode(initialUrl ?: "about:blank")
+            val pathParam = Uri.encode(assetJsPath ?: "")
+            return "web_view/$urlParam/$pathParam"
+        }
     }
 
     object NotificationSettings : Screen("notification_settings")

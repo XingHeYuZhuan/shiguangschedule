@@ -163,6 +163,22 @@ fun WeeklyScheduleScreen(
             }
         }
     }
+    val isSemesterStarted = uiState.semesterStartDate != null && !today.isBefore(uiState.semesterStartDate)
+
+    val isTopBarClickable = !uiState.isSemesterSet || isSemesterStarted
+
+    val topBarClickAction: () -> Unit = {
+        if (!uiState.isSemesterSet) {
+            navController.navigate(Screen.Settings.route) {
+                popUpTo(navController.graph.id) {
+                    inclusive = true
+                }
+            }
+        } else if (isSemesterStarted) {
+            showWeekSelector = true
+        }
+    }
+
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -172,10 +188,8 @@ fun WeeklyScheduleScreen(
                     Text(
                         text = topBarTitle,
                         modifier = Modifier.clickable(
-                            enabled = uiState.isSemesterSet && (uiState.semesterStartDate?.isBefore(LocalDate.now()) == true || uiState.semesterStartDate?.isEqual(LocalDate.now()) == true),
-                            onClick = {
-                                showWeekSelector = true
-                            }
+                            enabled = isTopBarClickable,
+                            onClick = topBarClickAction
                         )
                     )
                 },
