@@ -292,7 +292,7 @@ class GitUpdater(private val context: Context) {
             if (remoteIndex.protocolVersion > CLIENT_PROTOCOL_VERSION) {
                 onLog("致命错误：远程索引协议版本 (${remoteIndex.protocolVersion}) 高于客户端支持版本 ($CLIENT_PROTOCOL_VERSION)。")
                 onLog("操作：更新被中止。请提示用户更新软件版本以兼容新协议。")
-                result.isFatalIndexError = true // 标记致命错误
+                result.isFatalIndexError = true
                 return
             }
 
@@ -311,7 +311,6 @@ class GitUpdater(private val context: Context) {
             } else if (remoteIndex.versionId == localVersionId) {
                 onLog("结果：当前索引已经是最新版本。跳过索引文件写入。")
             } else {
-                // 远程版本更旧：视为远程仓库错误，触发致命错误，阻止本次全部写入
                 onLog("致命错误：远程仓库索引时间戳 (${remoteIndex.versionId}) 更旧。检查远程仓库是否正确。")
                 onLog("操作：为保证数据一致性，终止全部文件写入。")
                 result.isFatalIndexError = true // 标记致命错误
@@ -348,22 +347,41 @@ class GitUpdater(private val context: Context) {
         onLog("\n--- 阶段三：统一写入本地存储 ---")
         var success = true
 
-        // 1. 写入资源文件
+        val INDEX_FILE_NAME = "school_index.pb"
+
+        val localIndexFile = File(indexFileTargetDir, INDEX_FILE_NAME)
+        var localIndexContent: ByteArray? = null
+        if (localIndexFile.exists()) {
+            try {
+                localIndexContent = localIndexFile.readBytes()
+                onLog("本地索引文件内容已备份到内存。")
+            } catch (e: Exception) {
+                onLog("警告：读取本地索引文件失败，若版本未更新，索引可能丢失。")
+            }
+        }
+
+        onLog("正在执行彻底清理：删除整个本地仓库目录: ${baseLocalDir.name}")
+        if (baseLocalDir.exists()) {
+            baseLocalDir.deleteRecursively()
+        }
+
+        // 重新创建所需的基准目录
+        if (!baseLocalDir.mkdirs()) {
+            onLog("致命错误：无法创建基准目录。")
+            return false
+        }
+
+        // --- 3. 写入资源文件 ---
         if (result.resourceFiles.isNotEmpty()) {
             onLog("正在写入 ${result.resourceFiles.size} 个资源文件...")
             try {
-                // 清理旧的 schools/resources/ 目录
-                val targetResourcesDir = File(schoolsFileTargetDir, "resources")
-                // 这一步会清理旧目录中的所有文件，包括 adapters.yaml
-                if (targetResourcesDir.exists()) targetResourcesDir.deleteRecursively()
-                targetResourcesDir.mkdirs()
+                schoolsFileTargetDir.mkdirs()
 
-                // 复制所有暂存的文件（已排除 adapters.yaml）
                 result.resourceFiles.forEach { (sourceFile, targetFile) ->
                     targetFile.parentFile?.mkdirs()
                     sourceFile.copyTo(targetFile, overwrite = true)
                 }
-                onLog("成功：资源文件已写入 ${targetResourcesDir.absolutePath}")
+                onLog("成功：资源文件已写入到 /${baseLocalDir.name}/${schoolsFileTargetDir.name}")
             } catch (e: Exception) {
                 onLog("致命错误：写入资源文件失败。")
                 onLog("错误信息：${e.message}")
@@ -373,21 +391,33 @@ class GitUpdater(private val context: Context) {
             onLog("资源文件暂存列表为空，跳过写入。")
         }
 
-        // 2. 写入索引文件 (如果内容存在)
+        // --- 4. 写入索引文件 (如果有新版本，则写入；如果版本相同，则恢复备份) ---
         val indexContent = result.indexFileContent
+
         if (indexContent != null) {
+            // A. 有新版本 (indexContent != null)，写入新索引
             try {
                 indexFileTargetDir.mkdirs()
-                val targetFile = File(indexFileTargetDir, "school_index.pb")
+                val targetFile = File(indexFileTargetDir, INDEX_FILE_NAME)
                 targetFile.writeBytes(indexContent)
-                onLog("成功：索引文件 (版本 ${result.indexRemoteVersionId}) 已写入 ${targetFile.absolutePath}")
+                onLog("成功：索引文件 (版本 ${result.indexRemoteVersionId}) 已写入到 /${baseLocalDir.name}/${indexFileTargetDir.name}/$INDEX_FILE_NAME")
             } catch (e: Exception) {
-                onLog("错误：写入索引文件失败。")
-                onLog("错误信息：${e.message}")
-                // 索引写入失败是次要错误，不改变整体 success 状态
+                onLog("错误：写入新索引文件失败。")
             }
         } else {
-            onLog("索引文件内容为空或版本校验跳过，跳过写入。")
+            // B. 版本相同或更旧 (indexContent == null)，恢复备份
+            if (localIndexContent != null) {
+                try {
+                    indexFileTargetDir.mkdirs()
+                    val targetFile = File(indexFileTargetDir, INDEX_FILE_NAME)
+                    targetFile.writeBytes(localIndexContent)
+                    onLog("索引版本未更新，已恢复备份的旧索引文件。")
+                } catch (e: Exception) {
+                    onLog("错误：恢复旧索引文件失败。")
+                }
+            } else {
+                onLog("索引文件内容为空且无旧索引备份，跳过索引写入。")
+            }
         }
 
         return success
@@ -418,7 +448,7 @@ class GitUpdater(private val context: Context) {
                         if (repoInfo.repoType == RepoType.PRIVATE_REPO) {
                             onLog("提示：请检查 PAT 权限和 Token 字符串是否正确。")
                         }
-                        return // 验证失败，终止整个更新流程
+                        return
                     }
                     onLog("安全验证通过：找到官方基准灯塔标签。")
                 } else {
