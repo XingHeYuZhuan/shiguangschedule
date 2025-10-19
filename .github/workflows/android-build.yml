@@ -88,8 +88,8 @@ jobs:
           
           echo "--- 正在清理所有 adapters.yaml 文件 (包括子目录) ---"
           
-          # 步骤 4: 清理目标目录下的所有 adapters.yaml 文件 (使用相对路径仍然有效)
-          find $SCHOOLS_PATH/resources -name "adapters.yaml" -exec rm -f {} \;
+          # 步骤 4: 清理目标目录下的所有 adapters.yaml 文件 
+          find $ABS_SCHOOLS_PATH/resources -name "adapters.yaml" -exec rm -f {} \;
           
           echo "资源克隆和清理完成。"
           
