@@ -6,17 +6,18 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # ProGuard / R8 混淆规则文件
-# 该文件解决了所有数据模型（Gson/枚举）和组件（Glance/Worker/WebView）的混淆问题。
+# 该文件解决了所有数据模型（Gson/Protobuf/枚举/Kotlinx.Serialization）和组件（Glance/Worker/WebView）的混淆问题。
 
 # 保留调试信息：源代码文件和行号，用于查看真实的堆栈信息。
 -keepattributes SourceFile,LineNumberTable
 
 # 1. 核心 WebView JavaScript 接口保留 (AndroidBridge)
+
 # 保留 AndroidBridge 类本身（防止整个类被移除）
--keep class com.xingheyuzhuan.shiguangschedule.ui.schoolselection.AndroidBridge { *; }
+-keep class com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web.AndroidBridge { *; }
 
 # 保留 AndroidBridge 类中所有带有 @JavascriptInterface 注解的 public 方法。
--keepclassmembers class com.xingheyuzhuan.shiguangschedule.ui.schoolselection.AndroidBridge {
+-keepclassmembers class com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web.AndroidBridge {
     @android.webkit.JavascriptInterface public *;
 }
 
@@ -29,6 +30,7 @@
 -keep interface org.eclipse.jgit.** { *; }
 
 # 3. 保留 Glance 小组件相关的核心类和生命周期方法
+
 -keep public class androidx.glance.appwidget.GlanceAppWidgetReceiver {
     <init>(...);
 }
@@ -48,6 +50,7 @@
 }
 
 # 4. 保留 WorkManager Worker 类和应用/同步辅助类
+
 # Worker 类需要保留构造函数
 -keep public class com.xingheyuzhuan.shiguangschedule.widget.WidgetUiUpdateWorker {
     <init>(...);
@@ -80,3 +83,41 @@
 # 保留数据仓库类和 Room 数据库模型
 -keep class com.xingheyuzhuan.shiguangschedule.data.repository.SchoolRepository { *; }
 -keep public class com.xingheyuzhuan.shiguangschedule.data.db.widget.** { *; }
+
+# 6. Protobuf Lite 数据模型保留 (解决 NoSuchFieldException 错误)
+# 确保所有 Protobuf Lite 生成的类和字段不被混淆或移除。
+
+# 1. 保留所有继承自 GeneratedMessageLite 的类及其成员
+-keep class * extends com.google.protobuf.GeneratedMessageLite {
+    <fields>;
+    <methods>;
+}
+
+# 2. 保留所有继承自 GeneratedMessageLite$Builder 的类及其成员
+-keep class * extends com.google.protobuf.GeneratedMessageLite$Builder {
+    <fields>;
+    <methods>;
+}
+
+# 3. 保留实现 Internal$EnumLite 的枚举类
+-keep enum * implements com.google.protobuf.Internal$EnumLite {
+    <fields>;
+    <methods>;
+}
+
+# 4. 保护 Protobuf 运行时可能使用反射访问的内部类 (如 k9.**)
+-keep class k9.** { *; }
+
+# 7. Kotlin Serialization 数据模型保留
+# 保护使用 @Serializable 注解的数据类 (如 AndroidBridge.kt 中的 TimeSlotJsonModel)
+
+
+# 保护 Kotlin Metadata，确保反射功能正常
+-keep class kotlin.Metadata { *; }
+
+# 保护 Kotlin Serialization 运行时类
+-keep class kotlinx.serialization.** { *; }
+-keep class * implements kotlinx.serialization.KSerializer { *; }
+
+# 保护所有自动生成的序列化器类（以 $$serializer 结尾）
+-keep class **$$serializer { *; }
