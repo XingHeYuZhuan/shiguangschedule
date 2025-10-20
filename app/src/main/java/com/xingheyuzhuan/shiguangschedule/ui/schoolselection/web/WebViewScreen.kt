@@ -80,7 +80,7 @@ fun WebViewScreen(
     assetJsPath: String?,
     courseConversionRepository: CourseConversionRepository,
     timeSlotRepository: TimeSlotRepository,
-    courseScheduleRoute: String = "CourseSchedule"
+    courseScheduleRoute: String,
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
