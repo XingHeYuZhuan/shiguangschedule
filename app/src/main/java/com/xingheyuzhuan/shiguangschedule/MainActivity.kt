@@ -168,6 +168,7 @@ fun AppNavigation() {
                 assetJsPath = assetJsPath,
                 courseConversionRepository = courseConversionRepository,
                 timeSlotRepository = timeSlotRepository,
+                courseScheduleRoute = Screen.CourseSchedule.route,
             )
         }
         composable(
