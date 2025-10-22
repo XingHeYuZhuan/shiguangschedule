@@ -140,7 +140,8 @@ class WidgetDataSynchronizer(
                         startTime = startTime,
                         endTime = endTime,
                         isSkipped = isSkipped,
-                        date = dateString
+                        date = dateString,
+                        colorInt = course.colorInt
                     )
                     widgetCourses.add(widgetCourse)
                 }

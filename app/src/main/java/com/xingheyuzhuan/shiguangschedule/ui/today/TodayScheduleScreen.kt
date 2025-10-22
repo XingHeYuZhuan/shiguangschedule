@@ -1,8 +1,10 @@
 package com.xingheyuzhuan.shiguangschedule.ui.today
 
 import android.app.Application
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -11,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -25,6 +28,19 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.max
+import kotlin.math.min
+
+/**
+ * 计算颜色亮度
+ */
+private fun Color.getLuminance(): Float {
+    val r = red
+    val g = green
+    val b = blue
+    
+    return 0.299f * r + 0.587f * g + 0.114f * b
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,25 +130,44 @@ fun TodayScheduleScreen(
                             }
                         }
 
-                        val cardColor = if (isCourseFinished) {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+                        // 获取课程颜色
+                        val courseColor = if (course.colorInt != 0) {
+                            Color(course.colorInt)
                         } else {
                             MaterialTheme.colorScheme.tertiaryContainer
                         }
 
+                        // 设置卡片背景色
+                        val cardColor = if (isCourseFinished) {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+                        } else {
+                            courseColor.copy(alpha = 0.85f)  // 添加透明度平衡视觉效果
+                        }
+
+                        // 设置文本颜色
                         val contentColor = if (isCourseFinished) {
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         } else {
-                            MaterialTheme.colorScheme.onTertiaryContainer
+                            // 根据背景色亮度选择文本颜色
+                            if (courseColor.getLuminance() > 0.5f) {
+                                Color.Black.copy(alpha = 0.87f)
+                            } else {
+                                Color.White
+                            }
                         }
 
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = cardColor),
-                            elevation = CardDefaults.cardElevation(defaultElevation = if (isCourseFinished) 1.dp else 2.dp)
+                        // 使用Box替代Card组件控制颜色效果
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = cardColor,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(12.dp)
                         ) {
                             Column(
-                                modifier = Modifier.padding(12.dp)
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = course.name,
