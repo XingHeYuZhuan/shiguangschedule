@@ -29,7 +29,11 @@ class MyApplication : Application(), Configuration.Provider {
 
     // 主数据库仓库
     val appSettingsRepository: AppSettingsRepository by lazy {
-        AppSettingsRepository(database.appSettingsDao())
+        // 【修正 1】确保传入 AppSettingsDao 和 CourseTableConfigDao
+        AppSettingsRepository(
+            database.appSettingsDao(),
+            database.courseTableConfigDao()
+        )
     }
     val timeSlotRepository: TimeSlotRepository by lazy {
         TimeSlotRepository(database.timeSlotDao())
@@ -39,7 +43,8 @@ class MyApplication : Application(), Configuration.Provider {
             database.courseTableDao(),
             database.courseDao(),
             database.courseWeekDao(),
-            timeSlotRepository
+            timeSlotRepository,
+            appSettingsRepository
         )
     }
 
@@ -55,7 +60,7 @@ class MyApplication : Application(), Configuration.Provider {
     val widgetRepository: WidgetRepository by lazy {
         WidgetRepository(
             widgetDatabase.widgetCourseDao(),
-            database.appSettingsDao(),
+            widgetDatabase.widgetAppSettingsDao(),
             this
         )
     }

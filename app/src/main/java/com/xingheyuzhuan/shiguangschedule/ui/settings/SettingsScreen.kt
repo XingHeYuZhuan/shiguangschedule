@@ -48,6 +48,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import java.time.DayOfWeek
 
 // 常量，用于统一间距和边距
 private val SETTING_PADDING = 16.dp
@@ -60,13 +61,14 @@ fun SettingsScreen(
     navController: NavHostController,
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory)
 ) {
-    val appSettings by viewModel.appSettingsState.collectAsState()
+    val courseTableConfig by viewModel.courseTableConfigState.collectAsState()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
-    val showWeekends = appSettings.showWeekends
-    val semesterStartDateString = appSettings.semesterStartDate
-    val semesterTotalWeeks = appSettings.semesterTotalWeeks
+    val showWeekends = courseTableConfig?.showWeekends ?: false
+    val semesterStartDateString = courseTableConfig?.semesterStartDate
+    val semesterTotalWeeks = courseTableConfig?.semesterTotalWeeks ?: 20
+    val firstDayOfWeekInt = courseTableConfig?.firstDayOfWeek ?: DayOfWeek.MONDAY.value
     val displayCurrentWeek by viewModel.currentWeekState.collectAsState()
 
     val semesterStartDate: LocalDate? = remember(semesterStartDateString) {
@@ -83,6 +85,7 @@ fun SettingsScreen(
     var showTotalWeeksDialog by remember { mutableStateOf(false) }
     var showManualWeekDialog by remember { mutableStateOf(false) }
     var showDatePickerModal by remember { mutableStateOf(false) }
+    var showFirstDayOfWeekDialog by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
@@ -113,10 +116,12 @@ fun SettingsScreen(
                     onShowWeekendsChanged = { isChecked -> viewModel.onShowWeekendsChanged(isChecked) },
                     semesterStartDate = semesterStartDate,
                     semesterTotalWeeks = semesterTotalWeeks,
+                    firstDayOfWeekInt = firstDayOfWeekInt,
                     displayCurrentWeek = displayCurrentWeek,
                     onSemesterStartDateClick = { showDatePickerModal = true },
                     onSemesterTotalWeeksClick = { showTotalWeeksDialog = true },
                     onManualWeekClick = { showManualWeekDialog = true },
+                    onFirstDayOfWeekClick = { showFirstDayOfWeekDialog = true },
                     onTweakScheduleClick = { navController.navigate(Screen.TweakSchedule.route) }
                 )
             }
@@ -167,6 +172,17 @@ fun SettingsScreen(
             }
         )
     }
+
+    if (showFirstDayOfWeekDialog) {
+        DayOfWeekPickerDialog(
+            initialDayOfWeekInt = firstDayOfWeekInt,
+            onDismiss = { showFirstDayOfWeekDialog = false },
+            onConfirm = { selectedDayInt ->
+                viewModel.onFirstDayOfWeekSelected(selectedDayInt)
+                showFirstDayOfWeekDialog = false
+            }
+        )
+    }
 }
 
 /**
@@ -178,10 +194,12 @@ private fun GeneralSettingsSection(
     onShowWeekendsChanged: (Boolean) -> Unit,
     semesterStartDate: LocalDate?,
     semesterTotalWeeks: Int,
+    firstDayOfWeekInt: Int,
     displayCurrentWeek: Int?,
     onSemesterStartDateClick: () -> Unit,
     onSemesterTotalWeeksClick: () -> Unit,
     onManualWeekClick: () -> Unit,
+    onFirstDayOfWeekClick: () -> Unit,
     onTweakScheduleClick: () -> Unit
 ) {
     Card(
@@ -243,6 +261,22 @@ private fun GeneralSettingsSection(
                 }
                 Text(
                     text = weekStatusText,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            SettingItem(
+                title = "设置每周起始日",
+                subtitle = "设置一周从哪天开始计算和显示",
+                onClick = onFirstDayOfWeekClick
+            ) {
+                val dayText = when (firstDayOfWeekInt) {
+                    DayOfWeek.MONDAY.value -> "周一"
+                    DayOfWeek.SUNDAY.value -> "周日"
+                    else -> "周一"
+                }
+                Text(
+                    text = dayText,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -382,6 +416,56 @@ fun ManualWeekPickerDialog(
                     dialogSelectedValue.filter { it.isDigit() }.toIntOrNull()
                 }
                 onConfirm(weekNumber)
+            }) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+/**
+ * 每周起始日选择器对话框
+ */
+@Composable
+fun DayOfWeekPickerDialog(
+    initialDayOfWeekInt: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    // 选项列表，及其对应的 DayOfWeek Int 值 (1=周一, 7=周日)
+    val dayOptionsMap = mapOf(
+        "周一" to DayOfWeek.MONDAY.value,
+        "周日" to DayOfWeek.SUNDAY.value
+    )
+    val dayOptions = dayOptionsMap.keys.toList()
+
+    val initialSelectedDayText = dayOptionsMap.entries.firstOrNull { it.value == initialDayOfWeekInt }?.key
+        ?: "周一" // 默认显示周一
+
+    var dialogSelectedText by remember { mutableStateOf(initialSelectedDayText) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("设置每周起始日") },
+        text = {
+            NativeNumberPicker(
+                values = dayOptions,
+                selectedValue = dialogSelectedText,
+                onValueChange = { newValue ->
+                    dialogSelectedText = newValue
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            Button(onClick = {
+                val selectedDayInt = dayOptionsMap[dialogSelectedText] ?: DayOfWeek.MONDAY.value
+                onConfirm(selectedDayInt)
             }) {
                 Text("确定")
             }

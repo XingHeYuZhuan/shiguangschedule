@@ -4,6 +4,7 @@ import androidx.room.Transaction
 import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeek
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
@@ -21,7 +22,8 @@ class CourseTableRepository(
     private val courseTableDao: CourseTableDao,
     private val courseDao: CourseDao,
     private val courseWeekDao: CourseWeekDao,
-    private val timeSlotRepository: TimeSlotRepository
+    private val timeSlotRepository: TimeSlotRepository,
+    private val appSettingsRepository: AppSettingsRepository
 ) {
     /**
      * 获取所有课表，返回一个数据流。
@@ -39,10 +41,11 @@ class CourseTableRepository(
 
     /**
      * 创建一个新的课表。
-     * 负责生成 ID 并执行插入操作，并**同步**为新课表创建默认时间段。
+     * 负责生成 ID 并执行插入操作，并**同步**为新课表创建默认时间段和配置。
      *
      * @param name 新课表的名称
      */
+    @Transaction
     suspend fun createNewCourseTable(name: String) {
         val newTable = CourseTable(
             id = UUID.randomUUID().toString(),
@@ -51,11 +54,16 @@ class CourseTableRepository(
         )
         courseTableDao.insert(newTable)
 
+        // 2. 插入默认时间段
         val defaultTimeSlotsForNewTable = defaultTimeSlots.map {
             it.copy(courseTableId = newTable.id)
         }
         // 调用 timeSlotRepository 的方法来插入时间段
         timeSlotRepository.insertAll(defaultTimeSlotsForNewTable)
+
+        // 3. 插入默认课表配置
+        val newConfig = CourseTableConfig(courseTableId = newTable.id)
+        appSettingsRepository.insertOrUpdateCourseConfig(newConfig)
     }
 
     /**

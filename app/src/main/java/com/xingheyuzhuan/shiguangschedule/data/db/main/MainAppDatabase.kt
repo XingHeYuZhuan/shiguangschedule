@@ -19,9 +19,10 @@ import kotlinx.coroutines.launch
         Course::class,
         CourseWeek::class,
         TimeSlot::class,
-        AppSettings::class
+        AppSettings::class,
+        CourseTableConfig::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -33,6 +34,7 @@ abstract class MainAppDatabase : RoomDatabase() {
     abstract fun courseWeekDao(): CourseWeekDao
     abstract fun timeSlotDao(): TimeSlotDao
     abstract fun appSettingsDao(): AppSettingsDao
+    abstract fun courseTableConfigDao(): CourseTableConfigDao
 
     companion object {
         @Volatile
@@ -48,6 +50,8 @@ abstract class MainAppDatabase : RoomDatabase() {
                     MainAppDatabase::class.java,
                     "main_app_database"
                 )
+                    .addMigrations(*ALL_MIGRATIONS)
+
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
@@ -62,7 +66,17 @@ abstract class MainAppDatabase : RoomDatabase() {
                                     )
                                     database.courseTableDao().insert(defaultCourseTable)
 
-                                    // 2. 初始化应用设置，并传入默认课表的ID
+                                    val defaultConfig = CourseTableConfig(
+                                        courseTableId = defaultCourseTable.id,
+                                        showWeekends = false,
+                                        semesterTotalWeeks = 20,
+                                        defaultClassDuration = 45,
+                                        defaultBreakDuration = 10,
+                                        firstDayOfWeek = 1
+                                    )
+                                    database.courseTableConfigDao().insertOrUpdate(defaultConfig)
+
+                                    // 2. 初始化应用设置 (使用精简后的 AppSettings)
                                     val defaultSettings = AppSettings(
                                         currentCourseTableId = defaultCourseTable.id
                                     )
@@ -86,7 +100,6 @@ abstract class MainAppDatabase : RoomDatabase() {
                                     )
                                     database.timeSlotDao().insertAll(defaultTimeSlots)
 
-                                    // 在所有数据写入完成后，更新状态为true
                                     _isInitialized.value = true
                                     println("数据库初始化数据已完成写入")
                                 }
@@ -95,7 +108,6 @@ abstract class MainAppDatabase : RoomDatabase() {
 
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
-                            // 数据库打开时（包括重启时）立即更新状态为true
                             _isInitialized.value = true
                         }
                     })

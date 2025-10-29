@@ -13,7 +13,7 @@ import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first // 引入 first() 来获取 Flow 的当前快照值
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -68,9 +68,6 @@ class TweakScheduleViewModel(
     /**
      * 【新的核心函数】
      * 显式地加载所有依赖数据（配置、课表、课程）并一次性更新 UI 状态。
-     * 这完全取代了之前的 combine 逻辑。
-     *
-     * @param isInitialLoad 是否为初始化加载，用于确定默认选中的课表。
      */
     private suspend fun refreshUiState(isInitialLoad: Boolean = false) {
         // 1. 获取所有依赖数据的快照（不再持续监听）
@@ -94,8 +91,17 @@ class TweakScheduleViewModel(
         val currentFromDate = _fromDate.value
         val currentToDate = _toDate.value
 
-        val semesterStartDate = try {
-            settings.semesterStartDate?.let { LocalDate.parse(it) }
+        // 4. 【修改】获取 CourseTableConfig
+        val currentTableId = selectedTable?.id
+        val courseConfig = if (currentTableId != null) {
+            appSettingsRepository.getCourseConfigOnce(currentTableId)
+        } else {
+            null
+        }
+
+        val semesterStartDateString = courseConfig?.semesterStartDate
+        val semesterStartDate: LocalDate? = try {
+            semesterStartDateString?.let { LocalDate.parse(it) }
         } catch (e: DateTimeParseException) {
             null
         }
@@ -104,11 +110,11 @@ class TweakScheduleViewModel(
         var fromCourses = emptyList<CourseWithWeeks>()
         var toCourses = emptyList<CourseWithWeeks>()
 
-        // 4. 查询课程
+        // 6. 查询课程
         if (isSemesterSet && selectedTable != null) {
-            val fromWeekNumber = ChronoUnit.WEEKS.between(semesterStartDate, currentFromDate).toInt() + 1
+            val fromWeekNumber = ChronoUnit.WEEKS.between(semesterStartDate!!, currentFromDate).toInt() + 1
             val fromDay = currentFromDate.dayOfWeek.value
-            val toWeekNumber = ChronoUnit.WEEKS.between(semesterStartDate, currentToDate).toInt() + 1
+            val toWeekNumber = ChronoUnit.WEEKS.between(semesterStartDate!!, currentToDate).toInt() + 1
             val toDay = currentToDate.dayOfWeek.value
 
             // 显式获取课程数据快照
@@ -116,14 +122,14 @@ class TweakScheduleViewModel(
             toCourses = courseTableRepository.getCoursesForDay(selectedTable.id, toWeekNumber, toDay).first()
         }
 
-        // 5. 一次性原子更新 UI 状态
+        // 7. 一次性原子更新 UI 状态
         _uiState.update {
             it.copy(
                 allCourseTables = allTables,
                 isSemesterSet = isSemesterSet,
                 selectedCourseTable = selectedTable,
-                fromDate = currentFromDate, // 使用稳定日期
-                toDate = currentToDate,     // 使用稳定日期
+                fromDate = currentFromDate,
+                toDate = currentToDate,
                 fromCourses = fromCourses,
                 toCourses = toCourses,
                 semesterStartDate = semesterStartDate,
@@ -162,10 +168,12 @@ class TweakScheduleViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
             _uiState.value.let { state ->
-                if (state.selectedCourseTable == null || !state.isSemesterSet || state.semesterStartDate == null) {
+                if (state.selectedCourseTable == null || state.semesterStartDate == null) {
                     _uiState.update { it.copy(isLoading = false, errorMessage = "请先选择课表并设置学期开始日期") }
                     return@launch
                 }
+
+                val semesterStartDate: LocalDate = state.semesterStartDate
 
                 if (state.fromDate == state.toDate) {
                     _uiState.update { it.copy(isLoading = false, errorMessage = "被调整日期和调整到日期不能是同一天") }
@@ -177,9 +185,9 @@ class TweakScheduleViewModel(
                 val currentToDate = state.toDate
 
                 try {
-                    val fromWeekNumber = ChronoUnit.WEEKS.between(state.semesterStartDate, currentFromDate).toInt() + 1
+                    val fromWeekNumber = ChronoUnit.WEEKS.between(semesterStartDate, currentFromDate).toInt() + 1
                     val fromDay = currentFromDate.dayOfWeek.value
-                    val toWeekNumber = ChronoUnit.WEEKS.between(state.semesterStartDate, currentToDate).toInt() + 1
+                    val toWeekNumber = ChronoUnit.WEEKS.between(semesterStartDate, currentToDate).toInt() + 1
                     val toDay = currentToDate.dayOfWeek.value
 
                     // 1. 执行数据库操作
@@ -191,8 +199,6 @@ class TweakScheduleViewModel(
                         toDay = toDay
                     )
 
-                    // 2. 数据库更新后，立即手动刷新 UI 状态：
-                    //    这将读取新的课程数据，并使用稳定日期更新 _uiState，日期绝不会被重置。
                     refreshUiState()
 
                     // 3. 更新成功消息

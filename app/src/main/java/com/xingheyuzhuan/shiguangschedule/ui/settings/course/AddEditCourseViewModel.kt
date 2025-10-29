@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 
 class AddEditCourseViewModel(
     private val courseTableRepository: CourseTableRepository,
@@ -47,6 +48,7 @@ class AddEditCourseViewModel(
         viewModelScope.launch {
             // 获取 appSettings 的数据流
             val appSettingsFlow = appSettingsRepository.getAppSettings()
+
             // 使用 flatMapLatest 监听 appSettings 的变化，并根据当前课表 ID 获取对应的时间段
             @OptIn(ExperimentalCoroutinesApi::class)
             val timeSlotsFlow = appSettingsFlow.flatMapLatest { settings ->
@@ -55,13 +57,25 @@ class AddEditCourseViewModel(
                     timeSlotRepository.getTimeSlotsByCourseTableId(courseTableId)
                 } else {
                     // 如果没有设置课表 ID，则返回空列表
-                    kotlinx.coroutines.flow.flowOf(emptyList())
+                    flowOf(emptyList())
+                }
+            }
+
+            @OptIn(ExperimentalCoroutinesApi::class)
+            val courseConfigFlow = appSettingsFlow.flatMapLatest { settings ->
+                val courseTableId = settings.currentCourseTableId
+                if (courseTableId != null) {
+                    appSettingsRepository.getCourseTableConfigFlow(courseTableId)
+                } else {
+                    // 如果没有设置课表 ID，则返回 null
+                    flowOf(null)
                 }
             }
 
             combine(
                 timeSlotsFlow,
                 appSettingsFlow,
+                courseConfigFlow,
                 if (courseId != null) {
                     courseTableRepository.getCoursesWithWeeksByTableId(appSettingsRepository.getAppSettings().first().currentCourseTableId.orEmpty())
                         .map { courses ->
@@ -70,8 +84,11 @@ class AddEditCourseViewModel(
                 } else {
                     MutableStateFlow(null)
                 }
-            ) { timeSlots, appSettings, courseWithWeeks ->
+            ) { timeSlots, appSettings, courseConfig, courseWithWeeks ->
                 _uiState.update { currentState ->
+
+                    val totalWeeks = courseConfig?.semesterTotalWeeks ?: 20
+
                     val course = currentState.course ?: if (courseId == null) {
                         Course(
                             id = UUID.randomUUID().toString(),
@@ -87,7 +104,7 @@ class AddEditCourseViewModel(
                     }
 
                     val weeks = currentState.weeks.takeIf { it.isNotEmpty() } ?: if(courseId == null) {
-                        (1..appSettings.semesterTotalWeeks).toSet()
+                        (1..totalWeeks).toSet()
                     } else {
                         courseWithWeeks?.weeks?.map { it.weekNumber }?.toSet() ?: emptySet()
                     }
@@ -105,7 +122,7 @@ class AddEditCourseViewModel(
                         weeks = weeks,
                         timeSlots = timeSlots,
                         currentCourseTableId = appSettings.currentCourseTableId,
-                        semesterTotalWeeks = appSettings.semesterTotalWeeks
+                        semesterTotalWeeks = totalWeeks // 【修改：使用 totalWeeks 代替 appSettings.semesterTotalWeeks】
                     )
                 }
             }.collect()

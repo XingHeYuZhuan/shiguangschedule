@@ -132,11 +132,6 @@ fun ManageCourseTablesScreen(
                             onCardClick = {
                                 viewModel.switchCourseTable(it.id)
                                 Toast.makeText(context, "已切换到课表: ${it.name}", Toast.LENGTH_SHORT).show()
-                                /**
-                                navController.navigate(Screen.CourseSchedule.route) {
-                                    popUpTo(Screen.CourseSchedule.route) { inclusive = true }
-                                }
-                                **/
                             }
                         )
                     }

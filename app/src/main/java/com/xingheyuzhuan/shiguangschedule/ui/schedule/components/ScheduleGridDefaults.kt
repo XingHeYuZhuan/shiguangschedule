@@ -33,7 +33,7 @@ object ScheduleGridDefaults {
     val CourseBlockInnerPadding: Dp = 4.dp
 
     // 课程块的透明度，值越小颜色越浅
-    val CourseBlockAlpha: Float = 0.618f
+    val CourseBlockAlpha: Float = 1f
 
     // 文本颜色变深因子，值越大颜色越深
     val TextDarkenFactor: Float = 0.618f

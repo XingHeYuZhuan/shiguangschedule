@@ -1,5 +1,3 @@
-// File: CourseConversionRepository.kt
-
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
 import androidx.compose.ui.graphics.toArgb
@@ -183,30 +181,34 @@ class CourseConversionRepository(
     }
 
     /**
-    * 将指定课表下的所有课程数据导出为 ICS 日历文件的内容字符串。
-    *
-    * @param tableId 要导出的课表的 ID。
-    * @param alarmMinutes 可选的提醒时间，单位分钟。传入null则不设置提醒。
-    * @return 包含 ICS 日历文件内容的字符串，如果失败则返回 null。
-    */
+     * 将指定课表下的所有课程数据导出为 ICS 日历文件的内容字符串。
+     *
+     * @param tableId 要导出的课表的 ID。
+     * @param alarmMinutes 可选的提醒时间，单位分钟。传入null则不设置提醒。
+     * @return 包含 ICS 日历文件内容的字符串，如果失败则返回 null。
+     */
     suspend fun exportToIcsString(tableId: String, alarmMinutes: Int?): String? {
         val courses = courseDao.getCoursesWithWeeksByTableId(tableId).first()
         val timeSlots = timeSlotDao.getTimeSlotsByCourseTableId(tableId).first()
-        val appSettings = appSettingsRepository.getAppSettingsOnce()
-        val semesterStartDate = appSettings?.semesterStartDate?.let { LocalDate.parse(it) }
 
-        if (semesterStartDate == null || appSettings.semesterTotalWeeks <= 0) {
+        // 1. 从 AppSettings 获取全局设置 (用于 skippedDates)
+        val appSettings = appSettingsRepository.getAppSettingsOnce()
+        val skippedDates = appSettings?.skippedDates
+
+        // 2. 【核心修改】从 CourseTableConfig 获取课表配置 (用于日期和总周数)
+        val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
+        val semesterStartDate = courseConfig?.semesterStartDate?.let { LocalDate.parse(it) }
+
+        // 检查必要配置是否存在
+        if (semesterStartDate == null || courseConfig?.semesterTotalWeeks ?: 0 <= 0) {
             return null
         }
-
-        // 从 appSettings 获取 skippedDates
-        val skippedDates = appSettings.skippedDates
 
         return IcsExportTool.generateIcsFileContent(
             courses = courses,
             timeSlots = timeSlots,
             semesterStartDate = semesterStartDate,
-            semesterTotalWeeks = appSettings.semesterTotalWeeks,
+            semesterTotalWeeks = courseConfig.semesterTotalWeeks, // 【使用新的数据源】
             alarmMinutes = alarmMinutes,
             skippedDates = skippedDates
         )

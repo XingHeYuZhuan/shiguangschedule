@@ -7,7 +7,6 @@ import androidx.work.WorkerParameters
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.WidgetRepository
 import com.xingheyuzhuan.shiguangschedule.data.sync.WidgetDataSynchronizer
-import com.xingheyuzhuan.shiguangschedule.service.CourseNotificationWorker
 import com.xingheyuzhuan.shiguangschedule.widget.FullDataSyncWorker
 import com.xingheyuzhuan.shiguangschedule.widget.WidgetUiUpdateWorker
 
