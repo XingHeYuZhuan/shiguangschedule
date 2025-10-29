@@ -1,13 +1,12 @@
-// LargeLayout.kt
 package com.xingheyuzhuan.shiguangschedule.widget.large
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalSize
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.appWidgetBackground
@@ -18,17 +17,16 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
 import com.xingheyuzhuan.shiguangschedule.MainActivity
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetCourse
+import com.xingheyuzhuan.shiguangschedule.widget.ScaledBitmapText
 import com.xingheyuzhuan.shiguangschedule.widget.WidgetColors
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
@@ -37,8 +35,26 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle as LocalDateTextStyle
 import java.util.Locale
 
+// 采用 4x3 的基准尺寸
+private const val BASE_WIDGET_WIDTH = 320f
+private const val BASE_WIDGET_HEIGHT = 240f
+private const val MAX_LAYOUT_SCALE = 4.0f
+
+// 固定槽位数量
+private const val MAX_SLOTS = 6
+
+/**
+ * 大尺寸课程小组件的布局：展示今天的 6 节课 (2列 x 3行)。
+ */
 @Composable
 fun LargeLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
+    val currentSize = LocalSize.current
+
+    val widthScale = currentSize.width.value / BASE_WIDGET_WIDTH
+    val heightScale = currentSize.height.value / BASE_WIDGET_HEIGHT
+    val rawScale = minOf(widthScale, heightScale)
+    val finalScale = rawScale.coerceIn(1.0f, MAX_LAYOUT_SCALE)
+
     val coursesAndWeekState = coursesAndWeekFlow.collectAsState(initial = Pair(emptyList(), null))
     val (courses, currentWeek) = coursesAndWeekState.value
     val today = LocalDate.now()
@@ -48,16 +64,19 @@ fun LargeLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
     val isVacation = currentWeek == null
     val now = LocalTime.now()
 
-    // 重点修改：显示接下来6节课（3×4 = 3行2列）
+    // 显示接下来6节课
     val nextCourses = courses.filter {
         !it.isSkipped && LocalTime.parse(it.endTime) > now
-    }.take(6)
+    }.take(MAX_SLOTS)
+
+    // 创建包含 6 个固定槽位的列表
+    val courseSlots = nextCourses + List(MAX_SLOTS - nextCourses.size) { null }
 
     val remainingCoursesCount = courses.count {
         !it.isSkipped && LocalTime.parse(it.endTime) > now
     }
 
-    val systemCornerRadius = 21.dp
+    val systemCornerRadius = (21 * finalScale).dp
 
     Box(
         modifier = GlanceModifier
@@ -75,156 +94,246 @@ fun LargeLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
             Row(
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .padding(horizontal = (8 * finalScale).dp, vertical = (6 * finalScale).dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 左侧
-                Text(
+                ScaledBitmapText(
                     text = "$todayDateString $todayDayOfWeekString",
-                    style = TextStyle(fontSize = 12.sp, color = WidgetColors.textHint)
+                    fontSizeDp = (12f * finalScale).dp,
+                    color = WidgetColors.textHint
                 )
 
                 Spacer(modifier = GlanceModifier.defaultWeight())
-                // 右侧
+
                 if (currentWeek != null) {
-                    Text(
+                    ScaledBitmapText(
                         text = "第${currentWeek}周",
-                        style = TextStyle(fontSize = 12.sp, color = WidgetColors.textHint)
+                        fontSizeDp = (12f * finalScale).dp,
+                        color = WidgetColors.textHint
                     )
                 }
             }
 
-            // 主要内容区域：根据不同的状态显示不同的布局
+            // 主要内容区域：占据所有剩余空间
             if (isVacation) {
-                Column(
-                    modifier = GlanceModifier
-                        .fillMaxSize()
-                        .padding(20.dp),
-                    horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
-                    verticalAlignment = Alignment.Vertical.CenterVertically
-                ) {
-                    Text(
-                        text = "假期中",
-                        style = TextStyle(fontSize = 12.sp, color = WidgetColors.textPrimary, fontWeight = FontWeight.Bold)
-                    )
-                    Text(
-                        text = "期待新学期",
-                        style = TextStyle(fontSize = 10.sp, color = WidgetColors.textSecondary)
-                    )
-                }
+                CenteredMessage(text = "假期中", scale = finalScale)
             } else if (courses.isEmpty()) {
-                Column(
-                    modifier = GlanceModifier.fillMaxSize(),
-                    verticalAlignment = Alignment.Vertical.CenterVertically,
-                    horizontalAlignment = Alignment.Horizontal.CenterHorizontally
-                ) {
-                    Text(
-                        text = "今天没有课程",
-                        style = TextStyle(fontSize = 12.sp, color = WidgetColors.textPrimary)
-                    )
-                }
+                CenteredMessage(text = "今天没有课程", scale = finalScale)
             } else {
                 if (nextCourses.isNotEmpty()) {
-                    Column(
-                        modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-                        verticalAlignment = Alignment.Vertical.Top
-                    ) {
-                        // 两列网格布局：2列×3行 = 6个课程
-                        Row(
-                            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            // 左列
-                            Column(
-                                modifier = GlanceModifier.defaultWeight(),
-                                verticalAlignment = Alignment.Vertical.Top
-                            ) {
-                                nextCourses.filterIndexed { index, _ -> index % 2 == 0 }.forEachIndexed { colIndex, course ->
-                                    val originalIndex = colIndex * 2
-                                    CourseItemLargeGrid(course = course, index = originalIndex)
-                                    if (colIndex < (nextCourses.size + 1) / 2 - 1) {
-                                        Spacer(modifier = GlanceModifier.height(2.dp))
-                                        // 分割线（从装饰线圆弧延伸）
-                                        Row(
-                                            modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 6.dp)
-                                        ) {
-                                            Spacer(modifier = GlanceModifier.width(4.dp))
-                                            Box(
-                                                modifier = GlanceModifier
-                                                    .defaultWeight()
-                                                    .height(1.dp)
-                                                    .background(WidgetColors.divider)
-                                                    .cornerRadius(0.5.dp),
-                                                content = {}
-                                            )
-                                        }
-                                        Spacer(modifier = GlanceModifier.height(2.dp))
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = GlanceModifier.width(4.dp))
-
-                            // 右列
-                            Column(
-                                modifier = GlanceModifier.defaultWeight(),
-                                verticalAlignment = Alignment.Vertical.Top
-                            ) {
-                                nextCourses.filterIndexed { index, _ -> index % 2 == 1 }.forEachIndexed { colIndex, course ->
-                                    val originalIndex = colIndex * 2 + 1
-                                    CourseItemLargeGrid(course = course, index = originalIndex)
-                                    if (colIndex < nextCourses.size / 2 - 1) {
-                                        Spacer(modifier = GlanceModifier.height(2.dp))
-                                        // 分割线（从装饰线圆弧延伸）
-                                        Row(
-                                            modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 6.dp)
-                                        ) {
-                                            Spacer(modifier = GlanceModifier.width(4.dp))
-                                            Box(
-                                                modifier = GlanceModifier
-                                                    .defaultWeight()
-                                                    .height(1.dp)
-                                                    .background(WidgetColors.divider)
-                                                    .cornerRadius(0.5.dp),
-                                                content = {}
-                                            )
-                                        }
-                                        Spacer(modifier = GlanceModifier.height(2.dp))
-                                    }
-                                }
-                            }
-                        }
-
-                        // 底部区域：剩余课程数
-                        if (remainingCoursesCount > 0) {
-                            Row(
-                                modifier = GlanceModifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 8.dp)
-                                    .padding(top = 4.dp, bottom = 6.dp),
-                                horizontalAlignment = Alignment.Horizontal.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = "今日还有${remainingCoursesCount}节课",
-                                    style = TextStyle(fontSize = 11.sp, color = WidgetColors.textHint)
-                                )
-                            }
-                        }
-                    }
+                    CourseGridLarge(
+                        courseSlots = courseSlots,
+                        remainingCoursesCount = remainingCoursesCount,
+                        scale = finalScale
+                    )
                 } else {
-                    // 今日课程已全部结束
-                    Column(
-                        modifier = GlanceModifier
-                            .fillMaxWidth()
-                            .defaultWeight(),
-                        horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
-                        verticalAlignment = Alignment.Vertical.CenterVertically
-                    ) {
-                        Text(
-                            text = "今日课程已结束",
-                            style = TextStyle(fontSize = 12.sp, color = WidgetColors.textPrimary)
+                    CenteredMessage(text = "今日课程已结束", scale = finalScale)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 居中显示消息
+ */
+@Composable
+private fun CenteredMessage(text: String, scale: Float) {
+    Column(
+        modifier = GlanceModifier.fillMaxWidth().fillMaxHeight(),
+        verticalAlignment = Alignment.Vertical.CenterVertically,
+        horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+    ) {
+        ScaledBitmapText(
+            text = text,
+            fontSizeDp = (14f * scale).dp,
+            color = WidgetColors.textPrimary
+        )
+    }
+}
+
+/**
+ * 课程网格布局 (2列 x 3行)
+ */
+@Composable
+private fun CourseGridLarge(
+    courseSlots: List<WidgetCourse?>,
+    remainingCoursesCount: Int,
+    scale: Float
+) {
+    Column(
+        // 主 Column 占据父 Column 的所有剩余空间
+        modifier = GlanceModifier.fillMaxWidth().fillMaxHeight(),
+        verticalAlignment = Alignment.Vertical.Top
+    ) {
+        // 网格内容区域：占据 Column 的所有剩余空间
+        Column(
+            // 占据大部分垂直空间，为底部的提示栏留出位置
+            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+            verticalAlignment = Alignment.Vertical.Top
+        ) {
+            // 循环 3 次，创建 3 行
+            (0 until 3).forEach { rowIndex ->
+                val slotIndexLeft = rowIndex * 2 // 0, 2, 4
+                val slotIndexRight = rowIndex * 2 + 1 // 1, 3, 5
+
+                Row(
+                    modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 左侧槽位
+                    Box(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
+                        CourseGridSlotLarge(
+                            course = courseSlots.getOrNull(slotIndexLeft),
+                            slotIndex = slotIndexLeft,
+                            scale = scale
                         )
                     }
+
+                    Spacer(modifier = GlanceModifier.width((4 * scale).dp))
+
+                    // 右侧槽位
+                    Box(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
+                        CourseGridSlotLarge(
+                            course = courseSlots.getOrNull(slotIndexRight),
+                            slotIndex = slotIndexRight,
+                            scale = scale
+                        )
+                    }
+                }
+
+                if (rowIndex < 2) {
+                    LargeRowDivider(scale = scale)
+                }
+            }
+        }
+
+        if (remainingCoursesCount > 0) {
+            Row(
+                modifier = GlanceModifier
+                    .fillMaxWidth()
+                    .padding(horizontal = (8 * scale).dp)
+                    .padding(top = (4 * scale).dp, bottom = (6 * scale).dp),
+                horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+            ) {
+                ScaledBitmapText(
+                    text = "今日还有${remainingCoursesCount}节课",
+                    fontSizeDp = (11f * scale).dp,
+                    color = WidgetColors.textHint
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 网格行间分割线
+ */
+@Composable
+private fun LargeRowDivider(scale: Float) {
+    Column(
+        modifier = GlanceModifier.fillMaxWidth()
+    ) {
+        Spacer(modifier = GlanceModifier.height((2 * scale).dp))
+        Row(
+            modifier = GlanceModifier.fillMaxWidth().padding(horizontal = (6 * scale).dp)
+        ) {
+            Spacer(modifier = GlanceModifier.width((4 * scale).dp + (8 * scale).dp))
+            Box(
+                modifier = GlanceModifier
+                    .defaultWeight()
+                    .height((1 * scale).dp)
+                    .background(WidgetColors.divider)
+            ) { /* content lambda 块 */ }
+        }
+        Spacer(modifier = GlanceModifier.height((2 * scale).dp))
+    }
+}
+
+/**
+ * 单个课程槽位
+ */
+@Composable
+private fun CourseGridSlotLarge(
+    course: WidgetCourse?,
+    slotIndex: Int,
+    scale: Float
+) {
+    Box(
+        modifier = GlanceModifier.fillMaxSize(),
+        contentAlignment = Alignment.TopStart
+    ) {
+        if (course != null) {
+            CourseItemLargeGrid(course = course, index = slotIndex, scale = scale)
+        } else {
+            // 空槽位
+        }
+    }
+}
+
+/**
+ * 课程内容项
+ */
+@Composable
+fun CourseItemLargeGrid(course: WidgetCourse, index: Int, scale: Float) {
+    Row(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .padding(horizontal = (6 * scale).dp)
+            .padding(vertical = (4 * scale).dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 左侧彩色指示条
+        Image(
+            provider = ImageProvider(getCourseIndicatorDrawable(index)),
+            contentDescription = null,
+            modifier = GlanceModifier
+                .width((4 * scale).dp)
+                .fillMaxHeight()
+        )
+
+        Spacer(modifier = GlanceModifier.width((8 * scale).dp))
+
+        // 右侧课程内容
+        Column(
+            modifier = GlanceModifier.defaultWeight(),
+            horizontalAlignment = Alignment.Horizontal.Start
+        ) {
+            // 课程名称
+            ScaledBitmapText(
+                text = course.name,
+                fontSizeDp = (13f * scale).dp,
+                color = WidgetColors.textPrimary,
+            )
+            Spacer(modifier = GlanceModifier.height((3 * scale).dp))
+
+            // 教师信息
+            if (course.teacher.isNotBlank()) {
+                ScaledBitmapText(
+                    text = course.teacher,
+                    fontSizeDp = (12f * scale).dp,
+                    color = WidgetColors.textSecondary,
+                )
+                Spacer(modifier = GlanceModifier.height((3 * scale).dp))
+            }
+
+            // 时间和地点
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ScaledBitmapText(
+                    text = "${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}",
+                    fontSizeDp = (11f * scale).dp,
+                    color = WidgetColors.textTertiary
+                )
+                if (course.position.isNotBlank()) {
+                    Spacer(modifier = GlanceModifier.defaultWeight())
+                    ScaledBitmapText(
+                        text = course.position,
+                        fontSizeDp = (11f * scale).dp,
+                        color = WidgetColors.textTertiary,
+                    )
                 }
             }
         }
@@ -239,70 +348,5 @@ fun getCourseIndicatorDrawable(index: Int): Int {
         2 -> R.drawable.course_indicator_purple
         3 -> R.drawable.course_indicator_green
         else -> R.drawable.course_indicator_orange
-    }
-}
-
-@Composable
-fun CourseItemLargeGrid(course: WidgetCourse, index: Int) {
-    // 网格布局中的单个课程项
-    Row(
-        modifier = GlanceModifier
-            .fillMaxWidth()
-            .padding(horizontal = 6.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        // 左侧彩色指示条（圆弧过渡，覆盖整个课程块）
-        Image(
-            provider = ImageProvider(getCourseIndicatorDrawable(index)),
-            contentDescription = null,
-            modifier = GlanceModifier
-                .width(4.dp)
-                .height(58.dp)
-        )
-
-        Spacer(modifier = GlanceModifier.width(8.dp))
-
-        // 右侧课程内容
-        Column(
-            modifier = GlanceModifier.defaultWeight(),
-            horizontalAlignment = Alignment.Horizontal.Start
-        ) {
-            // 课程名称
-            Text(
-                text = course.name,
-                style = TextStyle(fontSize = 13.sp, color = WidgetColors.textPrimary, fontWeight = FontWeight.Bold),
-                maxLines = 1
-            )
-            Spacer(modifier = GlanceModifier.height(3.dp))
-
-            // 教师信息
-            if (course.teacher.isNotBlank()) {
-                Text(
-                    text = course.teacher,
-                    style = TextStyle(fontSize = 12.sp, color = WidgetColors.textSecondary),
-                    maxLines = 1
-                )
-                Spacer(modifier = GlanceModifier.height(3.dp))
-            }
-
-            // 时间和地点（在同一行）
-            Row(
-                modifier = GlanceModifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}",
-                    style = TextStyle(fontSize = 11.sp, color = WidgetColors.textTertiary)
-                )
-                if (course.position.isNotBlank()) {
-                    Spacer(modifier = GlanceModifier.defaultWeight())
-                    Text(
-                        text = course.position,
-                        style = TextStyle(fontSize = 11.sp, color = WidgetColors.textTertiary),
-                        maxLines = 1
-                    )
-                }
-            }
-        }
     }
 }
