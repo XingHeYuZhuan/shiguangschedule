@@ -25,14 +25,16 @@ class AppSettingsRepository(
     private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
     /**
-     * 默认的应用设置（精简版）
+     * 默认的应用设置
      */
     private val DEFAULT_SETTINGS = AppSettings(
         id = 1,
         currentCourseTableId = null,
         reminderEnabled = false,
         remindBeforeMinutes = 15,
-        skippedDates = null
+        skippedDates = null,
+        autoModeEnabled = false,
+        autoControlMode = "DND",
     )
 
     /**

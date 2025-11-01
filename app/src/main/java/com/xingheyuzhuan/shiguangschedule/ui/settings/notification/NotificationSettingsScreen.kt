@@ -3,6 +3,7 @@ package com.xingheyuzhuan.shiguangschedule.ui.settings.notification
 import android.Manifest
 import android.app.AlarmManager
 import android.app.Application
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -41,6 +42,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -69,7 +71,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.xingheyuzhuan.shiguangschedule.service.CourseAlarmReceiver
 import com.xingheyuzhuan.shiguangschedule.service.CourseNotificationWorker
+import com.xingheyuzhuan.shiguangschedule.service.DndSchedulerWorker
 
 // 这是一个用于跳转到精确闹钟设置的通用函数
 fun openExactAlarmSettings(context: Context) {
@@ -108,7 +112,20 @@ fun hasNotificationPermission(context: Context): Boolean {
     }
 }
 
-// 触发 Worker 的辅助函数
+// 检查是否拥有勿扰模式权限的函数
+fun hasDndPermission(context: Context): Boolean {
+    val notificationManager = context.getSystemService<NotificationManager>()
+    return notificationManager?.isNotificationPolicyAccessGranted ?: false
+}
+
+// 跳转到勿扰模式设置的函数
+fun openDndSettings(context: Context) {
+    val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+    context.startActivity(intent)
+}
+
+
+// 触发 Notification Worker 的辅助函数
 private fun triggerNotificationWorker(context: Context) {
     val workRequest = OneTimeWorkRequestBuilder<CourseNotificationWorker>().build()
     WorkManager.getInstance(context).enqueueUniqueWork(
@@ -118,7 +135,13 @@ private fun triggerNotificationWorker(context: Context) {
     )
 }
 
-// 新增：跳转到应用信息页面的辅助函数
+// 触发 DND Worker 的辅助函数
+private fun triggerDndSchedulerWorker(context: Context) {
+    DndSchedulerWorker.enqueueWork(context)
+}
+
+
+// 跳转到应用信息页面的辅助函数
 fun openAppSettings(context: Context) {
     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
         data = "package:${context.packageName}".toUri()
@@ -126,7 +149,7 @@ fun openAppSettings(context: Context) {
     context.startActivity(intent)
 }
 
-// 新增：跳转到忽略电池优化设置的辅助函数
+// 跳转到忽略电池优化设置的辅助函数
 fun openIgnoreBatteryOptimizationSettings(context: Context) {
     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
         data = "package:${context.packageName}".toUri()
@@ -135,6 +158,7 @@ fun openIgnoreBatteryOptimizationSettings(context: Context) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("ASSIGNED_VALUE_IS_NEVER_READ")
 @Composable
 fun NotificationSettingsScreen(
     onNavigateBack: () -> Unit,
@@ -155,6 +179,24 @@ fun NotificationSettingsScreen(
     var tempRemindMinutesInput by remember { mutableStateOf(uiState.remindBeforeMinutes.toString()) }
     var showExactAlarmPermissionDialog by remember { mutableStateOf(false) }
     var showClearConfirmationDialog by remember { mutableStateOf(false) }
+    var showDndPermissionDialog by remember { mutableStateOf(false) }
+    var showAutoModeSelectionDialog by remember { mutableStateOf(false) }
+
+    // 模式选项
+    val modeOptions = mapOf(
+        "OFF" to "关闭",
+        CourseAlarmReceiver.MODE_DND to "勿扰模式 (DND)",
+        CourseAlarmReceiver.MODE_SILENT to "静音模式 (SILENT)"
+    )
+
+    // 根据当前状态获取显示文本
+    val currentModeText = remember(uiState.autoModeEnabled, uiState.autoControlMode) {
+        if (!uiState.autoModeEnabled) {
+            modeOptions["OFF"]
+        } else {
+            modeOptions[uiState.autoControlMode]
+        }
+    }
 
     // --- 权限请求器 ---
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -176,6 +218,7 @@ fun NotificationSettingsScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.updateExactAlarmStatus(hasExactAlarmPermission(context))
+                viewModel.updateDndPermissionStatus(hasDndPermission(context))
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -214,10 +257,10 @@ fun NotificationSettingsScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("权限设置对于 Android 提醒非常重要", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("为了确保提醒按时送达，你需要：\n1. 授予精确闹钟权限 (Android 12及以上)\n2. 开启应用的自启动权限\n3. 关闭应用的电池优化功能\n\n请在下方的设置项中手动开启这些权限。", style = MaterialTheme.typography.bodyMedium)
+                        Text("为了确保提醒按时送达，你需要：\n1. 授予精确闹钟权限 (Android 12及以上)\n2. 开启应用的自启动权限\n3. 关闭应用的电池优化功能\n4. 授予勿扰模式权限（用于自动模式切换）\n\n请在下方的设置项中手动开启这些权限。", style = MaterialTheme.typography.bodyMedium)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-                        // 卡片 1: 提醒设置
+                        // 卡片 1: 课程提醒开关
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -238,6 +281,29 @@ fun NotificationSettingsScreen(
                             )
                         }
                         HorizontalDivider()
+
+                        SettingItemRow(
+                            title = "上课自动模式",
+                            currentValue = currentModeText,
+                            onClick = {
+                                if (!uiState.reminderEnabled) {
+                                    Toast.makeText(context, "请先开启「课程提醒」", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    showAutoModeSelectionDialog = true
+                                }
+                            }
+                        )
+                        if (!uiState.reminderEnabled) {
+                            Text(
+                                text = "依赖于「课程提醒」的开启",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 8.dp)
+                            )
+                        }
+                        HorizontalDivider()
+
+
                         SettingItemRow(
                             title = "提前提醒时间",
                             currentValue = "${uiState.remindBeforeMinutes} 分钟",
@@ -246,6 +312,8 @@ fun NotificationSettingsScreen(
                                 showEditRemindMinutesDialog = true
                             }
                         )
+
+                        // 精确闹钟权限 (Android 12+)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             val statusText = if (uiState.exactAlarmStatus) "已开启" else "未开启"
                             SettingItemRow(
@@ -254,6 +322,16 @@ fun NotificationSettingsScreen(
                                 onClick = { openExactAlarmSettings(context) }
                             )
                         }
+
+                        // 上课勿扰模式权限设置项
+                        HorizontalDivider()
+                        val dndStatusText = if (uiState.dndPermissionStatus) "已授权" else "未授权"
+                        SettingItemRow(
+                            title = "勿扰模式权限",
+                            currentValue = dndStatusText,
+                            onClick = { openDndSettings(context) }
+                        )
+
                         HorizontalDivider()
                         SettingItemRow(
                             title = "后台运行和自启",
@@ -327,6 +405,35 @@ fun NotificationSettingsScreen(
         }
     }
 
+    if (showAutoModeSelectionDialog) {
+        AutoModeSelectionDialog(
+            modeOptions = modeOptions,
+            currentAutoModeEnabled = uiState.autoModeEnabled,
+            currentAutoControlMode = uiState.autoControlMode,
+            hasDndPermission = uiState.dndPermissionStatus,
+            onModeSelected = { selectedKey ->
+                val isEnabled = selectedKey != "OFF"
+                val controlMode = if (isEnabled) selectedKey else uiState.autoControlMode
+
+                if (isEnabled && !uiState.dndPermissionStatus) {
+                    showDndPermissionDialog = true
+                    return@AutoModeSelectionDialog
+                }
+
+                viewModel.onAutoModeStateChange(
+                    isEnabled = isEnabled,
+                    newControlMode = controlMode,
+                    triggerDndWorker = ::triggerDndSchedulerWorker,
+                    context = context
+                )
+
+                showAutoModeSelectionDialog = false
+            },
+            onDismiss = { showAutoModeSelectionDialog = false }
+        )
+    }
+
+
     if (showEditRemindMinutesDialog) {
         EditRemindMinutesDialog(
             currentMinutes = tempRemindMinutesInput,
@@ -392,6 +499,83 @@ fun NotificationSettingsScreen(
             }
         )
     }
+
+    if (showDndPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showDndPermissionDialog = false },
+            title = { Text("需要勿扰模式权限") },
+            text = { Text("为了启用上课自动模式，请授予应用访问勿扰模式设置的权限。") },
+            confirmButton = {
+                Button(onClick = {
+                    showDndPermissionDialog = false
+                    openDndSettings(context)
+                }) {
+                    Text("去设置")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showDndPermissionDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+}
+@Composable
+fun AutoModeSelectionDialog(
+    modeOptions: Map<String, String>,
+    currentAutoModeEnabled: Boolean,
+    currentAutoControlMode: String,
+    hasDndPermission: Boolean,
+    onModeSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedKey by remember {
+        mutableStateOf(if (currentAutoModeEnabled) currentAutoControlMode else "OFF")
+    }
+
+    // 权限提示文本
+    val permissionText = if (!hasDndPermission) "（缺少勿扰权限，启用勿扰/静音可能无效）" else ""
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("上课自动模式选择") },
+        text = {
+            Column {
+                Text("选择在上课时自动切换的行为模式：$permissionText", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                modeOptions.forEach { (key, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedKey = key }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedKey == key,
+                            onClick = { selectedKey = key }
+                        )
+                        Spacer(modifier = Modifier.padding(8.dp))
+                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onModeSelected(selectedKey) }
+            ) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 }
 
 @Composable

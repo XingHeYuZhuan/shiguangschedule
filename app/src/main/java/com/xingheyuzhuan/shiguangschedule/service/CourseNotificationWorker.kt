@@ -127,7 +127,6 @@ class CourseNotificationWorker(
             pendingIntent
         )
 
-        // --- SharedPreferences 闹钟记录逻辑 ---
         val sharedPreferences = applicationContext.getSharedPreferences(ALARM_IDS_PREFS, Context.MODE_PRIVATE)
         val currentIds = sharedPreferences.getStringSet(KEY_ACTIVE_ALARM_IDS, mutableSetOf())?.toMutableSet() ?: mutableSetOf()
         currentIds.add(courseId)
@@ -147,10 +146,8 @@ class CourseNotificationWorker(
 
         if (activeAlarmIds != null) {
             for (courseId in activeAlarmIds) {
-                // 必须重新创建一个和设置时完全相同的 PendingIntent
                 val intent = Intent(applicationContext, CourseAlarmReceiver::class.java).apply {
                     putExtra(CourseAlarmReceiver.EXTRA_COURSE_ID, courseId)
-                    // 注意：这里不需要 putExtra 其他信息，因为取消时只需要 ID
                 }
                 val pendingIntent = PendingIntent.getBroadcast(
                     applicationContext,

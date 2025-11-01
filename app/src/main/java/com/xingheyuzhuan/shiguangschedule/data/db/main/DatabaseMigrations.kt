@@ -88,6 +88,8 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
                 `reminderEnabled` INTEGER NOT NULL DEFAULT 0,
                 `remindBeforeMinutes` INTEGER NOT NULL DEFAULT 15,
                 `skippedDates` TEXT,
+                `autoModeEnabled` INTEGER NOT NULL DEFAULT 0,
+                `autoControlMode` TEXT NOT NULL DEFAULT 'DND',
                 PRIMARY KEY(`id`)
             )
             """
@@ -96,8 +98,8 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         // 3. 将旧表中保留的字段数据复制到新表
         db.execSQL(
             """
-            INSERT INTO app_settings (id, currentCourseTableId, reminderEnabled, remindBeforeMinutes, skippedDates)
-            SELECT id, currentCourseTableId, reminderEnabled, remindBeforeMinutes, skippedDates FROM app_settings_old
+            INSERT INTO app_settings (id, currentCourseTableId, reminderEnabled, remindBeforeMinutes, skippedDates, autoModeEnabled, autoControlMode)
+            SELECT id, currentCourseTableId, reminderEnabled, remindBeforeMinutes, skippedDates, 0, 'DND' FROM app_settings_old
             """
         )
 

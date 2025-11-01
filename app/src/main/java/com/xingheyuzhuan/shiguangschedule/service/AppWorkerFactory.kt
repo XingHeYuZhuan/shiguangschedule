@@ -31,6 +31,8 @@ class AppWorkerFactory(
                 WidgetUiUpdateWorker(appContext, workerParameters)
             FullDataSyncWorker::class.java.name ->
                 FullDataSyncWorker(appContext, workerParameters, widgetDataSynchronizer)
+            DndSchedulerWorker::class.java.name ->
+                DndSchedulerWorker(appContext, workerParameters, appSettingsRepository, widgetRepository)
             else ->
                 null
         }

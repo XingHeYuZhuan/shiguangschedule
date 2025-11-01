@@ -29,7 +29,6 @@ class MyApplication : Application(), Configuration.Provider {
 
     // 主数据库仓库
     val appSettingsRepository: AppSettingsRepository by lazy {
-        // 【修正 1】确保传入 AppSettingsDao 和 CourseTableConfigDao
         AppSettingsRepository(
             database.appSettingsDao(),
             database.courseTableConfigDao()

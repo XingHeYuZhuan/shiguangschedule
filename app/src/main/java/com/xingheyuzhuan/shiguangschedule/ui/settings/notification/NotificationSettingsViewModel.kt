@@ -1,3 +1,5 @@
+// NotificationSettingsViewModel.kt
+
 package com.xingheyuzhuan.shiguangschedule.ui.settings.notification
 
 import android.app.Application
@@ -8,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.MyApplication
 import com.xingheyuzhuan.shiguangschedule.data.ApiDateImporter
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
+import com.xingheyuzhuan.shiguangschedule.service.CourseAlarmReceiver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +26,10 @@ data class NotificationSettingsUiState(
     val remindBeforeMinutes: Int = 15,             // 提前提醒分钟数
     val skippedDates: Set<String> = emptySet(),    // 跳过的日期集合
     val isLoading: Boolean = false,                // 加载状态
-    val exactAlarmStatus: Boolean = false          // 精确闹钟权限状态
+    val exactAlarmStatus: Boolean = false,          // 精确闹钟权限状态
+    val dndPermissionStatus: Boolean = false,       // 勿扰模式权限状态
+    val autoModeEnabled: Boolean = false,          // 是否启用上课自动模式
+    val autoControlMode: String = CourseAlarmReceiver.MODE_DND // 模式类型：DND 或 SILENT
 )
 
 /**
@@ -43,7 +49,9 @@ class NotificationSettingsViewModel(
                 _uiState.value = _uiState.value.copy(
                     reminderEnabled = settings.reminderEnabled,
                     remindBeforeMinutes = settings.remindBeforeMinutes,
-                    skippedDates = settings.skippedDates ?: emptySet()
+                    skippedDates = settings.skippedDates ?: emptySet(),
+                    autoModeEnabled = settings.autoModeEnabled,
+                    autoControlMode = settings.autoControlMode
                 )
             }
         }
@@ -52,6 +60,10 @@ class NotificationSettingsViewModel(
     // 更新精确闹钟权限状态
     fun updateExactAlarmStatus(status: Boolean) {
         _uiState.value = _uiState.value.copy(exactAlarmStatus = status)
+    }
+
+    fun updateDndPermissionStatus(status: Boolean) {
+        _uiState.value = _uiState.value.copy(dndPermissionStatus = status)
     }
 
     // 处理提醒开关变化
@@ -63,12 +75,36 @@ class NotificationSettingsViewModel(
             }
 
             val currentSettings = appSettingsRepository.getAppSettings().first()
-            val updatedSettings = currentSettings.copy(reminderEnabled = isEnabled)
+            val updatedSettings = currentSettings.copy(
+                reminderEnabled = isEnabled,
+                autoModeEnabled = if (!isEnabled) false else currentSettings.autoModeEnabled
+            )
             appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
             triggerWorker(context)
         }
     }
 
+    /**
+     * 处理自动模式状态和模式类型的合并变化
+     */
+    fun onAutoModeStateChange(isEnabled: Boolean, newControlMode: String, triggerDndWorker: (Context) -> Unit, context: Context) {
+        viewModelScope.launch {
+            val currentSettings = appSettingsRepository.getAppSettings().first()
+
+            // 只有当选择关闭模式时，才将 isEnabled 设为 false，否则根据 newControlMode 设置 isEnabled 和 autoControlMode
+            val finalModeEnabled = isEnabled
+            val finalControlMode = if (isEnabled) newControlMode else currentSettings.autoControlMode
+
+            val updatedSettings = currentSettings.copy(
+                autoModeEnabled = finalModeEnabled,
+                autoControlMode = finalControlMode
+            )
+            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
+
+            // 无论开启、关闭或更改模式类型，都需要重新调度 Worker
+            triggerDndWorker(context)
+        }
+    }
     // 保存提前提醒分钟数
     fun onSaveRemindBeforeMinutes(minutes: Int, triggerWorker: (Context) -> Unit, context: Context) {
         viewModelScope.launch {
@@ -79,7 +115,6 @@ class NotificationSettingsViewModel(
         }
     }
 
-    // 更新假期数据
     fun onUpdateHolidays(onSuccess: (Context) -> Unit, onFailure: (Context, String) -> Unit, context: Context) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
