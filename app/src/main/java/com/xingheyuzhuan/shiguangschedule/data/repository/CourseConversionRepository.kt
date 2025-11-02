@@ -8,6 +8,8 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeek
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
+import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.CourseConfigJsonModel
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.CourseTableExportModel
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.CourseTableImportModel
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.ExportCourseJsonModel
@@ -138,6 +140,24 @@ class CourseConversionRepository(
         if (timeSlotEntities.isNotEmpty()) {
             timeSlotDao.insertAll(timeSlotEntities)
         }
+
+        // 处理课表配置的导入（兼容旧格式，允许 config 为 null）
+        val configJson = courseTableJsonModel.config
+        if (configJson != null) {
+            val currentConfig = appSettingsRepository.getCourseConfigOnce(tableId)
+            val updatedConfig = CourseTableConfig(
+                courseTableId = tableId,
+                showWeekends = currentConfig?.showWeekends ?: false,
+                semesterStartDate = configJson.semesterStartDate,
+                semesterTotalWeeks = configJson.semesterTotalWeeks,
+                defaultClassDuration = configJson.defaultClassDuration,
+                defaultBreakDuration = configJson.defaultBreakDuration,
+                firstDayOfWeek = configJson.firstDayOfWeek
+            )
+
+            // 3. 插入或更新配置
+            appSettingsRepository.insertOrUpdateCourseConfig(updatedConfig)
+        }
     }
 
     /**
@@ -174,9 +194,25 @@ class CourseConversionRepository(
             )
         }
 
+        // 读取课表配置
+        val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
+
+        val configToExport = courseConfig ?: CourseTableConfig(courseTableId = tableId)
+
+        // 转换为不含 showWeekends 的 JSON 模型
+        val exportConfig = CourseConfigJsonModel(
+            semesterStartDate = configToExport.semesterStartDate,
+            semesterTotalWeeks = configToExport.semesterTotalWeeks,
+            defaultClassDuration = configToExport.defaultClassDuration,
+            defaultBreakDuration = configToExport.defaultBreakDuration,
+            firstDayOfWeek = configToExport.firstDayOfWeek
+        )
+
+
         return CourseTableExportModel(
             courses = exportCourses,
-            timeSlots = exportTimeSlots
+            timeSlots = exportTimeSlots,
+            config = exportConfig
         )
     }
 
@@ -195,12 +231,12 @@ class CourseConversionRepository(
         val appSettings = appSettingsRepository.getAppSettingsOnce()
         val skippedDates = appSettings?.skippedDates
 
-        // 2. 【核心修改】从 CourseTableConfig 获取课表配置 (用于日期和总周数)
+        // 2. 从 CourseTableConfig 获取课表配置 (用于日期和总周数)
         val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
         val semesterStartDate = courseConfig?.semesterStartDate?.let { LocalDate.parse(it) }
 
         // 检查必要配置是否存在
-        if (semesterStartDate == null || courseConfig?.semesterTotalWeeks ?: 0 <= 0) {
+        if (semesterStartDate == null || courseConfig.semesterTotalWeeks <= 0) {
             return null
         }
 
@@ -208,7 +244,7 @@ class CourseConversionRepository(
             courses = courses,
             timeSlots = timeSlots,
             semesterStartDate = semesterStartDate,
-            semesterTotalWeeks = courseConfig.semesterTotalWeeks, // 【使用新的数据源】
+            semesterTotalWeeks = courseConfig.semesterTotalWeeks,
             alarmMinutes = alarmMinutes,
             skippedDates = skippedDates
         )

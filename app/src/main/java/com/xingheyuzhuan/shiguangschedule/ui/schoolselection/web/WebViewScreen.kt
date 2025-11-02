@@ -86,14 +86,19 @@ fun WebViewScreen(
     val coroutineScope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // --- 状态管理 ---
+    val startedEmpty: Boolean = remember { initialUrl.isNullOrBlank() || initialUrl == "about:blank" }
+
     var currentUrl by remember { mutableStateOf(initialUrl ?: "about:blank") }
     var inputUrl by remember { mutableStateOf(initialUrl ?: "https://") }
     var loadingProgress by remember { mutableFloatStateOf(0f) }
     var pageTitle by remember { mutableStateOf(if (currentUrl.isBlank() || currentUrl == "about:blank") "输入网址" else "加载中...") }
     var expanded by remember { mutableStateOf(false) }
     var isDesktopMode by remember { mutableStateOf(false) }
-    var isEditingUrl by remember { mutableStateOf(false) }
+
+    var isEditingUrl by remember {
+        mutableStateOf(startedEmpty)
+    }
+
     var isDevToolsEnabled by remember { mutableStateOf(false) }
     var showCourseTablePicker by remember { mutableStateOf(false) }
 
@@ -307,7 +312,7 @@ fun WebViewScreen(
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "加载")
                             }
-                        } else if (enableAddressBarToggleButton) {
+                        } else if (enableAddressBarToggleButton || startedEmpty) {
                             IconButton(onClick = {
                                 isEditingUrl = true
                                 inputUrl = webView.url?.takeIf { it.isNotBlank() && it != "about:blank" } ?: "https://"
