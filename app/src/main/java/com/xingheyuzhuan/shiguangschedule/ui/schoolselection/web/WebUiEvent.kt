@@ -3,9 +3,6 @@ package com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web
 
 import kotlinx.coroutines.flow.Flow
 
-// ===============================================
-// 1. JS 交互所需的数据结构 (从旧 AndroidBridge.kt 移动过来)
-// ===============================================
 
 data class AlertDialogData(
     val title: String,
@@ -25,10 +22,6 @@ data class SingleSelectionDialogData(
     val items: List<String>,
     val defaultSelectedIndex: Int = -1
 )
-
-// ===============================================
-// 2. 统一的 Web UI 交互事件契约
-// ===============================================
 
 /**
  * 表示所有由 JavaScript 触发、需要 Compose UI 响应的交互事件。

@@ -6,14 +6,14 @@ import kotlin.random.Random
 
 object CourseImportExport {
 
-    // 用于 JSON 导入和导出的配置模型（不含 showWeekends）
+    // 用于 JSON 导入和导出的配置模型
     @Serializable
     data class CourseConfigJsonModel(
-        val semesterStartDate: String?,
-        val semesterTotalWeeks: Int,
-        val defaultClassDuration: Int,
-        val defaultBreakDuration: Int,
-        val firstDayOfWeek: Int
+        val semesterStartDate: String? = null,
+        val semesterTotalWeeks: Int = 20,
+        val defaultClassDuration: Int = 45,
+        val defaultBreakDuration: Int = 10,
+        val firstDayOfWeek: Int = 1
     )
 
     // 导入时使用的 JSON 模型

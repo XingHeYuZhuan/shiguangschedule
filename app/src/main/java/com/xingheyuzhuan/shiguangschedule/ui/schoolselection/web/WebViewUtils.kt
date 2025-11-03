@@ -107,6 +107,14 @@ fun WebView.injectAllJavaScript(isDesktopMode: Boolean) {
                     AndroidBridge.saveImportedCourses(coursesJsonString, promiseId);
                 });
             },
+            saveCourseConfig: function(configJsonString) {
+                return new Promise((resolve, reject) => {
+                    const promiseId = 'saveConfig_' + Date.now() + Math.random().toString(36).substring(2);
+                    window._androidPromiseResolvers[promiseId] = resolve;
+                    window._androidPromiseRejectors[promiseId] = reject;
+                    AndroidBridge.saveCourseConfig(configJsonString, promiseId);
+                });
+            },
             savePresetTimeSlots: function(timeSlotsJsonString) {
                 return new Promise((resolve, reject) => {
                     const promiseId = 'saveTimeSlots_' + Date.now() + Math.random().toString(36).substring(2);

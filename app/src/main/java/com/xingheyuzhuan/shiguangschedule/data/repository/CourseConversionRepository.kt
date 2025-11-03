@@ -161,6 +161,35 @@ class CourseConversionRepository(
     }
 
     /**
+     * 从 JSON 模型更新指定课表的配置。
+     * 该函数用于独立导入配置，例如通过 JS 桥接单独设置配置项。
+     *
+     * @param tableId 课表的 ID。
+     * @param configJsonModel 包含配置数据的 JSON 模型（CourseConfigJsonModel）。
+     */
+    @Transaction
+    suspend fun importCourseConfig(
+        tableId: String,
+        configJsonModel: CourseConfigJsonModel
+    ) {
+        val currentConfig = appSettingsRepository.getCourseConfigOnce(tableId)
+
+        // 2. 构造新的配置实体
+        val updatedConfig = CourseTableConfig(
+            courseTableId = tableId,
+            showWeekends = currentConfig?.showWeekends ?: false,
+            semesterStartDate = configJsonModel.semesterStartDate,
+            semesterTotalWeeks = configJsonModel.semesterTotalWeeks,
+            defaultClassDuration = configJsonModel.defaultClassDuration,
+            defaultBreakDuration = configJsonModel.defaultBreakDuration,
+            firstDayOfWeek = configJsonModel.firstDayOfWeek
+        )
+
+        // 3. 插入或更新配置到数据库
+        appSettingsRepository.insertOrUpdateCourseConfig(updatedConfig)
+    }
+
+    /**
      * 将指定课表下的所有数据导出为一个完整的 JSON 模型。
      * 包含课程和时间段。
      *
