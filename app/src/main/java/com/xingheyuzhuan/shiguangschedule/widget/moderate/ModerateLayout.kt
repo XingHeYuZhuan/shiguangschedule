@@ -44,10 +44,10 @@ private const val MAX_LAYOUT_SCALE = 4.0f
 private const val MAX_SLOTS = 4
 
 /**
- * 适中课程小组件的布局：展示今天的 4 节课。
+ * 适中课程小组件的布局：展示今天的 4 节课，支持自动切换到明日预告。
  */
 @Composable
-fun ModerateLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
+fun ModerateLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, Int?>>) { // <--- 1. 修改函数签名
     val currentSize = LocalSize.current
 
     // 1. 统一缩放计算逻辑
@@ -57,23 +57,63 @@ fun ModerateLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
     val finalScale = rawScale.coerceIn(1.0f, MAX_LAYOUT_SCALE)
 
     // 2. 状态和数据
-    val coursesAndWeekState = coursesAndWeekFlow.collectAsState(initial = Pair(emptyList(), null))
-    val (rawTodayCourses, currentWeek) = coursesAndWeekState.value
-    val today = LocalDate.now()
-    val todayDateString = today.format(DateTimeFormatter.ofPattern("M.d", Locale.getDefault()))
-    val todayDayOfWeekString = today.dayOfWeek.getDisplayName(LocalDateTextStyle.SHORT, Locale.getDefault())
+    // 原始数据流结构：Pair<List<List<WidgetCourse>>, Int?>
+    val coursesAndWeekState = multiDayCoursesAndWeekFlow.collectAsState(initial = Pair(emptyList(), null))
+    val (allCoursesLists, currentWeek) = coursesAndWeekState.value
+
+    val todayCourses = allCoursesLists.firstOrNull() ?: emptyList()
+    val tomorrowCourses = allCoursesLists.getOrNull(1) ?: emptyList()
 
     val isVacation = currentWeek == null
     val now = LocalTime.now()
 
-    val nextCourses = rawTodayCourses.filter {
+    // 今天剩余未上课程总数
+    val remainingTodayCoursesCount = todayCourses.count {
         !it.isSkipped && LocalTime.parse(it.endTime) > now
-    }.take(MAX_SLOTS)
+    }
+
+    val isTodayFinished = remainingTodayCoursesCount == 0
+    val hasTomorrowCourses = tomorrowCourses.isNotEmpty()
+
+    val isShowingTomorrow = !isVacation && (todayCourses.isEmpty() || isTodayFinished) && hasTomorrowCourses
+
+    val displayCourses = if (isShowingTomorrow) tomorrowCourses else todayCourses
+    val displayDate = if (isShowingTomorrow) LocalDate.now().plusDays(1) else LocalDate.now()
+
+    val nextCourses = if (isShowingTomorrow) {
+        displayCourses.filter { !it.isSkipped }.take(MAX_SLOTS)
+    } else {
+        displayCourses.filter {
+            !it.isSkipped && LocalTime.parse(it.endTime) > now
+        }.take(MAX_SLOTS)
+    }
 
     val courseSlots = nextCourses + List(MAX_SLOTS - nextCourses.size) { null }
 
-    val remainingCoursesCount = rawTodayCourses.count {
-        !it.isSkipped && LocalTime.parse(it.endTime) > now
+    // 剩余课程数
+    val displayRemainingCount = if (isShowingTomorrow) {
+        displayCourses.count { !it.isSkipped } // 明天是总课数
+    } else {
+        remainingTodayCoursesCount // 今天是剩余课数
+    }
+
+    // 检查是否应该显示居中状态文本
+    val shouldShowCenterStatusText = !isVacation && (
+            displayCourses.isEmpty()
+                    || (!isShowingTomorrow && nextCourses.isEmpty())
+            )
+
+
+    // 确定顶部文本
+    val topText = if (isShowingTomorrow) {
+        "明日课程预告"
+    } else {
+        displayDate.format(DateTimeFormatter.ofPattern("M.d", Locale.getDefault()))
+    }
+    val subTopText = if (isShowingTomorrow) {
+        displayDate.dayOfWeek.getDisplayName(LocalDateTextStyle.SHORT, Locale.getDefault())
+    } else {
+        displayDate.dayOfWeek.getDisplayName(LocalDateTextStyle.SHORT, Locale.getDefault())
     }
 
     // 计算缩放后的系统圆角
@@ -92,48 +132,52 @@ fun ModerateLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
         Column(
             modifier = GlanceModifier.fillMaxSize()
         ) {
-            // 顶部区域：日期、星期、周数
             TopBar(
-                todayDateString = todayDateString,
-                todayDayOfWeekString = todayDayOfWeekString,
+                mainText = topText,
+                subText = subTopText,
                 currentWeek = currentWeek,
-                scale = finalScale
+                scale = finalScale,
+                isShowingTomorrow = isShowingTomorrow
             )
 
             // 主要内容区域
-            if (isVacation || rawTodayCourses.isEmpty()) {
+            if (isVacation) {
                 CenteredMessage(
-                    text = if (isVacation) "假期中" else "今天没有课程",
+                    text = "假期中",
+                    scale = finalScale
+                )
+            } else if (shouldShowCenterStatusText) {
+                val statusText = if (displayCourses.isEmpty()) {
+                    if (isShowingTomorrow) "明天没有课程" else "今天没有课程"
+                } else {
+                    "今日课程已结束"
+                }
+                CenteredMessage(
+                    text = statusText,
                     scale = finalScale
                 )
             } else {
-                if (nextCourses.isNotEmpty()) {
-                    // 课程网格占据剩余垂直空间
-                    CourseGrid(
-                        courseSlots = courseSlots,
-                        remainingCoursesCount = remainingCoursesCount,
-                        scale = finalScale
-                    )
-                } else {
-                    CenteredMessage(
-                        text = "今日课程已结束",
-                        scale = finalScale
-                    )
-                }
+                CourseGrid(
+                    courseSlots = courseSlots,
+                    displayRemainingCount = displayRemainingCount,
+                    isShowingTomorrow = isShowingTomorrow,
+                    scale = finalScale
+                )
             }
         }
     }
 }
 
 /**
- * 顶部信息栏
+ * 顶部信息栏 (修改为更通用的结构)
  */
 @Composable
 private fun TopBar(
-    todayDateString: String,
-    todayDayOfWeekString: String,
+    mainText: String,
+    subText: String,
     currentWeek: Int?,
-    scale: Float
+    scale: Float,
+    isShowingTomorrow: Boolean
 ) {
     Row(
         modifier = GlanceModifier
@@ -141,12 +185,22 @@ private fun TopBar(
             .padding(horizontal = (8 * scale).dp, vertical = (4 * scale).dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. 日期/星期文本
+        // 1. 日期/预告文本
         ScaledBitmapText(
-            text = "$todayDateString $todayDayOfWeekString",
+            text = mainText,
             fontSizeDp = (13f * scale).dp,
             color = WidgetColors.textHint,
         )
+        // 2. 星期/副文本
+        if (subText.isNotBlank()) {
+            Spacer(modifier = GlanceModifier.width((4 * scale).dp))
+            ScaledBitmapText(
+                text = subText,
+                fontSizeDp = (13f * scale).dp,
+                color = WidgetColors.textHint,
+            )
+        }
+
 
         Spacer(modifier = GlanceModifier.defaultWeight())
 
@@ -185,7 +239,8 @@ private fun CenteredMessage(text: String, scale: Float) {
 @Composable
 private fun CourseGrid(
     courseSlots: List<WidgetCourse?>,
-    remainingCoursesCount: Int,
+    displayRemainingCount: Int, // 更改名称
+    isShowingTomorrow: Boolean, // 新增参数
     scale: Float
 ) {
     Column(
@@ -242,7 +297,12 @@ private fun CourseGrid(
             }
         }
 
-        if (remainingCoursesCount > 0) {
+        // 底部提示
+        if (displayRemainingCount > 0) {
+            val baseText = if (isShowingTomorrow) "明天" else "今日"
+            val actionText = if (isShowingTomorrow) "" else "还"
+            val totalText = if (isShowingTomorrow) "节课" else "节课"
+
             Row(
                 modifier = GlanceModifier
                     .fillMaxWidth()
@@ -251,7 +311,7 @@ private fun CourseGrid(
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally
             ) {
                 ScaledBitmapText(
-                    text = "今日还有${remainingCoursesCount}节课",
+                    text = "$baseText${actionText}有${displayRemainingCount}${totalText}",
                     fontSizeDp = (11f * scale).dp,
                     color = WidgetColors.textHint
                 )
@@ -378,7 +438,6 @@ private fun RowDivider(scale: Float) {
 
 /**
  * 获取课程指示器 Drawable 资源
- * 确保该函数在 ModerateLayout 的作用域内可用。
  */
 fun getCourseIndicatorDrawable(index: Int): Int {
     return when (index % 5) {
