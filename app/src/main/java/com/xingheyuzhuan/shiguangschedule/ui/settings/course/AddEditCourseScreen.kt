@@ -23,12 +23,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.xingheyuzhuan.shiguangschedule.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,15 +55,19 @@ fun AddEditCourseScreen(
 
     val context = LocalContext.current
 
+    val saveSuccessText = stringResource(R.string.toast_save_success)
+    val deleteSuccessText = stringResource(R.string.toast_delete_success)
+    val nameEmptyText = stringResource(R.string.toast_name_empty)
+
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
                 UiEvent.SaveSuccess -> {
-                    Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, saveSuccessText, Toast.LENGTH_SHORT).show()
                     onNavigateBack()
                 }
                 UiEvent.DeleteSuccess -> {
-                    Toast.makeText(context, "删除成功", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, deleteSuccessText, Toast.LENGTH_SHORT).show()
                     onNavigateBack()
                 }
                 UiEvent.Cancel -> {
@@ -73,27 +80,35 @@ fun AddEditCourseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = if (uiState.isEditing) "编辑课程" else "添加课程") },
+                title = {
+                    Text(
+                        text = if (uiState.isEditing) {
+                            stringResource(R.string.title_edit_course)
+                        } else {
+                            stringResource(R.string.title_add_course)
+                        }
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = viewModel::onCancel) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.a11y_back))
                     }
                 },
                 actions = {
                     IconButton(
                         onClick = {
                             if (uiState.name.isBlank()) {
-                                Toast.makeText(context, "课程名称不能为空", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, nameEmptyText, Toast.LENGTH_SHORT).show()
                             } else {
                                 viewModel.onSave()
                             }
                         }
                     ) {
-                        Icon(Icons.Default.Done, contentDescription = "保存")
+                        Icon(Icons.Default.Done, contentDescription = stringResource(R.string.a11y_save))
                     }
                     if (uiState.isEditing) {
                         IconButton(onClick = viewModel::onDelete) {
-                            Icon(Icons.Default.Delete, contentDescription = "删除")
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.a11y_delete))
                         }
                     }
                 }
@@ -112,21 +127,21 @@ fun AddEditCourseScreen(
             OutlinedTextField(
                 value = uiState.name,
                 onValueChange = viewModel::onNameChange,
-                label = { Text("课程名称*") },
+                label = { Text(stringResource(R.string.label_course_name)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
                 value = uiState.teacher,
                 onValueChange = viewModel::onTeacherChange,
-                label = { Text("教师") },
+                label = { Text(stringResource(R.string.label_teacher)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
                 value = uiState.position,
                 onValueChange = viewModel::onPositionChange,
-                label = { Text("地点") },
+                label = { Text(stringResource(R.string.label_position)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -196,20 +211,28 @@ private fun CourseTimePickerButton(
     timeSlots: List<TimeSlot>,
     onButtonClick: () -> Unit
 ) {
-    val dayName = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日").getOrNull(day - 1) ?: "周一"
-    val sectionCount = if (endSection > startSection) "(${endSection - startSection + 1}节)" else ""
-    val sectionsText = if (timeSlots.isNotEmpty()) {
-        "${startSection}-${endSection}节"
+    val days = stringArrayResource(R.array.week_days_full_names)
+    val dayName = days.getOrNull(day - 1) ?: days.first()
+
+    val sectionCount = if (endSection > startSection) {
+        stringResource(R.string.course_time_sections_count, endSection - startSection + 1)
     } else {
-        "无"
+        ""
     }
+
+    val sectionsText = if (timeSlots.isNotEmpty()) {
+        "${startSection}-${endSection}${stringResource(R.string.label_section_range_suffix)}"
+    } else {
+        stringResource(R.string.label_none)
+    }
+
     val buttonText = "$dayName $sectionsText $sectionCount"
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "上课时间", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(R.string.label_course_time), style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = onButtonClick,
@@ -242,6 +265,8 @@ private fun CourseTimePickerBottomSheet(
     var tempEndSection by remember { mutableStateOf(endSection) }
 
     val context = LocalContext.current
+    val timeInvalidText = stringResource(R.string.toast_time_invalid)
+    val confirmText = stringResource(R.string.action_confirm)
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -254,7 +279,7 @@ private fun CourseTimePickerBottomSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "选择上课时间",
+                text = stringResource(R.string.title_select_time),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -266,7 +291,7 @@ private fun CourseTimePickerBottomSheet(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(text = "星期", style = MaterialTheme.typography.titleSmall)
+                    Text(text = stringResource(R.string.label_day_of_week), style = MaterialTheme.typography.titleSmall)
                     Spacer(modifier = Modifier.height(8.dp))
                     DayPicker(
                         selectedDay = tempSelectedDay,
@@ -277,7 +302,7 @@ private fun CourseTimePickerBottomSheet(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(text = "开始节次", style = MaterialTheme.typography.titleSmall)
+                    Text(text = stringResource(R.string.label_start_section), style = MaterialTheme.typography.titleSmall)
                     Spacer(modifier = Modifier.height(8.dp))
                     SectionPicker(
                         selectedSection = tempStartSection,
@@ -291,7 +316,7 @@ private fun CourseTimePickerBottomSheet(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(text = "结束节次", style = MaterialTheme.typography.titleSmall)
+                    Text(text = stringResource(R.string.label_end_section), style = MaterialTheme.typography.titleSmall)
                     Spacer(modifier = Modifier.height(8.dp))
                     SectionPicker(
                         selectedSection = tempEndSection,
@@ -308,7 +333,7 @@ private fun CourseTimePickerBottomSheet(
             Button(
                 onClick = {
                     if (tempStartSection > tempEndSection) {
-                        Toast.makeText(context, "开始节次不能大于结束节次", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, timeInvalidText, Toast.LENGTH_SHORT).show()
                     } else {
                         onDaySelected(tempSelectedDay)
                         onStartSectionChange(tempStartSection)
@@ -319,7 +344,7 @@ private fun CourseTimePickerBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("确定", color = MaterialTheme.colorScheme.onPrimary)
+                Text(confirmText, color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }
@@ -331,11 +356,11 @@ private fun DayPicker(
     onDaySelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val days = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
-    val selectedDayName = days.getOrNull(selectedDay - 1) ?: "周一"
+    val days = stringArrayResource(R.array.week_days_full_names)
+    val selectedDayName = days.getOrNull(selectedDay - 1) ?: days.first()
 
     NativeNumberPicker(
-        values = days,
+        values = days.toList(),
         selectedValue = selectedDayName,
         onValueChange = { dayName ->
             val dayNumber = days.indexOf(dayName) + 1
@@ -367,11 +392,15 @@ private fun WeekSelector(
     selectedWeeks: Set<Int>,
     onWeekClick: () -> Unit
 ) {
+    val labelCourseWeeks = stringResource(R.string.label_course_weeks)
+    val buttonSelectWeeks = stringResource(R.string.button_select_weeks)
+    val textWeeksSelected = stringResource(R.string.text_weeks_selected)
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "上课周次", style = MaterialTheme.typography.titleMedium)
+        Text(text = labelCourseWeeks, style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = onWeekClick,
@@ -381,9 +410,9 @@ private fun WeekSelector(
             )
         ) {
             val weeksText = if (selectedWeeks.isEmpty()) {
-                "选择周数"
+                buttonSelectWeeks
             } else {
-                "已选: ${selectedWeeks.sorted().joinToString(", ")}"
+                String.format(textWeeksSelected, selectedWeeks.sorted().joinToString(", "))
             }
             Text(text = weeksText, color = MaterialTheme.colorScheme.onSecondaryContainer)
         }
@@ -402,6 +431,13 @@ private fun WeekSelectorBottomSheet(
     val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var tempSelectedWeeks by remember { mutableStateOf(selectedWeeks) }
 
+    val titleSelectWeeks = stringResource(R.string.title_select_weeks)
+    val actionSelectAll = stringResource(R.string.action_select_all)
+    val actionSingleWeek = stringResource(R.string.action_single_week)
+    val actionDoubleWeek = stringResource(R.string.action_double_week)
+    val actionCancel = stringResource(R.string.action_cancel)
+    val actionConfirm = stringResource(R.string.action_confirm)
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = modalBottomSheetState
@@ -413,7 +449,7 @@ private fun WeekSelectorBottomSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "选择上课周次",
+                text = titleSelectWeeks,
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -468,21 +504,21 @@ private fun WeekSelectorBottomSheet(
                             (1..totalWeeks).toSet()
                         }
                     },
-                    label = { Text("全选") }
+                    label = { Text(actionSelectAll) }
                 )
                 InputChip(
                     selected = tempSelectedWeeks.all { it % 2 != 0 } && tempSelectedWeeks.isNotEmpty(),
                     onClick = {
                         tempSelectedWeeks = (1..totalWeeks).filter { it % 2 != 0 }.toSet()
                     },
-                    label = { Text("单周") }
+                    label = { Text(actionSingleWeek) }
                 )
                 InputChip(
                     selected = tempSelectedWeeks.all { it % 2 == 0 } && tempSelectedWeeks.isNotEmpty(),
                     onClick = {
                         tempSelectedWeeks = (1..totalWeeks).filter { it % 2 == 0 }.toSet()
                     },
-                    label = { Text("双周") }
+                    label = { Text(actionDoubleWeek) }
                 )
             }
             Row(
@@ -494,7 +530,7 @@ private fun WeekSelectorBottomSheet(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(actionCancel, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Button(
                     onClick = {
@@ -508,7 +544,7 @@ private fun WeekSelectorBottomSheet(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("确定", color = MaterialTheme.colorScheme.onPrimary)
+                    Text(actionConfirm, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }
@@ -520,18 +556,21 @@ private fun ColorPicker(
     selectedColor: Color,
     onColorClick: () -> Unit
 ) {
+    val labelCourseColor = stringResource(R.string.label_course_color)
+    val buttonSelectColor = stringResource(R.string.button_select_color)
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "课程颜色", style = MaterialTheme.typography.titleMedium)
+        Text(text = labelCourseColor, style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = onColorClick,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = selectedColor)
         ) {
-            Text("选择颜色", color = Color.White)
+            Text(buttonSelectColor, color = Color.White)
         }
     }
 }
@@ -548,6 +587,11 @@ private fun ColorPickerBottomSheet(
     val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var tempSelectedColor by remember { mutableStateOf(selectedColor) }
 
+    val titleSelectColor = stringResource(R.string.title_select_color)
+    val actionCancel = stringResource(R.string.action_cancel)
+    val actionConfirm = stringResource(R.string.action_confirm)
+    val a11yColorSelected = stringResource(R.string.a11y_color_selected)
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = modalBottomSheetState
@@ -559,7 +603,7 @@ private fun ColorPickerBottomSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "选择课程颜色",
+                text = titleSelectColor,
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -597,7 +641,7 @@ private fun ColorPickerBottomSheet(
                         if (isSelected) {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                contentDescription = "已选择",
+                                contentDescription = a11yColorSelected,
                                 tint = Color.White
                             )
                         }
@@ -616,7 +660,7 @@ private fun ColorPickerBottomSheet(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(actionCancel, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Button(
                     onClick = {
@@ -630,7 +674,7 @@ private fun ColorPickerBottomSheet(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("确定", color = MaterialTheme.colorScheme.onPrimary)
+                    Text(actionConfirm, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }

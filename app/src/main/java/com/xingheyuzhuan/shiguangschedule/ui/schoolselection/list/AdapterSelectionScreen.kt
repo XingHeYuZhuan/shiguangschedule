@@ -1,6 +1,5 @@
 package com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list
 
-// 导入 Screen 路由
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,11 +37,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.xingheyuzhuan.shiguangschedule.R
 import school_index.Adapter
 import school_index.AdapterCategory
 
@@ -77,13 +78,13 @@ fun AdapterSelectionScreen(
         ?: AdapterCategory.BACHELOR_AND_ASSOCIATE
 
 
-    // 类别到中文名称的映射
+    @Composable
     fun getCategoryDisplayName(): String {
-        return when (currentCategory) { // 使用本地的 currentCategory 变量
-            AdapterCategory.BACHELOR_AND_ASSOCIATE -> "本科/专科"
-            AdapterCategory.POSTGRADUATE -> "研究生"
-            AdapterCategory.GENERAL_TOOL -> "通用工具"
-            else -> "其他"
+        return when (currentCategory) {
+            AdapterCategory.BACHELOR_AND_ASSOCIATE -> stringResource(R.string.category_bachelor_associate)
+            AdapterCategory.POSTGRADUATE -> stringResource(R.string.category_postgraduate)
+            AdapterCategory.GENERAL_TOOL -> stringResource(R.string.category_general_tool)
+            else -> stringResource(R.string.category_other)
         }
     }
 
@@ -104,13 +105,18 @@ fun AdapterSelectionScreen(
         }
     }
 
+    val categoryDisplayName = getCategoryDisplayName()
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("$schoolName - ${getCategoryDisplayName()}", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = { Text("$schoolName - $categoryDisplayName", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回学校列表")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.a11y_back_to_school_list)
+                        )
                     }
                 }
             )
@@ -129,7 +135,7 @@ fun AdapterSelectionScreen(
                 adapters.isEmpty() -> {
                     // 列表为空状态
                     Text(
-                        text = "该学校在「${getCategoryDisplayName()}」类别下暂无适配器。",
+                        text = stringResource(R.string.text_no_adapter_for_category_school, categoryDisplayName),
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -200,7 +206,7 @@ fun AdapterCard(
 
             // 描述
             Text(
-                text = adapter.description.ifBlank { "无详细描述。" },
+                text = adapter.description.ifBlank { stringResource(R.string.text_no_detailed_description) },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -215,7 +221,10 @@ fun AdapterCard(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = "贡献者: ${adapter.maintainer.ifBlank { "未知" }}",
+                    text = stringResource(
+                        R.string.label_contributor_format,
+                        adapter.maintainer.ifBlank { stringResource(R.string.label_contributor_unknown) }
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline
                 )

@@ -1,6 +1,5 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings.update
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +20,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,17 +33,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.xingheyuzhuan.shiguangschedule.data.model.RepositoryInfo
-import com.xingheyuzhuan.shiguangschedule.data.model.RepoType
 import com.xingheyuzhuan.shiguangschedule.BuildConfig
+import com.xingheyuzhuan.shiguangschedule.R
+import com.xingheyuzhuan.shiguangschedule.data.model.RepoType
+import com.xingheyuzhuan.shiguangschedule.data.model.RepositoryInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,12 +57,12 @@ fun UpdateRepoScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "更新教务适配仓库") },
+                title = { Text(text = stringResource(R.string.title_update_repo_screen)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = stringResource(R.string.a11y_back)
                         )
                     }
                 }
@@ -80,18 +80,14 @@ fun UpdateRepoScreen(
             RepoSelectionCard(
                 repoList = uiState.repoList,
                 selectedRepo = uiState.selectedRepo,
-                // 绑定 URL 和 Branch 状态
                 currentUrl = uiState.currentEditableUrl,
                 currentBranch = uiState.currentEditableBranch,
-                // 绑定 Username 和 Password 状态
                 currentUsername = uiState.currentEditableUsername,
                 currentPassword = uiState.currentEditablePassword,
                 isUpdating = uiState.isUpdating,
                 onRepoSelected = { repo -> viewModel.selectRepository(repo) },
-                // 绑定 URL 和 Branch 事件
                 onUrlChanged = { url -> viewModel.updateCurrentUrl(url) },
                 onBranchChanged = { branch -> viewModel.updateCurrentBranch(branch) },
-                // 绑定 Username 和 Password 事件
                 onUsernameChanged = { username -> viewModel.updateCurrentUsername(username) },
                 onPasswordChanged = { password -> viewModel.updateCurrentPassword(password) },
                 onUpdateClicked = { viewModel.startUpdate() }
@@ -132,7 +128,7 @@ fun RepoSelectionCard(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "选择仓库",
+                text = stringResource(R.string.label_select_repo),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -145,10 +141,13 @@ fun RepoSelectionCard(
                 onExpandedChange = { expanded = !expanded }
             ) {
                 TextField(
-                    value = selectedRepo?.name ?: "请选择仓库",
+                    value = selectedRepo?.name ?: stringResource(R.string.text_select_repo_hint),
                     onValueChange = {},
                     readOnly = true,
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    modifier = Modifier.menuAnchor(
+                        MenuAnchorType.PrimaryEditable,
+                        true
+                    ).fillMaxWidth(),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)}
                 )
                 ExposedDropdownMenu(
@@ -156,7 +155,6 @@ fun RepoSelectionCard(
                     onDismissRequest = { expanded = false }
                 ) {
                     val displayRepos = repoList.filter { repo ->
-                        // 检查 BuildConfig.HIDE_CUSTOM_REPOS
                         if (BuildConfig.HIDE_CUSTOM_REPOS) {
                             repo.repoType != RepoType.CUSTOM && repo.repoType != RepoType.PRIVATE_REPO
                         } else {
@@ -177,14 +175,13 @@ fun RepoSelectionCard(
                 }
             }
 
-            // 新增：仓库编辑选项
+            // 仓库编辑选项
             RepoEditOptions(
                 selectedRepo = selectedRepo,
                 currentUrl = currentUrl,
                 currentBranch = currentBranch,
                 onUrlChanged = onUrlChanged,
                 onBranchChanged = onBranchChanged,
-                // 传递凭证状态和事件给 RepoEditOptions
                 currentUsername = currentUsername,
                 currentPassword = currentPassword,
                 onUsernameChanged = onUsernameChanged,
@@ -198,7 +195,13 @@ fun RepoSelectionCard(
                 enabled = !isUpdating,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = if (isUpdating) "更新中..." else "更新")
+                Text(
+                    text = if (isUpdating) {
+                        stringResource(R.string.action_updating)
+                    } else {
+                        stringResource(R.string.action_update)
+                    }
+                )
             }
         }
     }
@@ -229,7 +232,7 @@ fun RepoEditOptions(
         TextField(
             value = currentUrl,
             onValueChange = onUrlChanged,
-            label = { Text("仓库 URL") },
+            label = { Text(stringResource(R.string.label_repo_url)) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -239,7 +242,7 @@ fun RepoEditOptions(
         TextField(
             value = currentBranch,
             onValueChange = onBranchChanged,
-            label = { Text("分支 (Branch)") },
+            label = { Text(stringResource(R.string.label_repo_branch)) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -248,7 +251,7 @@ fun RepoEditOptions(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "私有仓库凭证 (Username/Token)",
+                text = stringResource(R.string.label_private_repo_credentials),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -259,17 +262,15 @@ fun RepoEditOptions(
             TextField(
                 value = currentUsername,
                 onValueChange = onUsernameChanged,
-                label = { Text("用户名或 Token Key") },
+                label = { Text(stringResource(R.string.label_username_or_token_key)) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 密码/Token输入框
-            // 实际应用中建议使用 KeyboardOptions 和 VisualTransformation 隐藏输入内容
             TextField(
                 value = currentPassword,
                 onValueChange = onPasswordChanged,
-                label = { Text("密码或 Token Value") },
+                label = { Text(stringResource(R.string.label_password_or_token_value)) },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -285,14 +286,13 @@ fun LogDisplayCard(logs: String) {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "更新日志",
+                text = stringResource(R.string.title_update_log),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 新增：使用 SelectionContainer 包裹文本以实现选择和复制功能
             SelectionContainer {
                 Surface(
                     modifier = Modifier
@@ -314,26 +314,3 @@ fun LogDisplayCard(logs: String) {
         }
     }
 }
-
-@SuppressLint("ViewModelConstructorInComposable")
-@Preview(showBackground = true)
-@Composable
-fun PreviewUpdateRepoScreen() {
-    MaterialTheme {
-        // 为了预览，需要传递模拟的 ViewModel
-        UpdateRepoScreen(navController = rememberNavController(), viewModel = PreviewUpdateRepoViewModel())
-    }
-}
-
-// 预览专用的 ViewModel
-class PreviewUpdateRepoViewModel : UpdateRepoViewModel(
-    gitRepository = object : com.xingheyuzhuan.shiguangschedule.data.repository.GitRepository {
-        override suspend fun updateRepository(repoInfo: RepositoryInfo, onLog: (String) -> Unit) {}
-    },
-    // 使用包含可编辑仓库的 JSON 来更好地预览编辑框
-    jsonInputStream = """[
-        {"name":"官方仓库","type":"OFFICIAL","url":"official_url","branch":"main","editable":false},
-        {"name":"自定义仓库","type":"CUSTOM","url":"custom_url","branch":"dev","editable":true},
-        {"name":"私有仓库","type":"PRIVATE_REPO","url":"private_url","branch":"main","editable":true}
-    ]""".byteInputStream()
-)

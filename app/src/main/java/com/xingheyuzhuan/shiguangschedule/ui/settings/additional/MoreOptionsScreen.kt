@@ -41,12 +41,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.Screen
 
 private const val GITHUB_REPO_URL = "https://github.com/XingHeYuZhuan/shiguangschedule"
@@ -73,7 +75,7 @@ private fun SettingListItem(
         trailingContent = {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "跳转"
+                contentDescription = stringResource(R.string.a11y_navigate)
             )
         }
     )
@@ -88,6 +90,10 @@ private fun SettingListItem(
 }
 @Composable
 private fun AcknowledgmentContent(modifier: Modifier = Modifier) {
+    val a11yAcknowledgment = stringResource(R.string.a11y_acknowledgment)
+    val labelSpecialThanks = stringResource(R.string.label_special_thanks)
+    val textAcknowledgmentBody = stringResource(R.string.text_acknowledgment_body)
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -100,13 +106,13 @@ private fun AcknowledgmentContent(modifier: Modifier = Modifier) {
         ) {
             Icon(
                 imageVector = Icons.Default.Favorite,
-                contentDescription = "鸣谢",
+                contentDescription = a11yAcknowledgment,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "特别鸣谢",
+                text = labelSpecialThanks,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -114,7 +120,7 @@ private fun AcknowledgmentContent(modifier: Modifier = Modifier) {
         }
 
         Text(
-            text = "衷心感谢为本应用软件和教务适配代码仓库的开发和维护做出贡献的每一位开发者。您的奉献是应用持续更新和完善的动力！",
+            text = textAcknowledgmentBody,
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -131,6 +137,9 @@ fun MoreOptionsScreen(navController: NavController) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
+    val defaultAppName = stringResource(R.string.default_app_name)
+    val a11yAppIcon = stringResource(R.string.a11y_app_icon)
+
     val (appName, appVersion, appIconId) = remember(context) {
         val info = try {
             context.packageManager.getPackageInfo(context.packageName, 0)
@@ -138,7 +147,7 @@ fun MoreOptionsScreen(navController: NavController) {
             null
         }
 
-        val name = info?.applicationInfo?.loadLabel(context.packageManager)?.toString() ?: "未知应用"
+        val name = info?.applicationInfo?.loadLabel(context.packageManager)?.toString() ?: defaultAppName
         val version = info?.versionName ?: "N/A"
         val iconId = info?.applicationInfo?.icon ?: 0
 
@@ -148,12 +157,14 @@ fun MoreOptionsScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "更多") },
+                title = {
+                    Text(text = stringResource(R.string.title_more_options))
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = stringResource(R.string.a11y_back)
                         )
                     }
                 }
@@ -173,17 +184,17 @@ fun MoreOptionsScreen(navController: NavController) {
                     .padding(vertical = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 1. 应用图标 (使用 Coil)
+                // 1. 应用图标
                 if (appIconId != 0) {
                     AsyncImage(
                         model = appIconId,
-                        contentDescription = "应用图标",
+                        contentDescription = a11yAppIcon,
                         modifier = Modifier.size(128.dp),
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Default.Info,
-                        contentDescription = "默认图标",
+                        contentDescription = a11yAppIcon,
                         modifier = Modifier.size(128.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -203,11 +214,11 @@ fun MoreOptionsScreen(navController: NavController) {
 
                 // 3. 版本号
                 Text(
-                    text = "版本: $appVersion",
+                    text = stringResource(R.string.label_version_prefix, appVersion),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(24.dp)) // 增加头部与卡片之间的间距
+                Spacer(modifier = Modifier.height(24.dp))
             }
             Card(
                 modifier = Modifier
@@ -222,7 +233,7 @@ fun MoreOptionsScreen(navController: NavController) {
                     // GitHub 仓库
                     SettingListItem(
                         icon = Icons.Default.Code,
-                        title = "本项目GitHub仓库",
+                        title = stringResource(R.string.item_github_repo),
                         onClick = {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_REPO_URL))
                             context.startActivity(intent)
@@ -232,7 +243,7 @@ fun MoreOptionsScreen(navController: NavController) {
                     // 查看开源许可证
                     SettingListItem(
                         icon = Icons.AutoMirrored.Filled.ListAlt,
-                        title = "查看开源许可证",
+                        title = stringResource(R.string.item_open_source_licenses),
                         onClick = {
                             navController.navigate(Screen.OpenSourceLicenses.route)
                         }
@@ -241,14 +252,14 @@ fun MoreOptionsScreen(navController: NavController) {
                     // 更新教务适配仓库
                     SettingListItem(
                         icon = Icons.Default.Update,
-                        title = "更新教务适配仓库",
+                        title = stringResource(R.string.item_update_repo),
                         onClick = {
                             navController.navigate(Screen.UpdateRepo.route)
                         }
                     )
                     SettingListItem(
                         icon = Icons.Default.PeopleAlt,
-                        title = "贡献者列表",
+                        title = stringResource(R.string.item_contributors),
                         onClick = {
                             navController.navigate(Screen.ContributionList.route)
                         },

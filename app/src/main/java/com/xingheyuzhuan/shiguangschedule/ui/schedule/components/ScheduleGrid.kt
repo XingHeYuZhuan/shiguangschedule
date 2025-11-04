@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
+import androidx.compose.ui.res.stringArrayResource
+import com.xingheyuzhuan.shiguangschedule.R
 
 /**
  * 渲染课表网格的 UI 组件。
@@ -52,7 +54,7 @@ fun ScheduleGrid(
     onGridCellClicked: (Int, Int) -> Unit,
     onTimeSlotClicked: () -> Unit
 ) {
-    val weekDays = listOf("一", "二", "三", "四", "五", "六", "日")
+    val weekDays = stringArrayResource(R.array.week_days_full_names).toList()
 
     val reorderedWeekDays = rearrangeDays(weekDays, firstDayOfWeek)
 
@@ -211,7 +213,7 @@ private fun DayHeader(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "周$day",
+                    text = day,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor,
@@ -357,7 +359,6 @@ private fun ClickableGrid(
                             .weight(1f)
                             .fillMaxHeight()
                             .clickable {
-                                // 【修改 5.2：传入 0-based 索引】
                                 onGridCellClicked(displayIndex, section)
                             }
                     )

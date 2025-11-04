@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.MyApplication
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetCourse
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetAppSettings
 import com.xingheyuzhuan.shiguangschedule.data.repository.WidgetRepository
@@ -22,6 +23,11 @@ class TodayScheduleViewModel(
 
     private val widgetSettingsFlow: Flow<WidgetAppSettings?> = widgetRepository.getAppSettingsFlow()
 
+    // 辅助函数，用于在 ViewModel 中获取字符串资源并格式化
+    private fun getString(resId: Int, vararg formatArgs: Any): String {
+        return getApplication<Application>().getString(resId, *formatArgs)
+    }
+
     val semesterStatus: StateFlow<String> = widgetSettingsFlow.map { widgetSettings ->
 
         val semesterStartDateStr = widgetSettings?.semesterStartDate
@@ -36,12 +42,12 @@ class TodayScheduleViewModel(
 
         when {
             // 未设置开学日期
-            semesterStartDate == null -> "请设置开学日期"
+            semesterStartDate == null -> getString(R.string.title_semester_not_set)
 
-            // 假期中（开学日期在未来）
+            // 假期中
             today.isBefore(semesterStartDate) -> {
                 val daysUntilStart = ChronoUnit.DAYS.between(today, semesterStartDate)
-                "假期中（距离开学还有${daysUntilStart}天）"
+                getString(R.string.title_vacation_until_start, daysUntilStart.toString())
             }
 
             // 学期内/学期结束
@@ -50,18 +56,19 @@ class TodayScheduleViewModel(
                 val currentWeek = ChronoUnit.WEEKS.between(semesterStartDate, today).toInt() + 1
 
                 if (currentWeek in 1..totalWeeks) {
-                    "第${currentWeek}周"
+                    getString(R.string.title_current_week, currentWeek.toString())
                 } else if (currentWeek > totalWeeks) {
-                    "学期结束（已超${currentWeek - totalWeeks}周）"
+                    val weeksOver = currentWeek - totalWeeks
+                    getString(R.string.status_semester_ended, weeksOver.toString())
                 } else {
-                    "周次计算错误"
+                    getString(R.string.status_week_calc_error)
                 }
             }
         }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = "加载中..."
+        initialValue = getString(R.string.title_loading)
     )
 
     // 对外暴露的今日课程状态

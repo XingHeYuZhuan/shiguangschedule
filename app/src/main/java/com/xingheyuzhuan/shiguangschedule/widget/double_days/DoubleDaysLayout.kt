@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
@@ -47,6 +48,7 @@ private const val MAX_LAYOUT_SCALE = 4.0f
  */
 @Composable
 fun DoubleDaysLayout(coursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, Int?>>) {
+    val context = LocalContext.current
     val currentSize = LocalSize.current
 
     val widthScale = currentSize.width.value / BASE_WIDGET_WIDTH
@@ -101,7 +103,11 @@ fun DoubleDaysLayout(coursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, Int
                 Spacer(modifier = GlanceModifier.defaultWeight())
 
                 ScaledBitmapText(
-                    text = if (currentWeek != null) "第${currentWeek}周" else "假期中",
+                    text = if (currentWeek != null) {
+                        context.getString(R.string.status_current_week_format, currentWeek)
+                    } else {
+                        context.getString(R.string.title_vacation)
+                    },
                     fontSizeDp = (13f * finalScale).dp,
                     color = WidgetColors.textHint,
                     modifier = GlanceModifier.wrapContentSize()
@@ -117,13 +123,13 @@ fun DoubleDaysLayout(coursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, Int
                     verticalAlignment = Alignment.Vertical.CenterVertically
                 ) {
                     ScaledBitmapText(
-                        text = "假期中",
+                        text = context.getString(R.string.title_vacation),
                         fontSizeDp = (14f * finalScale).dp,
                         color = WidgetColors.textPrimary,
                         modifier = GlanceModifier.fillMaxWidth()
                     )
                     ScaledBitmapText(
-                        text = "期待新学期",
+                        text = context.getString(R.string.widget_vacation_expecting),
                         fontSizeDp = (12f * finalScale).dp,
                         color = WidgetColors.textSecondary,
                         modifier = GlanceModifier.fillMaxWidth()
@@ -178,9 +184,11 @@ fun DayScheduleColumn(
     totalRemainingCount: Int,
     scale: Float
 ) {
+    val context = LocalContext.current
     val dateString = date.format(DateTimeFormatter.ofPattern("M.d", Locale.getDefault()))
     val dayOfWeekString = date.dayOfWeek.getDisplayName(LocalDateTextStyle.SHORT, Locale.getDefault())
-    val dayTitle = if (date == LocalDate.now()) "今天" else "明天"
+
+    val dayTitleResId = if (date == LocalDate.now()) R.string.widget_title_today else R.string.widget_title_tomorrow
 
     Column(
         modifier = modifier.fillMaxHeight().padding(horizontal = (4 * scale).dp),
@@ -191,14 +199,19 @@ fun DayScheduleColumn(
             verticalAlignment = Alignment.Top
         ) {
             ScaledBitmapText(
-                text = dayTitle,
+                text = context.getString(dayTitleResId),
                 fontSizeDp = (13f * scale).dp,
                 color = WidgetColors.textPrimary,
                 modifier = GlanceModifier.wrapContentWidth().width((30 * scale).dp)
             )
             Spacer(modifier = GlanceModifier.width((4 * scale).dp))
+
             ScaledBitmapText(
-                text = "$dateString $dayOfWeekString",
+                text = context.getString(
+                    R.string.widget_date_dayofweek_format,
+                    dateString,
+                    dayOfWeekString
+                ),
                 fontSizeDp = (13f * scale).dp,
                 color = WidgetColors.textHint,
                 modifier = GlanceModifier.defaultWeight()
@@ -213,7 +226,7 @@ fun DayScheduleColumn(
                 contentAlignment = Alignment.Center
             ) {
                 ScaledBitmapText(
-                    text = "无课程",
+                    text = context.getString(R.string.text_no_course),
                     fontSizeDp = (11f * scale).dp,
                     color = WidgetColors.textSecondary,
                     modifier = GlanceModifier.fillMaxWidth()
@@ -258,13 +271,25 @@ fun DayScheduleColumn(
                 modifier = GlanceModifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally
             ) {
-                val textContent = when {
-                    courses.isEmpty() && totalRemainingCount > 0 && date == LocalDate.now() -> "今日课程已结束"
-                    totalRemainingCount > 0 -> "$dayTitle 还有${totalRemainingCount}节课"
-                    else -> "无课程"
-                }
-
                 Spacer(modifier = GlanceModifier.height((4 * scale).dp))
+
+                val textContent = when {
+                    courses.isEmpty() && totalRemainingCount > 0 && date == LocalDate.now() ->
+                        // "今日课程已结束"
+                        context.getString(R.string.widget_today_courses_finished)
+                    totalRemainingCount > 0 -> {
+                        // "今日还有 X 节课" 或 "明天有 X 节课"
+                        val formatResId = if (date == LocalDate.now()) {
+                            R.string.widget_remaining_courses_format_today
+                        } else {
+                            R.string.widget_remaining_courses_format_tomorrow
+                        }
+                        context.getString(formatResId, totalRemainingCount)
+                    }
+                    else ->
+                        // "无课程"
+                        context.getString(R.string.text_no_course)
+                }
 
                 ScaledBitmapText(
                     text = textContent,
@@ -348,7 +373,7 @@ fun CourseItemDoubleDayContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ScaledBitmapText(
-                    text = "${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}",
+                    text = "${course.startTime.take(5)}-${course.endTime.take(5)}",
                     fontSizeDp = (10f * scale).dp,
                     color = WidgetColors.textTertiary,
                     modifier = GlanceModifier.wrapContentSize()

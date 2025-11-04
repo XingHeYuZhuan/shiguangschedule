@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
+import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
@@ -23,6 +24,7 @@ import androidx.glance.layout.padding
 import androidx.glance.layout.width
 import androidx.glance.layout.wrapContentSize
 import com.xingheyuzhuan.shiguangschedule.MainActivity
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetCourse
 import com.xingheyuzhuan.shiguangschedule.widget.ScaledBitmapText
 import com.xingheyuzhuan.shiguangschedule.widget.WidgetColors
@@ -39,6 +41,7 @@ private const val MAX_LAYOUT_SCALE = 3.0f
 
 @Composable
 fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
+    val context = LocalContext.current
     // 1. 计算缩放因子
     val currentSize = LocalSize.current
     val widthScale = currentSize.width.value / BASE_WIDGET_WIDTH
@@ -95,7 +98,7 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                 // 右侧
                 if (currentWeek != null) {
                     ScaledBitmapText(
-                        text = "第${currentWeek}周",
+                        text = context.getString(R.string.status_current_week_format, currentWeek),
                         fontSizeDp = (10f * finalScale).dp,
                         color = WidgetColors.textHint,
                         modifier = GlanceModifier.wrapContentSize()
@@ -127,7 +130,7 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                             verticalAlignment = Alignment.Vertical.CenterVertically
                         ) {
                             ScaledBitmapText(
-                                text = "课程已结束",
+                                text = context.getString(R.string.widget_today_courses_finished),
                                 fontSizeDp = (12f * finalScale).dp,
                                 color = WidgetColors.textPrimary,
                                 modifier = GlanceModifier.wrapContentSize()
@@ -184,7 +187,7 @@ fun TinyNextCourseContent(nextCourse: WidgetCourse, scale: Float) {
             ) {
                 // 时间段
                 ScaledBitmapText(
-                    text = "${nextCourse.startTime.substring(0, 5)}-${nextCourse.endTime.substring(0, 5)}",
+                    text = "${nextCourse.startTime.take(5)}-${nextCourse.endTime.take(5)}",
                     fontSizeDp = (11f * scale).dp,
                     color = WidgetColors.textTertiary,
                     modifier = GlanceModifier.wrapContentSize()
@@ -211,6 +214,7 @@ fun TinyNextCourseContent(nextCourse: WidgetCourse, scale: Float) {
  */
 @Composable
 fun TinyVacationLayout(scale: Float) {
+    val context = LocalContext.current
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -218,8 +222,9 @@ fun TinyVacationLayout(scale: Float) {
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
+        // ✅ 替换硬编码 "假期中"
         ScaledBitmapText(
-            text = "假期中",
+            text = context.getString(R.string.status_on_vacation),
             fontSizeDp = (12f * scale).dp,
             color = WidgetColors.textPrimary,
             modifier = GlanceModifier.wrapContentSize()
@@ -232,13 +237,14 @@ fun TinyVacationLayout(scale: Float) {
  */
 @Composable
 fun TinyNoCoursesLayout(scale: Float) {
+    val context = LocalContext.current
     Column(
         modifier = GlanceModifier.fillMaxSize(),
         verticalAlignment = Alignment.Vertical.CenterVertically,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally
     ) {
         ScaledBitmapText(
-            text = "今天没课",
+            text = context.getString(R.string.text_no_courses_today),
             fontSizeDp = (12f * scale).dp,
             color = WidgetColors.textPrimary,
             modifier = GlanceModifier.wrapContentSize()

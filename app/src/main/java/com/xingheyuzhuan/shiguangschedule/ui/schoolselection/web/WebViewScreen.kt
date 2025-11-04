@@ -59,12 +59,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.xingheyuzhuan.shiguangschedule.BuildConfig
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseConversionRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.TimeSlotRepository
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
@@ -91,7 +93,14 @@ fun WebViewScreen(
     var currentUrl by remember { mutableStateOf(initialUrl ?: "about:blank") }
     var inputUrl by remember { mutableStateOf(initialUrl ?: "https://") }
     var loadingProgress by remember { mutableFloatStateOf(0f) }
-    var pageTitle by remember { mutableStateOf(if (currentUrl.isBlank() || currentUrl == "about:blank") "输入网址" else "加载中...") }
+    var pageTitle by remember {
+        mutableStateOf(
+            if (currentUrl.isBlank() || currentUrl == "about:blank")
+                context.getString(R.string.title_enter_url)
+            else
+                context.getString(R.string.title_loading)
+        )
+    }
     var expanded by remember { mutableStateOf(false) }
     var isDesktopMode by remember { mutableStateOf(false) }
 
@@ -108,7 +117,6 @@ fun WebViewScreen(
 
     // --- 浏览器配置和 Agent ---
     val defaultUserAgent = remember { WebSettings.getDefaultUserAgent(context) }
-    val desktopUserAgent = DESKTOP_USER_AGENT
 
     // --- Channel 和 Bridge 实例化 ---
     val uiEventChannel = remember { Channel<WebUiEvent>(Channel.BUFFERED) }
@@ -147,7 +155,7 @@ fun WebViewScreen(
                 courseConversionRepository = courseConversionRepository,
                 timeSlotRepository = timeSlotRepository,
                 onTaskCompleted = {
-                    Toast.makeText(context, "导入脚本执行完毕，返回课表页面。", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.toast_import_script_finished), Toast.LENGTH_LONG).show()
                     navController.popBackStack(
                         route = courseScheduleRoute,
                         inclusive = false
@@ -166,17 +174,17 @@ fun WebViewScreen(
                 override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
                     (context as? Activity)?.let { activity ->
                         MaterialAlertDialogBuilder(activity)
-                            .setMessage("SSL证书验证失败，这可能意味着连接不安全。是否继续浏览？")
-                            .setPositiveButton("继续浏览") { _, _ ->
+                            .setMessage(context.getString(R.string.dialog_ssl_error_message))
+                            .setPositiveButton(context.getString(R.string.action_continue_browsing)) { _, _ ->
                                 handler.proceed()
                             }
-                            .setNegativeButton("取消") { _, _ ->
+                            .setNegativeButton(context.getString(R.string.action_cancel)) { _, _ ->
                                 handler.cancel()
                             }
                             .setCancelable(false)
                             .show()
                     } ?: run {
-                        Toast.makeText(context, "SSL证书验证失败，已取消连接。", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, context.getString(R.string.toast_ssl_error_cancelled), Toast.LENGTH_LONG).show()
                         handler.cancel()
                     }
                 }
@@ -191,7 +199,7 @@ fun WebViewScreen(
                         val description = error.description.toString()
                         val context = view.context
                         view.post {
-                            Toast.makeText(context, "网页加载错误: $description", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, context.getString(R.string.toast_web_load_error_format, description), Toast.LENGTH_LONG).show()
                         }
                     }
                 }
@@ -248,7 +256,7 @@ fun WebViewScreen(
         keyboardController?.hide()
         currentUrl = query
         isEditingUrl = false
-        pageTitle = "加载中..."
+        pageTitle = context.getString(R.string.title_loading)
     }
 
     Scaffold(
@@ -266,7 +274,7 @@ fun WebViewScreen(
                     }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = if (isEditingUrl) "取消编辑" else "返回"
+                            contentDescription = stringResource(if (isEditingUrl) R.string.a11y_cancel_editing else R.string.a11y_back)
                         )
                     }
                 },
@@ -276,7 +284,7 @@ fun WebViewScreen(
                         OutlinedTextField(
                             value = inputUrl,
                             onValueChange = { newQuery: String -> inputUrl = newQuery },
-                            placeholder = { Text("输入网址 (https://...)") },
+                            placeholder = { Text(stringResource(R.string.placeholder_enter_url_full)) },
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
                             keyboardActions = KeyboardActions(
                                 onGo = { ->
@@ -310,7 +318,7 @@ fun WebViewScreen(
                                 },
                                 enabled = inputUrl.isNotBlank() && inputUrl != "https://"
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "加载")
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(R.string.a11y_load))
                             }
                         } else if (enableAddressBarToggleButton || startedEmpty) {
                             IconButton(onClick = {
@@ -318,12 +326,12 @@ fun WebViewScreen(
                                 inputUrl = webView.url?.takeIf { it.isNotBlank() && it != "about:blank" } ?: "https://"
                                 keyboardController?.show()
                             }) {
-                                Icon(Icons.Default.Link, contentDescription = "输入网址")
+                                Icon(Icons.Default.Link, contentDescription = stringResource(R.string.a11y_enter_url))
                             }
                         }
 
                         IconButton(onClick = { expanded = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "更多选项")
+                            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.a11y_more_options))
                         }
 
                         DropdownMenu(
@@ -332,30 +340,36 @@ fun WebViewScreen(
                         ) {
                             // 刷新
                             DropdownMenuItem(
-                                text = { Text("刷新") },
+                                text = { Text(stringResource(R.string.action_refresh)) },
                                 onClick = { webView.reload(); expanded = false },
-                                leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = "刷新") }
+                                leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.a11y_refresh)) }
                             )
 
                             // 电脑/手机模式切换
+                            val switchTextId = if (isDesktopMode) R.string.action_switch_to_phone_mode else R.string.action_switch_to_desktop_mode
+                            val switchIcon = if (isDesktopMode) Icons.Filled.PhoneAndroid else Icons.Filled.DesktopWindows
+
                             DropdownMenuItem(
-                                text = { Text(if (isDesktopMode) "切换到手机模式" else "切换到电脑模式") },
+                                text = { Text(stringResource(switchTextId)) },
                                 onClick = {
                                     isDesktopMode = !isDesktopMode
                                     webView.settings.userAgentString = if (isDesktopMode) DESKTOP_USER_AGENT else defaultUserAgent
                                     webView.settings.loadWithOverviewMode = !isDesktopMode
-                                    Toast.makeText(context, if (isDesktopMode) "已切换到电脑模式" else "已切换到手机模式", Toast.LENGTH_SHORT).show()
+
+                                    val toastText = context.getString(if (isDesktopMode) R.string.toast_switched_to_desktop else R.string.toast_switched_to_phone)
+                                    Toast.makeText(context, toastText, Toast.LENGTH_SHORT).show()
+
                                     if (currentUrl.isNotBlank() && currentUrl != "about:blank") {
                                         webView.loadUrl(currentUrl)
                                     } else {
-                                        Toast.makeText(context, "URL为空，请先输入网址。", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, context.getString(R.string.toast_url_empty_enter_first), Toast.LENGTH_LONG).show()
                                     }
                                     expanded = false
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        if (isDesktopMode) Icons.Filled.PhoneAndroid else Icons.Filled.DesktopWindows,
-                                        contentDescription = if (isDesktopMode) "切换到手机模式" else "切换到电脑模式"
+                                        switchIcon,
+                                        contentDescription = stringResource(switchTextId)
                                     )
                                 }
                             )
@@ -365,10 +379,16 @@ fun WebViewScreen(
                                     onClick = {
                                         isDevToolsEnabled = !isDevToolsEnabled
                                         WebView.setWebContentsDebuggingEnabled(isDevToolsEnabled)
-                                        Toast.makeText(context, "DevTools 网页调试已 ${if (isDevToolsEnabled) "启用" else "关闭"}。", Toast.LENGTH_SHORT).show()
+
+                                        val statusTextId = if (isDevToolsEnabled) R.string.status_enabled else R.string.status_disabled
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.toast_devtools_enabled_format, context.getString(statusTextId)),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     },
-                                    leadingIcon = { Icon(Icons.Filled.Build, contentDescription = "DevTools") },
-                                    text = { Text("DevTools 网页调试") },
+                                    leadingIcon = { Icon(Icons.Filled.Build, contentDescription = stringResource(R.string.a11y_devtools)) },
+                                    text = { Text(stringResource(R.string.item_devtools_debug)) },
                                     trailingIcon = { Switch(checked = isDevToolsEnabled, onCheckedChange = null) }
                                 )
                             }
@@ -387,7 +407,7 @@ fun WebViewScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "请登录教务系统后切换到有课表显示的页面再点击导入课程，点击右上角的更多查看其他选项",
+                            text = stringResource(R.string.text_import_guide),
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -400,12 +420,12 @@ fun WebViewScreen(
                                 assetJsPath?.let {
                                     showCourseTablePicker = true
                                 } ?: run {
-                                    Toast.makeText(context, "该适配器没有脚本，请手动导入。", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, context.getString(R.string.toast_no_script_manual_import), Toast.LENGTH_LONG).show()
                                 }
                             },
                             enabled = assetJsPath != null
                         ) {
-                            Text("执行导入")
+                            Text(stringResource(R.string.action_execute_import))
                         }
                     }
                 }
@@ -437,7 +457,7 @@ fun WebViewScreen(
 
             if (showCourseTablePicker) {
                 CourseTablePickerDialog(
-                    title = "选择一个课表以导入课程",
+                    title = stringResource(R.string.dialog_title_select_table_for_import),
                     onDismissRequest = { showCourseTablePicker = false },
                     onTableSelected = { selectedTable ->
                         showCourseTablePicker = false
@@ -450,15 +470,15 @@ fun WebViewScreen(
                                 if (jsFile.exists()) {
                                     val jsCode = jsFile.readText()
                                     webView.evaluateJavascript(jsCode, null)
-                                    Toast.makeText(context, "正在执行导入脚本...", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.toast_executing_import_script), Toast.LENGTH_SHORT).show()
                                 } else {
-                                    Toast.makeText(context, "导入脚本文件不存在: ${jsFile.path}", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, context.getString(R.string.toast_import_script_not_found, jsFile.path), Toast.LENGTH_LONG).show()
                                 }
                             } catch (e: Exception) {
-                                Toast.makeText(context, "加载导入脚本失败: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, context.getString(R.string.toast_load_import_script_failed, e.localizedMessage), Toast.LENGTH_LONG).show()
                             }
                         } ?: run {
-                            Toast.makeText(context, "该适配器没有导入脚本", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, context.getString(R.string.toast_no_import_script), Toast.LENGTH_LONG).show()
                         }
                     }
                 )

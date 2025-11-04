@@ -16,12 +16,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.Screen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -50,6 +52,9 @@ fun SchoolSelectionListScreen(
 
     var isSearchActive by remember { mutableStateOf(false) }
 
+    val titleText = stringResource(R.string.title_select_school)
+    val placeholderText = stringResource(R.string.search_hint_school)
+
 
     Scaffold(
         topBar = {
@@ -64,8 +69,8 @@ fun SchoolSelectionListScreen(
                         viewModel.updateSearchQuery("")
                     }
                 },
-                placeholderText = "搜索学校名称或首字母",
-                titleText = "选择学校",
+                placeholderText = placeholderText,
+                titleText = titleText,
                 filteredSchools = filteredSchools,
             ) { selectedSchool ->
                 navController.navigate(
@@ -153,7 +158,7 @@ private fun SchoolContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "当前类别暂无适配，请选择其他类别或检查数据源。",
+                    text = stringResource(R.string.text_no_adapter_for_category),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -215,13 +220,14 @@ fun CategoryTabs(
     onCategorySelected: (AdapterCategory) -> Unit,
     displayCategories: List<AdapterCategory>
 ) {
-    // 类别到中文名称的映射
+    // 类别到中文名称的映射，替换为使用 stringResource
+    @Composable
     fun getDisplayName(category: AdapterCategory): String {
         return when (category) {
-            AdapterCategory.BACHELOR_AND_ASSOCIATE -> "本科/专科"
-            AdapterCategory.POSTGRADUATE -> "研究生"
-            AdapterCategory.GENERAL_TOOL -> "通用工具"
-            else -> "其他"
+            AdapterCategory.BACHELOR_AND_ASSOCIATE -> stringResource(R.string.category_bachelor_associate)
+            AdapterCategory.POSTGRADUATE -> stringResource(R.string.category_postgraduate)
+            AdapterCategory.GENERAL_TOOL -> stringResource(R.string.category_general_tool)
+            else -> stringResource(R.string.category_other)
         }
     }
 
@@ -278,7 +284,7 @@ fun SearchBarWithTitle(
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = stringResource(R.string.a11y_back)
                         )
                     }
                 },
@@ -287,14 +293,14 @@ fun SearchBarWithTitle(
                         IconButton(onClick = { onSearchActiveChange(true) }) {
                             Icon(
                                 imageVector = Icons.Default.Search,
-                                contentDescription = "搜索"
+                                contentDescription = stringResource(R.string.a11y_search)
                             )
                         }
                     } else if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { onQueryChange("") }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "清除搜索"
+                                contentDescription = stringResource(R.string.a11y_clear_search)
                             )
                         }
                     }
@@ -310,7 +316,7 @@ fun SearchBarWithTitle(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("没有找到匹配的学校", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.text_no_school_found), style = MaterialTheme.typography.bodyLarge)
             }
         } else {
             LazyColumn(
@@ -347,7 +353,7 @@ fun SchoolItem(school: School, onClick: (School) -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Default.School,
-                contentDescription = "学校图标",
+                contentDescription = stringResource(R.string.a11y_school_icon),
                 modifier = Modifier
                     .size(24.dp)
                     .padding(end = 8.dp),

@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
@@ -41,6 +42,7 @@ private const val MAX_LAYOUT_SCALE = 4.0f
 
 @Composable
 fun CompactLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, Int?>>) {
+    val context = LocalContext.current
     // 1. 计算缩放因子
     val currentSize = LocalSize.current
     val widthScale = currentSize.width.value / BASE_WIDGET_WIDTH
@@ -72,9 +74,8 @@ fun CompactLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>
 
     val displayDate = if (isShowingTomorrow) LocalDate.now().plusDays(1) else LocalDate.now()
 
-    // 确定顶部的文本
     val topText = if (isShowingTomorrow) {
-        "明日课程预告"
+        context.getString(R.string.widget_tomorrow_course_preview)
     } else {
         displayDate.dayOfWeek.getDisplayName(LocalDateTextStyle.SHORT, Locale.getDefault())
     }
@@ -114,7 +115,7 @@ fun CompactLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>
         Column(
             modifier = GlanceModifier.fillMaxSize()
         ) {
-            // 顶部区域 (保持不变)
+            // 顶部区域
             Row(
                 modifier = GlanceModifier
                     .fillMaxWidth()
@@ -143,7 +144,7 @@ fun CompactLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>
 
                 if (currentWeek != null) {
                     ScaledBitmapText(
-                        text = "第${currentWeek}周",
+                        text = context.getString(R.string.status_current_week_format, currentWeek),
                         fontSizeDp = (12f * finalScale).dp,
                         color = WidgetColors.textHint,
                         modifier = GlanceModifier.wrapContentSize()
@@ -155,9 +156,9 @@ fun CompactLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>
                 VacationLayout(scale = finalScale)
             } else if (shouldShowCenterStatusText) {
                 val statusText = if (displayCourses.isEmpty()) {
-                    if (isShowingTomorrow) "明天没有课程" else "今天没有课程"
+                    if (isShowingTomorrow) context.getString(R.string.widget_no_courses_tomorrow) else context.getString(R.string.text_no_courses_today) // <--- 【修改】替换 stringResource
                 } else {
-                    "今日课程已结束"
+                    context.getString(R.string.widget_today_courses_finished)
                 }
                 NoCoursesLayout(scale = finalScale, statusText = statusText)
             } else {
@@ -202,9 +203,11 @@ fun CompactLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>
 
                 // 底部剩余课程数提示
                 if (displayRemainingCount > 0) {
-                    val baseText = if (isShowingTomorrow) "明天" else "今日"
-                    val actionText = if (isShowingTomorrow) "" else "还"
-                    val totalText = "节课"
+                    val formatResId = if (isShowingTomorrow) {
+                        R.string.widget_remaining_courses_format_tomorrow
+                    } else {
+                        R.string.widget_remaining_courses_format_today
+                    }
 
                     Row(
                         modifier = GlanceModifier
@@ -214,7 +217,7 @@ fun CompactLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>
                         horizontalAlignment = Alignment.Horizontal.CenterHorizontally
                     ) {
                         ScaledBitmapText(
-                            text = "$baseText${actionText}有${displayRemainingCount}${totalText}",
+                            text = context.getString(formatResId, displayRemainingCount),
                             fontSizeDp = (10f * finalScale).dp,
                             color = WidgetColors.textHint,
                             modifier = GlanceModifier.wrapContentSize()
@@ -252,6 +255,7 @@ fun NoCoursesLayout(scale: Float, statusText: String) {
  */
 @Composable
 fun VacationLayout(scale: Float) {
+    val context = LocalContext.current
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -260,13 +264,13 @@ fun VacationLayout(scale: Float) {
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
         ScaledBitmapText(
-            text = "假期中",
+            text = context.getString(R.string.title_vacation),
             fontSizeDp = (12f * scale).dp,
             color = WidgetColors.textPrimary,
             modifier = GlanceModifier.wrapContentSize()
         )
         ScaledBitmapText(
-            text = "期待新学期",
+            text = context.getString(R.string.widget_vacation_expecting),
             fontSizeDp = (10f * scale).dp,
             color = WidgetColors.textSecondary,
             modifier = GlanceModifier.wrapContentSize()
@@ -338,7 +342,7 @@ fun CourseItemCompact(course: WidgetCourse, index: Int, scale: Float) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ScaledBitmapText(
-                    text = "${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}",
+                    text = "${course.startTime.take(5)}-${course.endTime.take(5)}",
                     fontSizeDp = (10f * scale).dp,
                     color = WidgetColors.textTertiary,
                     modifier = GlanceModifier.wrapContentSize()

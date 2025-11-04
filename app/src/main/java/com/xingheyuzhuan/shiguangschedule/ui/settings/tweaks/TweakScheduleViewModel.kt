@@ -1,11 +1,12 @@
-// TweakScheduleViewModel.kt
 package com.xingheyuzhuan.shiguangschedule.ui.settings.tweaks
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.xingheyuzhuan.shiguangschedule.MyApplication
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
@@ -46,7 +47,8 @@ data class TweakScheduleUiState(
  */
 class TweakScheduleViewModel(
     private val appSettingsRepository: AppSettingsRepository,
-    private val courseTableRepository: CourseTableRepository
+    private val courseTableRepository: CourseTableRepository,
+    private val application: Application
 ) : ViewModel() {
 
     // UI 暴露的状态
@@ -66,7 +68,6 @@ class TweakScheduleViewModel(
     }
 
     /**
-     * 【新的核心函数】
      * 显式地加载所有依赖数据（配置、课表、课程）并一次性更新 UI 状态。
      */
     private suspend fun refreshUiState(isInitialLoad: Boolean = false) {
@@ -91,7 +92,7 @@ class TweakScheduleViewModel(
         val currentFromDate = _fromDate.value
         val currentToDate = _toDate.value
 
-        // 4. 【修改】获取 CourseTableConfig
+        // 4.获取 CourseTableConfig
         val currentTableId = selectedTable?.id
         val courseConfig = if (currentTableId != null) {
             appSettingsRepository.getCourseConfigOnce(currentTableId)
@@ -168,15 +169,19 @@ class TweakScheduleViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
             _uiState.value.let { state ->
+                val resources = application.resources
+
                 if (state.selectedCourseTable == null || state.semesterStartDate == null) {
-                    _uiState.update { it.copy(isLoading = false, errorMessage = "请先选择课表并设置学期开始日期") }
+                    val errorMsg = resources.getString(R.string.error_tweak_no_table_or_semester)
+                    _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
                     return@launch
                 }
 
                 val semesterStartDate: LocalDate = state.semesterStartDate
 
                 if (state.fromDate == state.toDate) {
-                    _uiState.update { it.copy(isLoading = false, errorMessage = "被调整日期和调整到日期不能是同一天") }
+                    val errorMsg = resources.getString(R.string.error_tweak_same_day)
+                    _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
                     return@launch
                 }
 
@@ -201,16 +206,18 @@ class TweakScheduleViewModel(
 
                     refreshUiState()
 
-                    // 3. 更新成功消息
+                    val successMsg = resources.getString(R.string.toast_tweak_success)
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            successMessage = "调课成功！"
+                            successMessage = successMsg
                         )
                     }
 
                 } catch (e: Exception) {
-                    _uiState.update { it.copy(isLoading = false, errorMessage = "调课失败：${e.message}") }
+                    val errorMsgFormat = resources.getString(R.string.error_tweak_failed)
+                    val errorMsg = String.format(errorMsgFormat, e.message)
+                    _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
                 }
             }
         }
@@ -228,6 +235,7 @@ class TweakScheduleViewModel(
 
 /**
  * TweakScheduleViewModel 的工厂类，用于依赖注入。
+ * 更新工厂以传递 Application 实例。
  */
 object TweakScheduleViewModelFactory : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
@@ -238,7 +246,8 @@ object TweakScheduleViewModelFactory : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             return TweakScheduleViewModel(
                 appSettingsRepository = myApplication.appSettingsRepository,
-                courseTableRepository = myApplication.courseTableRepository
+                courseTableRepository = myApplication.courseTableRepository,
+                application = application
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

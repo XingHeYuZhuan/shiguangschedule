@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.compose.foundation.clickable
@@ -47,25 +48,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.Screen
+import com.xingheyuzhuan.shiguangschedule.tool.shareFile
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
 import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import com.xingheyuzhuan.shiguangschedule.tool.shareFile
-import androidx.core.content.FileProvider
-import java.io.File
-import java.io.FileOutputStream
-import android.provider.OpenableColumns
 
 // 自定义文件选择器 Contract，用于导入，只允许选择 JSON 文件
 class OpenJsonDocumentContract : ActivityResultContract<Unit, Uri?>() {
@@ -111,19 +113,10 @@ class CreateIcsDocumentContract : ActivityResultContract<String, Uri?>() {
     }
 }
 
-
-// 封装提醒时间值，并提供自定义的字符串显示。
-data class AlarmOption(val value: Int?) {
-    override fun toString(): String {
-        return when (value) {
-            null -> "不提醒"
-            0 -> "准时提醒"
-            else -> value.toString()
-        }
-    }
+private data class LocalizedAlarmOption(val value: Int?, private val displayString: String) {
+    override fun toString(): String = displayString
 }
 
-// 专用于日历提醒时间选择的滚动选择器。
 @Composable
 fun AlarmMinutesPicker(
     modifier: Modifier = Modifier,
@@ -131,21 +124,25 @@ fun AlarmMinutesPicker(
     onValueSelected: (Int?) -> Unit,
     itemHeight: Dp
 ) {
-    val options = remember {
+    val alarmOptionNone = stringResource(R.string.alarm_option_none)
+    val alarmOptionOnTime = stringResource(R.string.alarm_option_on_time)
+
+    val localizedOptions = remember(alarmOptionNone, alarmOptionOnTime) {
         buildList {
-            add(AlarmOption(null))
-            for (i in 0..60) {
-                add(AlarmOption(i))
+            add(LocalizedAlarmOption(null, alarmOptionNone))
+            add(LocalizedAlarmOption(0, alarmOptionOnTime))
+            for (i in 1..60) {
+                add(LocalizedAlarmOption(i, i.toString()))
             }
         }
     }
 
-    val initialOption = remember(initialValue) {
-        options.find { it.value == initialValue } ?: AlarmOption(15)
+    val initialOption = remember(initialValue, localizedOptions) {
+        localizedOptions.find { it.value == initialValue } ?: localizedOptions.find { it.value == 15 }!!
     }
 
     NativeNumberPicker(
-        values = options,
+        values = localizedOptions,
         selectedValue = initialOption,
         onValueChange = { selectedOption ->
             onValueSelected(selectedOption.value)
@@ -164,6 +161,12 @@ fun IcsExportDialog(
     var alarmMinutes by remember { mutableStateOf<Int?>(15) }
     var showTablePicker by remember { mutableStateOf(false) }
 
+    val dialogTitleIcsExport = stringResource(R.string.dialog_title_ics_export_settings)
+    val labelSelectAlarm = stringResource(R.string.label_select_alarm_time)
+    val actionCancel = stringResource(R.string.action_cancel)
+    val actionNextStep = stringResource(R.string.action_next_step)
+    val dialogTitleSelectExportTable = stringResource(R.string.dialog_title_select_export_table)
+
     // 当 showTablePicker 为 false 时，显示第一个对话框（提醒时间选择）
     if (!showTablePicker) {
         Dialog(onDismissRequest = onDismissRequest) {
@@ -173,12 +176,12 @@ fun IcsExportDialog(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "日历导出设置",
+                        text = dialogTitleIcsExport,
                         style = MaterialTheme.typography.titleLarge
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Text("选择提醒时间：", fontSize = 16.sp)
+                    Text(labelSelectAlarm, fontSize = 16.sp)
                     Spacer(modifier = Modifier.height(8.dp))
                     AlarmMinutesPicker(
                         modifier = Modifier.width(150.dp),
@@ -192,11 +195,11 @@ fun IcsExportDialog(
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = onDismissRequest) {
-                            Text("取消")
+                            Text(actionCancel)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(onClick = { showTablePicker = true }) {
-                            Text("下一步")
+                            Text(actionNextStep)
                         }
                     }
                 }
@@ -207,7 +210,7 @@ fun IcsExportDialog(
     // 当 showTablePicker 为 true 时，显示第二个对话框（课表选择）
     if (showTablePicker) {
         CourseTablePickerDialog(
-            title = "选择要导出的课表",
+            title = dialogTitleSelectExportTable,
             // 这里我们希望关闭课表选择器时，整个导出流程都结束
             onDismissRequest = onDismissRequest,
             onTableSelected = { selectedTable ->
@@ -230,6 +233,17 @@ fun CourseTableConversionScreen(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    val snackbarCannotOpenFile = stringResource(R.string.snackbar_cannot_open_file)
+    val snackbarFileSelectionCanceled = stringResource(R.string.snackbar_file_selection_canceled)
+    val snackbarCannotSaveFile = stringResource(R.string.snackbar_cannot_save_file)
+    val snackbarFileSaveCanceled = stringResource(R.string.snackbar_file_save_canceled)
+    val snackbarFileCopyFailedForShare = stringResource(R.string.snackbar_file_copy_failed_for_share)
+
+    val dialogTitleFileSaved = stringResource(R.string.dialog_title_file_saved)
+    val dialogTextFileSavedSharePrompt = stringResource(R.string.dialog_text_file_saved_share_prompt)
+    val actionShare = stringResource(R.string.action_share)
+    val actionCancel = stringResource(R.string.action_cancel)
+
     var pendingImportTableId by remember { mutableStateOf<String?>(null) }
     var pendingExportJsonContent by remember { mutableStateOf<String?>(null) }
     var pendingExportIcsTableId by remember { mutableStateOf<String?>(null) }
@@ -250,10 +264,10 @@ fun CourseTableConversionScreen(
             if (inputStream != null) {
                 viewModel.handleFileImport(tableId, inputStream)
             } else {
-                coroutineScope.launch { snackbarHostState.showSnackbar("无法打开文件。") }
+                coroutineScope.launch { snackbarHostState.showSnackbar(snackbarCannotOpenFile) }
             }
         } else if (uri == null) {
-            coroutineScope.launch { snackbarHostState.showSnackbar("文件选择已取消。") }
+            coroutineScope.launch { snackbarHostState.showSnackbar(snackbarFileSelectionCanceled) }
         }
         pendingImportTableId = null
     }
@@ -276,10 +290,10 @@ fun CourseTableConversionScreen(
                 // 在文件保存成功后，设置状态以显示分享弹窗。我们保存公共Uri和我们想要的原始文件名。
                 showShareDialog = Triple(uri, "application/json", filename)
             } else {
-                coroutineScope.launch { snackbarHostState.showSnackbar("无法保存文件。") }
+                coroutineScope.launch { snackbarHostState.showSnackbar(snackbarCannotSaveFile) }
             }
         } else if (uri == null) {
-            coroutineScope.launch { snackbarHostState.showSnackbar("文件保存已取消。") }
+            coroutineScope.launch { snackbarHostState.showSnackbar(snackbarFileSaveCanceled) }
         }
         pendingExportJsonContent = null
     }
@@ -300,10 +314,10 @@ fun CourseTableConversionScreen(
                 // 在文件保存成功后，设置状态以显示分享弹窗。我们保存公共Uri和我们想要的原始文件名。
                 showShareDialog = Triple(uri, "text/calendar", filename)
             } else {
-                coroutineScope.launch { snackbarHostState.showSnackbar("无法保存文件。") }
+                coroutineScope.launch { snackbarHostState.showSnackbar(snackbarCannotSaveFile) }
             }
         } else if (uri == null) {
-            coroutineScope.launch { snackbarHostState.showSnackbar("文件保存已取消。") }
+            coroutineScope.launch { snackbarHostState.showSnackbar(snackbarFileSaveCanceled) }
         }
         pendingExportIcsTableId = null
         pendingAlarmMinutes = null
@@ -343,12 +357,12 @@ fun CourseTableConversionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("课表导入/导出") },
+                title = { Text(stringResource(R.string.title_conversion)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = stringResource(R.string.a11y_back)
                         )
                     }
                 }
@@ -364,7 +378,7 @@ fun CourseTableConversionScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(Modifier.height(16.dp))
-            Text("文件导入/导出", style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth())
+            Text(stringResource(R.string.section_file_conversion), style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
             Card(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -382,17 +396,17 @@ fun CourseTableConversionScreen(
                         Column(
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("课程文件导入", style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(R.string.item_import_course_file), style = MaterialTheme.typography.bodyLarge)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "导入json文件",
+                                text = stringResource(R.string.desc_import_json),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Icon(
                             imageVector = Icons.Filled.ChevronRight,
-                            contentDescription = "导入",
+                            contentDescription = stringResource(R.string.a11y_import),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -408,17 +422,17 @@ fun CourseTableConversionScreen(
                         Column(
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("课程文件导出", style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(R.string.item_export_course_file), style = MaterialTheme.typography.bodyLarge)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "导出携带时间段配置的json课程文件",
+                                text = stringResource(R.string.desc_export_json_with_config),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Icon(
                             imageVector = Icons.Filled.ChevronRight,
-                            contentDescription = "导出",
+                            contentDescription = stringResource(R.string.a11y_export),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -434,10 +448,10 @@ fun CourseTableConversionScreen(
                         Column(
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("日历文件导出", style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(R.string.item_export_ics_file), style = MaterialTheme.typography.bodyLarge)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "导出ics文件,点击生成指定提醒时间参数的文件",
+                                text = stringResource(R.string.desc_export_ics_with_alarm),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -450,7 +464,7 @@ fun CourseTableConversionScreen(
                         } else {
                             Icon(
                                 imageVector = Icons.Filled.ChevronRight,
-                                contentDescription = "导出",
+                                contentDescription = stringResource(R.string.a11y_export),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -458,7 +472,7 @@ fun CourseTableConversionScreen(
                 }
             }
             Spacer(Modifier.height(16.dp))
-            Text("教务导入", style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth())
+            Text(stringResource(R.string.section_school_import), style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
             Card(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -477,19 +491,19 @@ fun CourseTableConversionScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(
-                                text = "教务系统导入",
+                                text = stringResource(R.string.item_school_system_import),
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "从教务系统导入课程，方便快捷",
+                                text = stringResource(R.string.desc_school_import_quick),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Icon(
                             imageVector = Icons.Filled.ChevronRight,
-                            contentDescription = "详情",
+                            contentDescription = stringResource(R.string.a11y_details),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -500,7 +514,7 @@ fun CourseTableConversionScreen(
 
     if (uiState.showImportTableDialog) {
         CourseTablePickerDialog(
-            title = "选择要导入的目标课表",
+            title = stringResource(R.string.dialog_title_select_import_table),
             onDismissRequest = { viewModel.dismissDialog() },
             onTableSelected = { selectedTable ->
                 viewModel.onImportTableSelected(selectedTable.id)
@@ -512,7 +526,7 @@ fun CourseTableConversionScreen(
         when (uiState.exportType) {
             ExportType.JSON -> {
                 CourseTablePickerDialog(
-                    title = "选择要导出的课表",
+                    title = stringResource(R.string.dialog_title_select_export_table),
                     onDismissRequest = { viewModel.dismissDialog() },
                     onTableSelected = { selectedTable ->
                         viewModel.onExportTableSelected(selectedTable.id, null)
@@ -535,8 +549,8 @@ fun CourseTableConversionScreen(
     if (showShareDialog != null) {
         AlertDialog(
             onDismissRequest = { showShareDialog = null },
-            title = { Text("文件已保存") },
-            text = { Text("文件已成功导出到您的下载目录，您想分享它吗？") },
+            title = { Text(dialogTitleFileSaved) },
+            text = { Text(dialogTextFileSavedSharePrompt) },
             confirmButton = {
                 TextButton(onClick = {
                     val (publicUri, mimeType, defaultFilename) = showShareDialog!!
@@ -573,7 +587,7 @@ fun CourseTableConversionScreen(
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
-                        coroutineScope.launch { snackbarHostState.showSnackbar("文件复制失败，无法分享。") }
+                        coroutineScope.launch { snackbarHostState.showSnackbar(snackbarFileCopyFailedForShare) }
                         showShareDialog = null
                         return@TextButton
                     }
@@ -590,14 +604,14 @@ fun CourseTableConversionScreen(
 
                     showShareDialog = null
                 }) {
-                    Text("分享")
+                    Text(actionShare)
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showShareDialog = null
                 }) {
-                    Text("取消")
+                    Text(actionCancel)
                 }
             }
         )

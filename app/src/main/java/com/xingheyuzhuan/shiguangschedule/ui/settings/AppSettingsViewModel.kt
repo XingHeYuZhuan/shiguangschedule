@@ -20,11 +20,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-/**
- * 最终修正版 ViewModel。
- * 唯一的职责：在 UI 和 Repository 之间传递数据和事件。
- * 不包含任何计算或业务逻辑，所有逻辑都封装在 AppSettingsRepository 中。
- */
+
 class SettingsViewModel(
     private val appSettingsRepository: AppSettingsRepository
 ) : ViewModel() {
@@ -135,7 +131,7 @@ class SettingsViewModel(
     }
 
     /**
-     * 【新增】UI 事件：更新每周起始日。
+     * UI 事件：更新每周起始日。
      * 逻辑：现在更新的是 CourseTableConfig 中的 firstDayOfWeek 字段。
      */
     fun onFirstDayOfWeekSelected(dayOfWeekInt: Int) {
