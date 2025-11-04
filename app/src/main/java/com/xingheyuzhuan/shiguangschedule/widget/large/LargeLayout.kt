@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
@@ -47,7 +48,8 @@ private const val MAX_SLOTS = 6
  * 大尺寸课程小组件的布局：展示今天的 6 节课 (2列 x 3行)，支持自动切换到明日预告。
  */
 @Composable
-fun LargeLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, Int?>>) { // 1. 更改函数签名
+fun LargeLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, Int?>>) {
+    val context = LocalContext.current
     val currentSize = LocalSize.current
 
     val widthScale = currentSize.width.value / BASE_WIDGET_WIDTH
@@ -94,7 +96,7 @@ fun LargeLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, 
     }
 
     val topText = if (isShowingTomorrow) {
-        "明日课程预告"
+        context.getString(R.string.widget_tomorrow_course_preview)
     } else {
         displayDate.format(DateTimeFormatter.ofPattern("M.d", Locale.getDefault()))
     }
@@ -127,11 +129,11 @@ fun LargeLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, 
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
-                val fullLeftText = if (isShowingTomorrow) {
-                    "$topText $subTopText"
-                } else {
-                    "$topText $subTopText"
-                }
+                val fullLeftText = context.getString(
+                    R.string.widget_date_dayofweek_format,
+                    topText,
+                    subTopText
+                )
 
                 ScaledBitmapText(
                     text = fullLeftText,
@@ -144,7 +146,7 @@ fun LargeLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, 
                 // 右侧周数
                 if (currentWeek != null) {
                     ScaledBitmapText(
-                        text = "第${currentWeek}周",
+                        text = context.getString(R.string.status_current_week_format, currentWeek),
                         fontSizeDp = (12f * finalScale).dp,
                         color = WidgetColors.textHint
                     )
@@ -153,19 +155,23 @@ fun LargeLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, 
 
             // 主要内容区域：占据所有剩余空间
             if (isVacation) {
-                CenteredMessage(text = "假期中", scale = finalScale)
-            } else if (shouldShowCenterStatusText) { // 使用新的状态判断
+                CenteredMessage(text = context.getString(R.string.title_vacation), scale = finalScale)
+            } else if (shouldShowCenterStatusText) {
                 val statusText = if (displayCourses.isEmpty()) {
-                    if (isShowingTomorrow) "明天没有课程" else "今天没有课程"
+                    if (isShowingTomorrow) {
+                        context.getString(R.string.widget_no_courses_tomorrow)
+                    } else {
+                        context.getString(R.string.text_no_courses_today)
+                    }
                 } else {
-                    "今日课程已结束"
+                    context.getString(R.string.widget_today_courses_finished)
                 }
                 CenteredMessage(text = statusText, scale = finalScale)
             } else {
                 CourseGridLarge(
                     courseSlots = courseSlots,
-                    remainingCoursesCount = displayRemainingCount, // 使用新的剩余课程数
-                    isShowingTomorrow = isShowingTomorrow, // 传递状态
+                    remainingCoursesCount = displayRemainingCount,
+                    isShowingTomorrow = isShowingTomorrow,
                     scale = finalScale
                 )
             }
@@ -198,9 +204,10 @@ private fun CenteredMessage(text: String, scale: Float) {
 private fun CourseGridLarge(
     courseSlots: List<WidgetCourse?>,
     remainingCoursesCount: Int,
-    isShowingTomorrow: Boolean, // 2. 新增参数
+    isShowingTomorrow: Boolean,
     scale: Float
 ) {
+    val context = LocalContext.current
     Column(
         // 主 Column 占据父 Column 的所有剩余空间
         modifier = GlanceModifier.fillMaxWidth().fillMaxHeight(),
@@ -250,9 +257,12 @@ private fun CourseGridLarge(
 
         // 3. 底部提示区域：统一风格
         if (remainingCoursesCount > 0) {
-            val baseText = if (isShowingTomorrow) "明天" else "今日"
-            val actionText = if (isShowingTomorrow) "" else "还"
-            val totalText = "节课"
+
+            val formatResId = if (isShowingTomorrow) {
+                R.string.widget_remaining_courses_format_tomorrow
+            } else {
+                R.string.widget_remaining_courses_format_today
+            }
 
             Row(
                 modifier = GlanceModifier
@@ -262,7 +272,7 @@ private fun CourseGridLarge(
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally
             ) {
                 ScaledBitmapText(
-                    text = "$baseText${actionText}有${remainingCoursesCount}${totalText}",
+                    text = context.getString(formatResId, remainingCoursesCount),
                     fontSizeDp = (11f * scale).dp,
                     color = WidgetColors.textHint
                 )
@@ -368,7 +378,7 @@ fun CourseItemLargeGrid(course: WidgetCourse, index: Int, scale: Float) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ScaledBitmapText(
-                    text = "${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}",
+                    text = "${course.startTime.take(5)}-${course.endTime.take(5)}",
                     fontSizeDp = (11f * scale).dp,
                     color = WidgetColors.textTertiary
                 )

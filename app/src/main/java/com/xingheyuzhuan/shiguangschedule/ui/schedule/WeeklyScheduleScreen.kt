@@ -42,6 +42,8 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
+import androidx.compose.ui.res.stringResource
+import com.xingheyuzhuan.shiguangschedule.R
 
 // Pager 的总页数和初始中心页码作为常量，便于管理
 private const val TOTAL_PAGER_WEEKS = 1000
@@ -67,6 +69,13 @@ fun WeeklyScheduleScreen(
     val currentRoute = navBackStackEntry?.destination?.route
 
     var selectedWeek by remember { mutableStateOf<Int?>(null) } // Pager 偏移量 (0 = 当前周)
+
+    val titleSemesterNotSet = stringResource(R.string.title_semester_not_set)
+    val titleVacationUntilStart = stringResource(R.string.title_vacation_until_start)
+    val titleCurrentWeek = stringResource(R.string.title_current_week)
+    val titleVacation = stringResource(R.string.title_vacation)
+    val titleLoading = stringResource(R.string.title_loading)
+    val snackbarAddCourseAfterStart = stringResource(R.string.snackbar_add_course_after_start)
 
     // 计算初始页码，基于 ViewModel 的当前周数 (currentWeekNumber)
     val today = LocalDate.now()
@@ -113,7 +122,7 @@ fun WeeklyScheduleScreen(
     }
 
     // 根据 ViewModel 数据和 selectedWeek 动态计算当前周的课程
-    val currentCourses by remember(uiState.allCourses, uiState.timeSlots, selectedWeek, uiState.currentWeekNumber) { // 【修改 3.1：添加依赖 currentWeekNumber】
+    val currentCourses by remember(uiState.allCourses, uiState.timeSlots, selectedWeek, uiState.currentWeekNumber) {
         derivedStateOf {
             val currentWeek = uiState.currentWeekNumber // 使用 ViewModel 计算的当前周数
 
@@ -137,28 +146,28 @@ fun WeeklyScheduleScreen(
         derivedStateOf {
             val today = LocalDate.now()
             val semesterStartDate = uiState.semesterStartDate
-            val currentWeek = uiState.currentWeekNumber // 使用 ViewModel 计算的当前学期周数
+            val currentWeek = uiState.currentWeekNumber
 
             when {
                 // 学期未设置
-                !uiState.isSemesterSet -> "请设置开学日期"
+                !uiState.isSemesterSet -> titleSemesterNotSet
 
                 // 学期已设置，但开学日期在未来
                 semesterStartDate != null && today.isBefore(semesterStartDate) -> {
                     val daysUntilStart = ChronoUnit.DAYS.between(today, semesterStartDate)
-                    "假期中（距离开学还有${daysUntilStart}天）"
+                    String.format(titleVacationUntilStart, daysUntilStart.toString())
                 }
 
                 // 学期已设置，并且在学期内
                 uiState.isSemesterSet && selectedWeek != null && currentWeek != null -> {
                     val targetWeekNumber = currentWeek + selectedWeek!!
                     if (targetWeekNumber in 1..uiState.totalWeeks) {
-                        "第 $targetWeekNumber 周"
+                        String.format(titleCurrentWeek, targetWeekNumber.toString())
                     } else {
-                        "假期中"
+                        titleVacation
                     }
                 }
-                else -> "加载中..."
+                else -> titleLoading
             }
         }
     }
@@ -222,7 +231,8 @@ fun WeeklyScheduleScreen(
                             navController.navigate(Screen.AddEditCourse.createRouteForNewCourse(day, section))
                         } else {
                             viewModel.viewModelScope.launch {
-                                snackbarHostState.showSnackbar("请在开学后添加课程")
+                                // 【✅ 修复 3/3：使用普通变量】
+                                snackbarHostState.showSnackbar(snackbarAddCourseAfterStart)
                             }
                         }
                     }

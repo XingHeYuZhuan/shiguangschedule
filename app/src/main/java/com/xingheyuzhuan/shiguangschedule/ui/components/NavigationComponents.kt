@@ -23,15 +23,17 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.outlined.ViewWeek
+import androidx.compose.ui.res.stringResource
+import com.xingheyuzhuan.shiguangschedule.R
 
 
 @Composable
 fun BottomNavigationBar(navController: NavHostController, currentRoute: String?) {
 
     val navItems = listOf(
-        "今日课表" to Screen.TodaySchedule.route,
-        "课表" to Screen.CourseSchedule.route,
-        "我的" to Screen.Settings.route
+        stringResource(R.string.nav_today_schedule) to Screen.TodaySchedule.route,
+        stringResource(R.string.nav_course_schedule) to Screen.CourseSchedule.route,
+        stringResource(R.string.nav_settings) to Screen.Settings.route
     )
 
     val iconSize = 24.dp

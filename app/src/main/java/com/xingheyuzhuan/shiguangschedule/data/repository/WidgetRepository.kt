@@ -86,11 +86,6 @@ class WidgetRepository(
                 calculateCurrentWeek(startDate, totalWeeks, firstDayOfWeek)
             }
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // 【现代化计算方法：基于 java.time，与主 AppSettingsRepository 保持一致】
-    // ---------------------------------------------------------------------------------------------
-
     /**
      * 根据学期开始日期和总周数，计算当前周数。
      * @param semesterStartDateStr 学期开始日期字符串，格式为 yyyy-MM-dd

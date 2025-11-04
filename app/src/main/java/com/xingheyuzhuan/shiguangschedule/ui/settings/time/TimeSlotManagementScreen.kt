@@ -50,9 +50,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
 import kotlinx.coroutines.launch
@@ -83,6 +85,17 @@ fun TimeSlotManagementScreen(
     var localDefaultClassDuration by remember { mutableStateOf(uiState.defaultClassDuration) }
     var localDefaultBreakDuration by remember { mutableStateOf(uiState.defaultBreakDuration) }
 
+    val titleTimeSlotManagement = stringResource(R.string.title_time_slot_management)
+    val a11yBack = stringResource(R.string.a11y_back)
+    val a11yAddTimeSlot = stringResource(R.string.a11y_add_time_slot)
+    val a11ySaveAllSettings = stringResource(R.string.a11y_save_all_settings)
+    val toastSettingsSaved = stringResource(R.string.toast_settings_saved)
+    val toastSlotRemovedUnsaved = stringResource(R.string.toast_slot_removed_unsaved)
+    val textNoTimeSlotsHint = stringResource(R.string.text_no_time_slots_hint)
+    val toastSlotModifiedUnsaved = stringResource(R.string.toast_slot_modified_unsaved)
+    val toastSlotAddedUnsaved = stringResource(R.string.toast_slot_added_unsaved)
+
+
     LaunchedEffect(uiState) {
         localTimeSlots.clear()
         localTimeSlots.addAll(uiState.timeSlots.sortedBy { it.number })
@@ -98,10 +111,10 @@ fun TimeSlotManagementScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("时间段管理") },
+                title = { Text(titleTimeSlotManagement) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = a11yBack)
                     }
                 },
                 actions = {
@@ -110,7 +123,7 @@ fun TimeSlotManagementScreen(
                         editingIndex = null
                         showEditBottomSheet = true
                     }) {
-                        Icon(Icons.Filled.Add, contentDescription = "添加时间段")
+                        Icon(Icons.Filled.Add, contentDescription = a11yAddTimeSlot)
                     }
                     IconButton(onClick = {
                         coroutineScope.launch {
@@ -123,10 +136,10 @@ fun TimeSlotManagementScreen(
                                 classDuration = localDefaultClassDuration,
                                 breakDuration = localDefaultBreakDuration
                             )
-                            Toast.makeText(context, "所有设置已保存到数据库", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, toastSettingsSaved, Toast.LENGTH_SHORT).show()
                         }
                     }) {
-                        Icon(Icons.Filled.Save, contentDescription = "保存所有设置")
+                        Icon(Icons.Filled.Save, contentDescription = a11ySaveAllSettings)
                     }
                 }
             )
@@ -159,7 +172,7 @@ fun TimeSlotManagementScreen(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("当前没有时间段。点击右上角 '+' 添加。")
+                        Text(textNoTimeSlotsHint)
                     }
                 }
             }
@@ -181,7 +194,7 @@ fun TimeSlotManagementScreen(
                             }
                         localTimeSlots.clear()
                         localTimeSlots.addAll(renumberedList)
-                        Toast.makeText(context, "时间段已从列表移除，请点击保存以更新数据库", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, toastSlotRemovedUnsaved, Toast.LENGTH_SHORT).show()
                     }
                 )
             }
@@ -237,8 +250,10 @@ fun TimeSlotManagementScreen(
                         val newOrUpdatedSlot = TimeSlot(number, startTime, endTime, courseTableId = "")
                         if (isEditing && editingIndex != null) {
                             localTimeSlots[editingIndex!!] = newOrUpdatedSlot
+                            Toast.makeText(context, toastSlotModifiedUnsaved, Toast.LENGTH_SHORT).show()
                         } else {
                             localTimeSlots.add(newOrUpdatedSlot)
+                            Toast.makeText(context, toastSlotAddedUnsaved, Toast.LENGTH_SHORT).show()
                         }
                         val renumberedAndSortedList = localTimeSlots
                             .sortedBy { it.startTime.let { timeStr -> try { LocalTime.parse(timeStr) } catch (e: DateTimeParseException) { LocalTime.MAX } } }
@@ -247,7 +262,6 @@ fun TimeSlotManagementScreen(
                         localTimeSlots.addAll(renumberedAndSortedList)
 
                         showEditBottomSheet = false
-                        Toast.makeText(context, if (isEditing) "时间段已修改，" else "时间段已添加至列表，" + "请点击保存以更新数据库", Toast.LENGTH_SHORT).show()
                     }
                 )
             }
@@ -266,8 +280,14 @@ fun DefaultDurationSettings(
     onBreakDurationChange: (Int) -> Unit
 ) {
     val context = LocalContext.current
+    val titleDefaultDurationSettings = stringResource(R.string.title_default_duration_settings)
+    val labelClassDuration = stringResource(R.string.label_class_duration_minutes)
+    val toastClassDurationPositive = stringResource(R.string.toast_class_duration_positive)
+    val labelBreakDuration = stringResource(R.string.label_break_duration_minutes)
+    val toastBreakDurationNonNegative = stringResource(R.string.toast_break_duration_non_negative)
+
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text("默认时长设置", style = MaterialTheme.typography.titleMedium)
+        Text(titleDefaultDurationSettings, style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
@@ -279,10 +299,10 @@ fun DefaultDurationSettings(
                     } else if (newIntValue != null && newIntValue > 0) {
                         onClassDurationChange(newIntValue)
                     } else if (newIntValue != null){
-                        Toast.makeText(context, "课程时长必须大于0分钟", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, toastClassDurationPositive, Toast.LENGTH_SHORT).show()
                     }
                 },
-                label = { Text("一节课时长 (分钟)") },
+                label = { Text(labelClassDuration) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f)
             )
@@ -296,10 +316,10 @@ fun DefaultDurationSettings(
                     } else if (newIntValue != null && newIntValue >= 0) {
                         onBreakDurationChange(newIntValue)
                     } else if (newIntValue != null) {
-                        Toast.makeText(context, "休息时长不能为负", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, toastBreakDurationNonNegative, Toast.LENGTH_SHORT).show()
                     }
                 },
-                label = { Text("课间休息 (分钟)") },
+                label = { Text(labelBreakDuration) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f)
             )
@@ -317,6 +337,8 @@ fun TimeSlotItem(
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    val timeSlotSectionNumber = stringResource(R.string.time_slot_section_number)
+    val a11yDeleteTimeSlot = stringResource(R.string.a11y_delete_time_slot)
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = onEditClick
@@ -329,7 +351,7 @@ fun TimeSlotItem(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "第 ${timeSlot.number} 节",
+                text = timeSlotSectionNumber.format(timeSlot.number),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
@@ -337,7 +359,7 @@ fun TimeSlotItem(
                 style = MaterialTheme.typography.bodyMedium
             )
             IconButton(onClick = onDeleteClick) {
-                Icon(Icons.Filled.Delete, contentDescription = "删除时间段")
+                Icon(Icons.Filled.Delete, contentDescription = a11yDeleteTimeSlot)
             }
         }
     }
@@ -370,6 +392,17 @@ fun TimeSlotEditContent(
     val hours = (0..23).toList()
     val minutes = (0..59).toList()
 
+    val dialogTitleEdit = stringResource(R.string.dialog_title_edit_time_slot)
+    val dialogTitleAdd = stringResource(R.string.dialog_title_add_time_slot)
+    val labelStart = stringResource(R.string.label_time_picker_start)
+    val labelEnd = stringResource(R.string.label_time_picker_end)
+    val labelHour = stringResource(R.string.label_time_picker_hour)
+    val labelMinute = stringResource(R.string.label_time_picker_minute)
+    val actionCancel = stringResource(R.string.action_cancel)
+    val actionSaveChanges = stringResource(R.string.action_save_changes)
+    val actionAdd = stringResource(R.string.action_add)
+    val toastEndTimeMustBeLater = stringResource(R.string.toast_end_time_must_be_later)
+
     val currentTimeRange by remember {
         derivedStateOf {
             val start = LocalTime.of(startHourState, startMinuteState)
@@ -392,7 +425,7 @@ fun TimeSlotEditContent(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = if (isEditing) "编辑时间段" else "添加新时间段",
+                text = if (isEditing) dialogTitleEdit else dialogTitleAdd,
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -412,8 +445,8 @@ fun TimeSlotEditContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("开始", style = MaterialTheme.typography.bodySmall)
-                Text("小时", style = MaterialTheme.typography.labelSmall)
+                Text(labelStart, style = MaterialTheme.typography.bodySmall)
+                Text(labelHour, style = MaterialTheme.typography.labelSmall)
                 NativeNumberPicker(
                     values = hours,
                     selectedValue = startHourState,
@@ -432,7 +465,7 @@ fun TimeSlotEditContent(
                 modifier = Modifier.weight(1f)
             ) {
                 Text("", style = MaterialTheme.typography.bodySmall)
-                Text("分钟", style = MaterialTheme.typography.labelSmall)
+                Text(labelMinute, style = MaterialTheme.typography.labelSmall)
                 NativeNumberPicker(
                     values = minutes,
                     selectedValue = startMinuteState,
@@ -449,8 +482,8 @@ fun TimeSlotEditContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("结束", style = MaterialTheme.typography.bodySmall)
-                Text("小时", style = MaterialTheme.typography.labelSmall)
+                Text(labelEnd, style = MaterialTheme.typography.bodySmall)
+                Text(labelHour, style = MaterialTheme.typography.labelSmall)
                 NativeNumberPicker(
                     values = hours,
                     selectedValue = endHourState,
@@ -469,7 +502,7 @@ fun TimeSlotEditContent(
                 modifier = Modifier.weight(1f)
             ) {
                 Text("", style = MaterialTheme.typography.bodySmall)
-                Text("分钟", style = MaterialTheme.typography.labelSmall)
+                Text(labelMinute, style = MaterialTheme.typography.labelSmall)
                 NativeNumberPicker(
                     values = minutes,
                     selectedValue = endMinuteState,
@@ -499,7 +532,7 @@ fun TimeSlotEditContent(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("取消")
+                        Text(actionCancel)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(onClick = {
@@ -512,11 +545,11 @@ fun TimeSlotEditContent(
                             onConfirm(initialNumber, startTime, endTime)
                         } else {
                             coroutineScope.launch {
-                                Toast.makeText(context, "结束时间必须晚于开始时间", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, toastEndTimeMustBeLater, Toast.LENGTH_SHORT).show()
                             }
                         }
                     }) {
-                        Text(if (isEditing) "保存更改" else "添加")
+                        Text(if (isEditing) actionSaveChanges else actionAdd)
                     }
                 }
             }

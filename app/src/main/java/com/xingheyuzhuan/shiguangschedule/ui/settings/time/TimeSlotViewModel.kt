@@ -39,7 +39,7 @@ class TimeSlotViewModel(
      * 将时间段列表、默认上课时长和默认下课时长组合成一个单一的 UI 状态流。
      * 这个 StateFlow 会自动收集数据并将其暴露给 UI。
      *
-     * 【重要改动】这里使用 flatMapLatest 来监听 currentCourseTableId 的变化，
+     * 这里使用 flatMapLatest 来监听 currentCourseTableId 的变化，
      * 当它变化时，会自动切换到新的时间段列表流和课表配置流。
      */
     @OptIn(ExperimentalCoroutinesApi::class)

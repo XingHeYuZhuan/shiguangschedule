@@ -11,14 +11,14 @@ import android.media.AudioManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
-import androidx.core.content.getSystemService // 引入 getSystemService 扩展函数
+import androidx.core.content.getSystemService
 import com.xingheyuzhuan.shiguangschedule.MainActivity
-import com.xingheyuzhuan.shiguangschedule.MyApplication // 导入您的 Application 类
+import com.xingheyuzhuan.shiguangschedule.MyApplication
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.widget.updateAllWidgets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first // 导入 flow.first
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class CourseAlarmReceiver : BroadcastReceiver() {
@@ -147,15 +147,15 @@ class CourseAlarmReceiver : BroadcastReceiver() {
     }
 
     private fun showNotification(context: Context, courseId: Int, name: String, position: String) {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = context.getSystemService<NotificationManager>() ?: return
 
         if (notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID) == null) {
             val channel = NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
-                "课程提醒",
+                context.getString(R.string.item_course_reminder),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "上课提醒通知"
+                description = context.getString(R.string.notification_channel_desc_course_alert)
             }
             notificationManager.createNotificationChannel(channel)
         }
@@ -177,7 +177,7 @@ class CourseAlarmReceiver : BroadcastReceiver() {
         val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setLargeIcon(largeIconBitmap)
-            .setContentTitle("上课提醒")
+            .setContentTitle(context.getString(R.string.notification_title_course_alert))
             .setContentText("$name - $position")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)

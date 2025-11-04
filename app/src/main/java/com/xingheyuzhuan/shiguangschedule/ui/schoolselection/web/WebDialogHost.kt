@@ -1,4 +1,4 @@
-// com/xingheyuzhuan/shiguangschedule/ui.schoolselection.web/WebDialogHost.kt
+// com/xingheyuzhuan/shiguangschedule.ui.schoolselection.web/WebDialogHost.kt
 package com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web
 
 import android.webkit.WebView
@@ -22,6 +22,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.xingheyuzhuan.shiguangschedule.R
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -75,9 +77,7 @@ fun WebDialogHost(
     }
 }
 
-// ===============================================
-// 具体的弹窗 Composable
-// ===============================================
+
 
 /** 显示 Alert/Confirm 弹窗。 */
 @Composable
@@ -90,7 +90,7 @@ private fun AlertHost(data: AlertDialogData, onConfirm: () -> Unit, onDismiss: (
             Button(onClick = onConfirm) { Text(data.confirmText) }
         },
         dismissButton = {
-            Button(onClick = onDismiss) { Text("取消") }
+            Button(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
     )
 }
@@ -147,10 +147,10 @@ private fun PromptHost(
                     // 发送输入给 Bridge，请求验证
                     onRequestValidation(inputText)
                 }
-            ) { Text("确定") }
+            ) { Text(stringResource(R.string.action_confirm)) }
         },
         dismissButton = {
-            Button(onClick = onCancel) { Text("取消") }
+            Button(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
         }
     )
 }
@@ -185,10 +185,10 @@ private fun SingleSelectionHost(data: SingleSelectionDialogData, onResult: (Int?
             Button(
                 onClick = { onResult(selectedIndex) },
                 enabled = selectedIndex != -1
-            ) { Text("确定") }
+            ) { Text(stringResource(R.string.action_confirm)) }
         },
         dismissButton = {
-            Button(onClick = { onResult(null) }) { Text("取消") }
+            Button(onClick = { onResult(null) }) { Text(stringResource(R.string.action_cancel)) }
         }
     )
 }

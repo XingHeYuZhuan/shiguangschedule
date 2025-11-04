@@ -72,9 +72,8 @@ class WeeklyScheduleViewModel(
     private val courseTableConfigFlow: Flow<CourseTableConfig?> =
         appSettingsFlow.flatMapLatest { settings ->
             settings.currentCourseTableId?.let { tableId ->
-                // 【核心修正：调用 appSettingsRepository 的方法】
                 appSettingsRepository.getCourseTableConfigFlow(tableId)
-            } ?: flowOf(null) // 如果没有当前课表ID，则返回空配置
+            } ?: flowOf(null)
         }
 
     // 3. 订阅当前课表的时间段 (依赖 AppSettings)
@@ -143,10 +142,6 @@ class WeeklyScheduleViewModel(
         }
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // 【周数计算辅助函数 - 保持不变】
-    // ---------------------------------------------------------------------------------------------
-
     private fun getStartDayOfWeek(date: LocalDate, firstDayOfWeekInt: Int): LocalDate {
         val firstDayOfWeek = DayOfWeek.of(firstDayOfWeekInt)
         return date.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
@@ -170,7 +165,7 @@ class WeeklyScheduleViewModel(
 }
 
 /**
- * 合并课程块，处理连续课程和冲突课程。（保持不变）
+ * 合并课程块，处理连续课程和冲突课程。
  */
 fun mergeCourses(
     courses: List<CourseWithWeeks>,

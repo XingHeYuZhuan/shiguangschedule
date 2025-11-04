@@ -122,7 +122,7 @@ class AddEditCourseViewModel(
                         weeks = weeks,
                         timeSlots = timeSlots,
                         currentCourseTableId = appSettings.currentCourseTableId,
-                        semesterTotalWeeks = totalWeeks // 【修改：使用 totalWeeks 代替 appSettings.semesterTotalWeeks】
+                        semesterTotalWeeks = totalWeeks
                     )
                 }
             }.collect()
@@ -162,7 +162,7 @@ class AddEditCourseViewModel(
             )
             if (courseToSave != null) {
                 courseTableRepository.upsertCourse(courseToSave, state.weeks.toList())
-                _uiEvent.send(UiEvent.SaveSuccess) // 发送保存成功事件
+                _uiEvent.send(UiEvent.SaveSuccess)
             }
         }
     }
@@ -172,7 +172,7 @@ class AddEditCourseViewModel(
         viewModelScope.launch {
             uiState.value.course?.let { course ->
                 courseTableRepository.deleteCourse(course)
-                _uiEvent.send(UiEvent.DeleteSuccess) // 发送删除成功事件
+                _uiEvent.send(UiEvent.DeleteSuccess)
             }
         }
     }

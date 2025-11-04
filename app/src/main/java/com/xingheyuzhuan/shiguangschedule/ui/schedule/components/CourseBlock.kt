@@ -12,14 +12,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridDefaults.getDarkerColor
 
 /**
  * 渲染单个课程块的 UI 组件。
@@ -69,7 +70,7 @@ fun CourseBlock(
                     )
                 }
                 Text(
-                    text = "（冲突）",
+                    text = stringResource(R.string.label_conflict),
                     fontSize = 10.sp,
                     color = textColor,
                     fontWeight = FontWeight.Bold,

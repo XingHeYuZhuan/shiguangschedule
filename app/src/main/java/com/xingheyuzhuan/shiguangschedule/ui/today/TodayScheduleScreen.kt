@@ -25,6 +25,9 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.xingheyuzhuan.shiguangschedule.R
+import java.time.format.FormatStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,7 +48,7 @@ fun TodayScheduleScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "今日课表") },
+                title = { Text(text = stringResource(R.string.title_today_schedule)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -64,8 +67,9 @@ fun TodayScheduleScreen(
         ) {
             val today = LocalDate.now()
             val todayDateString = remember(today) {
-                today.format(DateTimeFormatter.ofPattern("yyyy年M月d日", Locale.getDefault()))
+                today.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))
             }
+
             val todayDayOfWeekString = remember(today) {
                 today.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
             }
@@ -90,7 +94,7 @@ fun TodayScheduleScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "今天没有课程",
+                        text = stringResource(R.string.text_no_courses_today),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

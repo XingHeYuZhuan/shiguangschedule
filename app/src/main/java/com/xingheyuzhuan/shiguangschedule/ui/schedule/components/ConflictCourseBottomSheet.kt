@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridDefaults.getDarkerColor
+import androidx.compose.ui.res.stringResource
+import com.xingheyuzhuan.shiguangschedule.R
 
 /**
  * 冲突课程列表底部动作条。
@@ -43,7 +45,7 @@ fun ConflictCourseBottomSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "课程冲突",
+                text = stringResource(R.string.title_course_conflict),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(16.dp),
                 color = Color(0xFFFF6F00) // 冲突标题颜色
@@ -88,19 +90,33 @@ fun ConflictCourseBottomSheet(
                             Spacer(Modifier.height(8.dp))
                             // 详细信息
                             Text(
-                                text = "时间: 第${course.startSection}-${course.endSection}节 ($startSlot-$endSlot)",
+                                text = stringResource(
+                                    R.string.course_time_description,
+                                    course.startSection, // 对应 %1$s (起始节次)
+                                    course.endSection,   // 对应 %2$s (结束节次)
+                                    startSlot,           // 对应 %3$s (起始时间)
+                                    endSlot              // 对应 %4$s (结束时间)
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = textColor // 应用新的文本颜色
+                                color = textColor
                             )
+                            // 详细信息 - 地点
                             Text(
-                                text = "地点: ${course.position}",
+                                text = stringResource(
+                                    R.string.course_position_prefix,
+                                    course.position
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = textColor // 应用新的文本颜色
+                                color = textColor
                             )
+                            // 详细信息 - 老师
                             Text(
-                                text = "老师: ${course.teacher}",
+                                text = stringResource(
+                                    R.string.course_teacher_prefix,
+                                    course.teacher
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = textColor // 应用新的文本颜色
+                                color = textColor
                             )
                         }
                     }
