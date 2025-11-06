@@ -1,5 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule.widget.large
 
+import android.graphics.Paint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.dp
@@ -24,10 +25,11 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
+import androidx.glance.layout.wrapContentSize
 import com.xingheyuzhuan.shiguangschedule.MainActivity
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetCourse
-import com.xingheyuzhuan.shiguangschedule.widget.ScaledBitmapText
+import com.xingheyuzhuan.shiguangschedule.widget.EllipsizedBitmapText
 import com.xingheyuzhuan.shiguangschedule.widget.WidgetColors
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
@@ -128,6 +130,7 @@ fun LargeLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, 
                     .padding(horizontal = (8 * finalScale).dp, vertical = (6 * finalScale).dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val safeTextMaxWidth = (150 * finalScale).dp
 
                 val fullLeftText = context.getString(
                     R.string.widget_date_dayofweek_format,
@@ -135,20 +138,24 @@ fun LargeLayout(multiDayCoursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, 
                     subTopText
                 )
 
-                ScaledBitmapText(
+                EllipsizedBitmapText(
                     text = fullLeftText,
                     fontSizeDp = (12f * finalScale).dp,
-                    color = WidgetColors.textHint
+                    color = WidgetColors.textHint,
+                    maxWidthDp = safeTextMaxWidth,
+                    modifier = GlanceModifier.wrapContentSize()
                 )
 
                 Spacer(modifier = GlanceModifier.defaultWeight())
 
                 // 右侧周数
                 if (currentWeek != null) {
-                    ScaledBitmapText(
+                    EllipsizedBitmapText(
                         text = context.getString(R.string.status_current_week_format, currentWeek),
                         fontSizeDp = (12f * finalScale).dp,
-                        color = WidgetColors.textHint
+                        color = WidgetColors.textHint,
+                        maxWidthDp = safeTextMaxWidth,
+                        modifier = GlanceModifier.wrapContentSize()
                     )
                 }
             }
@@ -189,10 +196,12 @@ private fun CenteredMessage(text: String, scale: Float) {
         verticalAlignment = Alignment.Vertical.CenterVertically,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally
     ) {
-        ScaledBitmapText(
+        EllipsizedBitmapText(
             text = text,
             fontSizeDp = (14f * scale).dp,
-            color = WidgetColors.textPrimary
+            color = WidgetColors.textPrimary,
+            maxWidthDp = (300 * scale).dp,
+            modifier = GlanceModifier.wrapContentSize()
         )
     }
 }
@@ -264,6 +273,8 @@ private fun CourseGridLarge(
                 R.string.widget_remaining_courses_format_today
             }
 
+            val safeMaxWidth = (200 * scale).dp
+
             Row(
                 modifier = GlanceModifier
                     .fillMaxWidth()
@@ -271,10 +282,12 @@ private fun CourseGridLarge(
                     .padding(top = (4 * scale).dp, bottom = (6 * scale).dp),
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally
             ) {
-                ScaledBitmapText(
+                EllipsizedBitmapText(
                     text = context.getString(formatResId, remainingCoursesCount),
                     fontSizeDp = (11f * scale).dp,
-                    color = WidgetColors.textHint
+                    color = WidgetColors.textHint,
+                    maxWidthDp = safeMaxWidth,
+                    modifier = GlanceModifier.wrapContentSize()
                 )
             }
         }
@@ -282,7 +295,7 @@ private fun CourseGridLarge(
 }
 
 /**
- * 网格行间分割线
+ * 网格行间分割线 (无需改动)
  */
 @Composable
 private fun LargeRowDivider(scale: Float) {
@@ -331,6 +344,11 @@ private fun CourseGridSlotLarge(
  */
 @Composable
 fun CourseItemLargeGrid(course: WidgetCourse, index: Int, scale: Float) {
+    val totalWidgetWidthValue = LocalSize.current.width.value
+    val singleColumnAvailableWidth = (totalWidgetWidthValue - (8 * scale) * 2) / 2f
+    val calculatedWidthValue = singleColumnAvailableWidth - (6 * scale) * 2 - (4 * scale) - (8 * scale)
+    val calculatedMaxWidth = if (calculatedWidthValue > 1f) calculatedWidthValue.dp else 1.dp
+
     Row(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -351,23 +369,27 @@ fun CourseItemLargeGrid(course: WidgetCourse, index: Int, scale: Float) {
 
         // 右侧课程内容
         Column(
-            modifier = GlanceModifier.defaultWeight(),
+            modifier = GlanceModifier.defaultWeight(), // 占据剩余空间
             horizontalAlignment = Alignment.Horizontal.Start
         ) {
             // 课程名称
-            ScaledBitmapText(
+            EllipsizedBitmapText(
                 text = course.name,
                 fontSizeDp = (13f * scale).dp,
                 color = WidgetColors.textPrimary,
+                maxWidthDp = calculatedMaxWidth,
+                modifier = GlanceModifier.fillMaxWidth()
             )
             Spacer(modifier = GlanceModifier.height((3 * scale).dp))
 
             // 教师信息
             if (course.teacher.isNotBlank()) {
-                ScaledBitmapText(
+                EllipsizedBitmapText(
                     text = course.teacher,
                     fontSizeDp = (12f * scale).dp,
                     color = WidgetColors.textSecondary,
+                    maxWidthDp = calculatedMaxWidth,
+                    modifier = GlanceModifier.fillMaxWidth()
                 )
                 Spacer(modifier = GlanceModifier.height((3 * scale).dp))
             }
@@ -377,17 +399,26 @@ fun CourseItemLargeGrid(course: WidgetCourse, index: Int, scale: Float) {
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ScaledBitmapText(
+                val safeTimeMaxWidth = (100 * scale).dp
+
+                EllipsizedBitmapText( // 替换
                     text = "${course.startTime.take(5)}-${course.endTime.take(5)}",
                     fontSizeDp = (11f * scale).dp,
-                    color = WidgetColors.textTertiary
+                    color = WidgetColors.textTertiary,
+                    maxWidthDp = safeTimeMaxWidth,
+                    modifier = GlanceModifier.wrapContentSize()
                 )
                 if (course.position.isNotBlank()) {
                     Spacer(modifier = GlanceModifier.defaultWeight())
-                    ScaledBitmapText(
+
+                    // 地点：占据剩余所有空间，并右对齐
+                    EllipsizedBitmapText( // 替换
                         text = course.position,
                         fontSizeDp = (11f * scale).dp,
                         color = WidgetColors.textTertiary,
+                        maxWidthDp = calculatedMaxWidth,
+                        textAlign = Paint.Align.RIGHT,
+                        modifier = GlanceModifier.defaultWeight()
                     )
                 }
             }

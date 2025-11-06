@@ -1,5 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule.widget.tiny
 
+import android.graphics.Paint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.dp
@@ -21,19 +22,16 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.layout.wrapContentSize
 import com.xingheyuzhuan.shiguangschedule.MainActivity
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetCourse
-import com.xingheyuzhuan.shiguangschedule.widget.ScaledBitmapText
+import com.xingheyuzhuan.shiguangschedule.widget.EllipsizedBitmapText
 import com.xingheyuzhuan.shiguangschedule.widget.WidgetColors
 import kotlinx.coroutines.flow.Flow
-import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-import java.time.format.TextStyle as LocalDateTextStyle
 
 private const val BASE_WIDGET_WIDTH = 100f
 private const val BASE_WIDGET_HEIGHT = 100f
@@ -42,19 +40,16 @@ private const val MAX_LAYOUT_SCALE = 3.0f
 @Composable
 fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
     val context = LocalContext.current
+
     // 1. 计算缩放因子
     val currentSize = LocalSize.current
     val widthScale = currentSize.width.value / BASE_WIDGET_WIDTH
     val heightScale = currentSize.height.value / BASE_WIDGET_HEIGHT
-
     val rawScale = minOf(widthScale, heightScale)
     val finalScale = rawScale.coerceIn(1.0f, MAX_LAYOUT_SCALE)
 
     val coursesAndWeekState = coursesAndWeekFlow.collectAsState(initial = Pair(emptyList(), null))
     val (courses, currentWeek) = coursesAndWeekState.value
-    val today = LocalDate.now()
-    val todayDateString = today.format(DateTimeFormatter.ofPattern("M.d", Locale.getDefault()))
-    val todayDayOfWeekString = today.dayOfWeek.getDisplayName(LocalDateTextStyle.SHORT, Locale.getDefault())
 
     val isVacation = currentWeek == null
     val now = LocalTime.now()
@@ -63,8 +58,9 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
         !it.isSkipped && LocalTime.parse(it.endTime) > now
     }
 
-    // 缩放圆角半径
+    // 缩放圆角半径和统一内边距
     val systemCornerRadius = (21 * finalScale).dp
+    val primaryPadding = (8 * finalScale).dp
 
     Box(
         modifier = GlanceModifier
@@ -78,40 +74,12 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
         Column(
             modifier = GlanceModifier.fillMaxSize()
         ) {
-            // 顶部区域：星期X（左侧显示）和 周数（右侧显示）
-            Row(
-                modifier = GlanceModifier
-                    .fillMaxWidth()
-                    // 缩放 padding
-                    .padding(horizontal = (6 * finalScale).dp, vertical = (4 * finalScale).dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 左侧
-                ScaledBitmapText(
-                    text = if (currentWeek != null) todayDayOfWeekString else "$todayDateString $todayDayOfWeekString",
-                    fontSizeDp = (10f * finalScale).dp,
-                    color = WidgetColors.textHint,
-                    modifier = GlanceModifier.wrapContentSize()
-                )
-
-                Spacer(modifier = GlanceModifier.defaultWeight())
-                // 右侧
-                if (currentWeek != null) {
-                    ScaledBitmapText(
-                        text = context.getString(R.string.status_current_week_format, currentWeek),
-                        fontSizeDp = (10f * finalScale).dp,
-                        color = WidgetColors.textHint,
-                        modifier = GlanceModifier.wrapContentSize()
-                    )
-                }
-            }
-
-            // 主要内容区域
+            // 主要内容区域：占据所有空间
             Box(
                 modifier = GlanceModifier
                     .fillMaxWidth()
                     .defaultWeight()
-                    .padding(horizontal = (6 * finalScale).dp),
+                    .padding(horizontal = primaryPadding, vertical = (10 * finalScale).dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 if (isVacation) {
@@ -120,19 +88,24 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
                     TinyNoCoursesLayout(scale = finalScale)
                 } else {
                     if (nextCourse != null) {
-                        // 课程信息
-                        TinyNextCourseContent(nextCourse = nextCourse, scale = finalScale)
+                        TinyNextCourseContent(
+                            nextCourse = nextCourse,
+                            courses = courses,
+                            scale = finalScale
+                        )
                     } else {
-                        // 今日课程已全部结束
+                        val widgetWidth = LocalSize.current.width
+
                         Column(
                             modifier = GlanceModifier.fillMaxSize(),
                             horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
                             verticalAlignment = Alignment.Vertical.CenterVertically
                         ) {
-                            ScaledBitmapText(
+                            EllipsizedBitmapText(
                                 text = context.getString(R.string.widget_today_courses_finished),
                                 fontSizeDp = (12f * finalScale).dp,
                                 color = WidgetColors.textPrimary,
+                                maxWidthDp = widgetWidth,
                                 modifier = GlanceModifier.wrapContentSize()
                             )
                         }
@@ -144,66 +117,83 @@ fun TinyLayout(coursesAndWeekFlow: Flow<Pair<List<WidgetCourse>, Int?>>) {
 }
 
 /**
- * 下一节课内容（位于主槽位中）
+ * 下一节课内容：三行垂直布局
+ * @param courses 今日全部课程列表，用于计算剩余课程数。
  */
 @Composable
-fun TinyNextCourseContent(nextCourse: WidgetCourse, scale: Float) {
+fun TinyNextCourseContent(nextCourse: WidgetCourse, courses: List<WidgetCourse>, scale: Float) {
+    val totalWidgetWidthValue = LocalSize.current.width.value
+
+    // 1. 计算剩余课程数量
+    val nextCourseIndex = courses.indexOf(nextCourse)
+    val remainingCourseCount = if (nextCourseIndex != -1) courses.size - nextCourseIndex else 1
+    val remainingText = remainingCourseCount.toString()
+
+    // 2. 计算课程内容的可用最大宽度
+    val tagSizeValue = 18f
+    val paddingValue = 8f * 2
+    val spacerValue = 6f
+    val calculatedMaxWidth = (totalWidgetWidthValue - (paddingValue + tagSizeValue + spacerValue) * scale).dp
+
     Row(
-        modifier = GlanceModifier
-            .fillMaxWidth()
-            .padding(vertical = (2 * scale).dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = GlanceModifier.fillMaxWidth(),
+        // 垂直对齐：让内容和指示点对齐到顶部
+        verticalAlignment = Alignment.Top
     ) {
-        // 左侧彩色指示条
-        Box(
-            modifier = GlanceModifier
-                .width((2 * scale).dp)
-                .fillMaxHeight()
-                .background(WidgetColors.courseIndicator1),
-            content = {}
-        )
-
-        Spacer(modifier = GlanceModifier.width((6 * scale).dp))
-
-        // 右侧课程内容
+        // 左侧课程内容 - 占据主要空间
         Column(
-            modifier = GlanceModifier.defaultWeight(),
+            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
             horizontalAlignment = Alignment.Horizontal.Start
         ) {
-            // 课程名称
-            ScaledBitmapText(
+            EllipsizedBitmapText(
                 text = nextCourse.name,
-                fontSizeDp = (14f * scale).dp,
+                fontSizeDp = (16f * scale).dp,
                 color = WidgetColors.textPrimary,
+                maxWidthDp = calculatedMaxWidth,
                 modifier = GlanceModifier.fillMaxWidth()
             )
 
-            Spacer(modifier = GlanceModifier.height((1 * scale).dp))
+            Spacer(modifier = GlanceModifier.height((2 * scale).dp))
 
-            // 时间和地点在同一行
-            Row(
-                modifier = GlanceModifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 时间段
-                ScaledBitmapText(
-                    text = "${nextCourse.startTime.take(5)}-${nextCourse.endTime.take(5)}",
+            EllipsizedBitmapText(
+                text = "${nextCourse.startTime.take(5)}-${nextCourse.endTime.take(5)}",
+                fontSizeDp = (12f * scale).dp,
+                color = WidgetColors.textPrimary,
+                maxWidthDp = calculatedMaxWidth,
+                modifier = GlanceModifier.fillMaxWidth()
+            )
+
+            if (nextCourse.position.isNotBlank()) {
+                Spacer(modifier = GlanceModifier.height((2 * scale).dp))
+                EllipsizedBitmapText(
+                    text = nextCourse.position,
                     fontSizeDp = (11f * scale).dp,
                     color = WidgetColors.textTertiary,
-                    modifier = GlanceModifier.wrapContentSize()
+                    maxWidthDp = calculatedMaxWidth,
+                    textAlign = Paint.Align.LEFT,
+                    modifier = GlanceModifier.fillMaxWidth()
                 )
-
-                // 地点信息
-                if (nextCourse.position.isNotBlank()) {
-                    Spacer(modifier = GlanceModifier.width((4 * scale).dp))
-                    ScaledBitmapText(
-                        text = nextCourse.position,
-                        fontSizeDp = (11f * scale).dp,
-                        color = WidgetColors.textTertiary,
-                        modifier = GlanceModifier.wrapContentSize()
-                    )
-                }
             }
+        }
+
+        Spacer(modifier = GlanceModifier.width((6 * scale).dp))
+
+        val tagSize = (tagSizeValue * scale).dp
+        Box(
+            modifier = GlanceModifier
+                .size(tagSize)
+                .background(WidgetColors.courseIndicator1)
+                .cornerRadius(tagSize / 2),
+            contentAlignment = Alignment.Center
+        ) {
+            EllipsizedBitmapText(
+                text = remainingText,
+                fontSizeDp = (11f * scale).dp,
+                color = WidgetColors.background,
+                maxWidthDp = tagSize,
+                textAlign = Paint.Align.CENTER,
+                modifier = GlanceModifier.wrapContentSize()
+            )
         }
     }
 }
@@ -215,18 +205,19 @@ fun TinyNextCourseContent(nextCourse: WidgetCourse, scale: Float) {
 @Composable
 fun TinyVacationLayout(scale: Float) {
     val context = LocalContext.current
+    val widgetWidth = LocalSize.current.width
+
     Column(
         modifier = GlanceModifier
-            .fillMaxSize()
-            .padding((10 * scale).dp),
+            .fillMaxSize(),
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
-        // ✅ 替换硬编码 "假期中"
-        ScaledBitmapText(
+        EllipsizedBitmapText(
             text = context.getString(R.string.status_on_vacation),
-            fontSizeDp = (12f * scale).dp,
+            fontSizeDp = (14f * scale).dp,
             color = WidgetColors.textPrimary,
+            maxWidthDp = widgetWidth,
             modifier = GlanceModifier.wrapContentSize()
         )
     }
@@ -238,15 +229,18 @@ fun TinyVacationLayout(scale: Float) {
 @Composable
 fun TinyNoCoursesLayout(scale: Float) {
     val context = LocalContext.current
+    val widgetWidth = LocalSize.current.width
+
     Column(
         modifier = GlanceModifier.fillMaxSize(),
         verticalAlignment = Alignment.Vertical.CenterVertically,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally
     ) {
-        ScaledBitmapText(
+        EllipsizedBitmapText(
             text = context.getString(R.string.text_no_courses_today),
-            fontSizeDp = (12f * scale).dp,
+            fontSizeDp = (14f * scale).dp,
             color = WidgetColors.textPrimary,
+            maxWidthDp = widgetWidth,
             modifier = GlanceModifier.wrapContentSize()
         )
     }
