@@ -2,18 +2,19 @@ package com.xingheyuzhuan.shiguangschedule.ui.settings.course
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
@@ -32,6 +33,8 @@ import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.xingheyuzhuan.shiguangschedule.R
+import com.xingheyuzhuan.shiguangschedule.data.repository.DualColor
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +61,8 @@ fun AddEditCourseScreen(
     val saveSuccessText = stringResource(R.string.toast_save_success)
     val deleteSuccessText = stringResource(R.string.toast_delete_success)
     val nameEmptyText = stringResource(R.string.toast_name_empty)
+
+    val isDarkTheme = isSystemInDarkTheme()
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -157,9 +162,10 @@ fun AddEditCourseScreen(
                 selectedWeeks = uiState.weeks,
                 onWeekClick = { showWeekSelectorDialog = true }
             )
-
             ColorPicker(
-                selectedColor = uiState.color,
+                selectedColor = uiState.courseColorMaps.getOrNull(uiState.colorIndex)?.let { dualColor ->
+                    if (isDarkTheme) dualColor.dark else dualColor.light
+                } ?: Color.Unspecified,
                 onColorClick = { showColorSelectorDialog = true }
             )
         }
@@ -179,11 +185,11 @@ fun AddEditCourseScreen(
 
     if (showColorSelectorDialog) {
         ColorPickerBottomSheet(
-            colors = uiState.courseColors,
-            selectedColor = uiState.color,
+            colorMaps = uiState.courseColorMaps,
+            selectedIndex = uiState.colorIndex,
             onDismissRequest = { showColorSelectorDialog = false },
-            onConfirm = { newColor ->
-                viewModel.onColorChange(newColor)
+            onConfirm = { newIndex ->
+                viewModel.onColorChange(newIndex)
                 showColorSelectorDialog = false
             }
         )
@@ -558,6 +564,8 @@ private fun ColorPicker(
 ) {
     val labelCourseColor = stringResource(R.string.label_course_color)
     val buttonSelectColor = stringResource(R.string.button_select_color)
+    val isDarkTheme = isSystemInDarkTheme()
+    val textColor = if (isDarkTheme) Color.White else Color.Black
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -570,27 +578,34 @@ private fun ColorPicker(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = selectedColor)
         ) {
-            Text(buttonSelectColor, color = Color.White)
+            Text(buttonSelectColor, color = textColor)
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ColorPickerBottomSheet(
-    colors: List<Color>,
-    selectedColor: Color,
+    colorMaps: List<DualColor>,
+    selectedIndex: Int,
     onDismissRequest: () -> Unit,
-    onConfirm: (Color) -> Unit
+    onConfirm: (Int) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var tempSelectedColor by remember { mutableStateOf(selectedColor) }
+
+    var tempSelectedIndex by remember { mutableStateOf(selectedIndex) }
 
     val titleSelectColor = stringResource(R.string.title_select_color)
     val actionCancel = stringResource(R.string.action_cancel)
     val actionConfirm = stringResource(R.string.action_confirm)
-    val a11yColorSelected = stringResource(R.string.a11y_color_selected)
+
+    val isDarkTheme = isSystemInDarkTheme()
+
+    val displayColors = remember(isDarkTheme, colorMaps) {
+        colorMaps.map { dualColor ->
+            if (isDarkTheme) dualColor.dark else dualColor.light
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -609,42 +624,41 @@ private fun ColorPickerBottomSheet(
             )
 
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 48.dp),
+                columns = GridCells.Fixed(6),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp),
                 contentPadding = PaddingValues(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(colors) { color ->
-                    val isSelected = tempSelectedColor == color
+                itemsIndexed(displayColors) { index, color ->
+                    val isSelected = tempSelectedIndex == index
+                    val ringWidth = 3.dp
+
                     Box(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
                             .clickable {
-                                tempSelectedColor = color
+                                tempSelectedIndex = index
                             }
                             .then(
-                                if (isSelected) Modifier.padding(4.dp)
-                                    .clip(CircleShape) else Modifier
+                                if (isSelected) Modifier.border(
+                                    width = ringWidth,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                ) else Modifier
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .padding(if (isSelected) ringWidth else 0.dp)
                                 .clip(CircleShape)
                                 .background(color)
                         )
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = a11yColorSelected,
-                                tint = Color.White
-                            )
-                        }
                     }
                 }
             }
@@ -664,7 +678,7 @@ private fun ColorPickerBottomSheet(
                 }
                 Button(
                     onClick = {
-                        onConfirm(tempSelectedColor)
+                        onConfirm(tempSelectedIndex)
                         coroutineScope.launch { modalBottomSheetState.hide() }.invokeOnCompletion {
                             if (!modalBottomSheetState.isVisible) {
                                 onDismissRequest()

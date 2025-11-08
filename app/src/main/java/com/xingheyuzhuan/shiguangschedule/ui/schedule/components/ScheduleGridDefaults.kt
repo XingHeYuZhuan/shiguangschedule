@@ -38,11 +38,11 @@ object ScheduleGridDefaults {
     // 文本颜色变深因子，值越大颜色越深
     val TextDarkenFactor: Float = 0.618f
 
-    // 冲突课程的颜色
-    val ConflictCourseColor: Color = Color(0xFFFFB74D)
+    // 浅色模式下的冲突课程颜色
+    val ConflictCourseColor: Color = Color(0xFFFF9999)
 
-    // 非冲突课程的默认颜色
-    val DefaultCourseColor: Color = Color(0xFF64B5F6)
+    // 深色模式下的冲突课程颜色 (Dark Mode
+    val ConflictCourseColorDark: Color = Color(0xFF660000)
 
     /**
      * 根据输入颜色返回一个更深的颜色。
@@ -55,6 +55,7 @@ object ScheduleGridDefaults {
         val blue = (color.blue * (1 - factor)).coerceIn(0f, 1f)
         return Color(red, green, blue, color.alpha)
     }
+
     /**
      * 判断一个颜色是亮色还是暗色。
      *

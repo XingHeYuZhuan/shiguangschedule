@@ -88,6 +88,18 @@ class CourseTableRepository(
     }
 
     /**
+     * 专门用于根据课程ID更新其颜色索引。
+     * 这是实现无效颜色自动修复机制所需的关键方法（用于历史数据迁移）。
+     *
+     * @param courseId 课程的唯一ID。
+     * @param newColorInt 新的颜色索引值 (0 到 11)。
+     */
+    suspend fun updateCourseColor(courseId: String, newColorInt: Int) {
+        courseDao.updateCourseColorById(courseId, newColorInt)
+    }
+
+
+    /**
      * 插入或更新一个课程，并同时更新其对应的周数列表。
      */
     suspend fun upsertCourse(course: Course, weekNumbers: List<Int>) {

@@ -141,12 +141,17 @@ fun CourseTablePickerCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = courseTable.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = stringResource(R.string.course_table_id_prefix) + courseTable.id.take(8) + "...",
+                    text = stringResource(
+                        R.string.course_table_id_prefix,
+                        courseTable.id.take(8) + "..."
+                    ),
                     style = MaterialTheme.typography.bodySmall
                 )
-
                 Text(
-                    text = stringResource(R.string.course_table_created_at_prefix) + dateFormatter.format(Date(courseTable.createdAt)),
+                    text = stringResource(
+                        R.string.course_table_created_at_prefix,
+                        dateFormatter.format(Date(courseTable.createdAt))
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )

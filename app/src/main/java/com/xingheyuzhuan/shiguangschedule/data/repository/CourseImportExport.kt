@@ -4,7 +4,29 @@ import androidx.compose.ui.graphics.Color
 import kotlinx.serialization.Serializable
 import kotlin.random.Random
 
+data class DualColor(val light: Color, val dark: Color)
+
 object CourseImportExport {
+
+    /**
+     * 颜色映射表：索引（对应 Course.colorInt） -> 浅色模式颜色 & 深色模式颜色
+     * 数据库中存储的是这个 List 的 Index (0, 1, 2...)
+     */
+    val COURSE_COLOR_MAPS = listOf(
+        DualColor(light = Color(0xFFFFCC99), dark = Color(0xFF663300)),
+        DualColor(light = Color(0xFFFFE699), dark = Color(0xFF664D00)),
+        DualColor(light = Color(0xFFE6FF99), dark = Color(0xFF4D6600)),
+        DualColor(light = Color(0xFFCCFF99), dark = Color(0xFF336600)),
+        DualColor(light = Color(0xFF99FFB3), dark = Color(0xFF00661A)),
+        DualColor(light = Color(0xFF99FFE6), dark = Color(0xFF00664D)),
+        DualColor(light = Color(0xFF99FFFF), dark = Color(0xFF006666)),
+        DualColor(light = Color(0xFF99E6FF), dark = Color(0xFF004D66)),
+        DualColor(light = Color(0xFFB399FF), dark = Color(0xFF1A0066)),
+        DualColor(light = Color(0xFFFF99E6), dark = Color(0xFF66004D)),
+        DualColor(light = Color(0xFFFF99CC), dark = Color(0xFF660033)),
+        DualColor(light = Color(0xFFFF99B3), dark = Color(0xFF66001A)),
+    )
+
 
     // 用于 JSON 导入和导出的配置模型
     @Serializable
@@ -66,14 +88,10 @@ object CourseImportExport {
         val endTime: String
     )
 
-    // 全局的颜色选择器
-    fun getRandomColor(): Color {
-        val colors = listOf(
-            Color(0xFFF44336), Color(0xFFE91E63), Color(0xFF9C27B0), Color(0xFF673AB7),
-            Color(0xFF3F51B5), Color(0xFF2196F3), Color(0xFF03A9F4), Color(0xFF00BCD4),
-            Color(0xFF009688), Color(0xFF4CAF50), Color(0xFF8BC34A), Color(0xFFCDDC39),
-            Color(0xFFFFEB3B), Color(0xFFFFC107), Color(0xFFFF9800), Color(0xFFFF5722)
-        )
-        return colors[Random.nextInt(colors.size)]
+    /**
+     * 在创建新课程时使用，用于获取一个随机的颜色索引。
+     */
+    fun getRandomColorIndex(): Int {
+        return Random.nextInt(COURSE_COLOR_MAPS.size)
     }
 }

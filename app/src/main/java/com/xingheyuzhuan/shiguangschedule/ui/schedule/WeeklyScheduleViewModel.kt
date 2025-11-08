@@ -12,6 +12,7 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.TimeSlotRepository
+import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -128,6 +129,8 @@ class WeeklyScheduleViewModel(
                     null
                 }
 
+                fixInvalidCourseColors(allCoursesList)
+
                 WeeklyScheduleUiState(
                     showWeekends = showWeekends,
                     totalWeeks = totalWeeks,
@@ -139,6 +142,33 @@ class WeeklyScheduleViewModel(
                     currentWeekNumber = currentWeekNumber
                 )
             }.collect { _uiState.value = it }
+        }
+    }
+
+    /**
+     * 遍历所有课程，检查颜色索引是否有效。如果无效（例如旧的 ARGB 值），
+     * 则随机生成一个有效索引并更新数据库。
+     */
+    private fun fixInvalidCourseColors(courses: List<CourseWithWeeks>) = viewModelScope.launch {
+        // 获取有效的颜色索引范围 (0 到 11)
+        val validColorRange = CourseImportExport.COURSE_COLOR_MAPS.indices
+
+        for (courseWithWeeks in courses) {
+            val course = courseWithWeeks.course
+            val colorInt = course.colorInt
+
+            val isInvalid = colorInt !in validColorRange
+
+            if (isInvalid) {
+                // 1. 随机生成一个新的有效索引
+                val newColorInt = CourseImportExport.getRandomColorIndex()
+
+                // 2. 调用 Repository 更新数据库中的颜色索引
+                courseTableRepository.updateCourseColor(
+                    courseId = course.id,
+                    newColorInt = newColorInt
+                )
+            }
         }
     }
 

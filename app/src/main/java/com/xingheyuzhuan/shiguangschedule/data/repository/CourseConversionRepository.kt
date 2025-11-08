@@ -27,8 +27,29 @@ class CourseConversionRepository(
     private val appSettingsRepository: AppSettingsRepository
 ) {
     /**
+     * 确定最终要存储的颜色索引。
+     * 逻辑：强制将导入的 color 字段视为索引，并验证其范围。
+     * 1. 如果提供了 color 值 (Int?)，且它在 [0, COURSE_COLOR_MAPS.size - 1] 范围内，则使用它。
+     * 2. 否则（color 缺失或超出索引范围），随机选择一个索引。
+     *
+     * @param importColor 导入的颜色值（Int 或 null），现将其视为索引。
+     * @return 最终写入数据库的颜色索引（Int）。
+     */
+    private fun getValidatedOrRandomColorIndex(importColor: Int?): Int {
+        val colorMapsSize = CourseImportExport.COURSE_COLOR_MAPS.size
+
+        return if (importColor != null && importColor >= 0 && importColor < colorMapsSize) {
+            // 颜色值存在，且在有效的索引范围内，直接使用
+            importColor
+        } else {
+            // 颜色值缺失 (null) 或超出索引范围，随机选择一个索引
+            CourseImportExport.getRandomColorIndex()
+        }
+    }
+
+
+    /**
      * 从一个 JSON 课程列表导入课程，并覆盖指定的现有课表。
-     * 此函数主要用于教务系统等只提供课程列表的导入场景。
      *
      * @param tableId 要覆盖的现有课表的 ID。
      * @param coursesJsonModel 包含课程数据的 JSON 列表。
@@ -45,7 +66,8 @@ class CourseConversionRepository(
 
         coursesJsonModel.forEach { jsonCourse ->
             val courseId = UUID.randomUUID().toString()
-            val courseColor = jsonCourse.color ?: CourseImportExport.getRandomColor().toArgb()
+            // 修正 1: 使用索引验证逻辑，获取颜色索引
+            val courseIndex = getValidatedOrRandomColorIndex(jsonCourse.color)
 
             courseEntities.add(
                 Course(
@@ -57,7 +79,7 @@ class CourseConversionRepository(
                     day = jsonCourse.day,
                     startSection = jsonCourse.startSection,
                     endSection = jsonCourse.endSection,
-                    colorInt = courseColor
+                    colorInt = courseIndex // 写入颜色索引
                 )
             )
 
@@ -97,7 +119,8 @@ class CourseConversionRepository(
 
         courseTableJsonModel.courses.forEach { jsonCourse ->
             val courseId = jsonCourse.id ?: UUID.randomUUID().toString()
-            val courseColor = jsonCourse.color ?: CourseImportExport.getRandomColor().toArgb()
+            // 修正 2: 使用索引验证逻辑，获取颜色索引
+            val courseIndex = getValidatedOrRandomColorIndex(jsonCourse.color)
 
             courseEntities.add(
                 Course(
@@ -109,7 +132,7 @@ class CourseConversionRepository(
                     day = jsonCourse.day,
                     startSection = jsonCourse.startSection,
                     endSection = jsonCourse.endSection,
-                    colorInt = courseColor
+                    colorInt = courseIndex // 写入颜色索引
                 )
             )
 
@@ -201,6 +224,14 @@ class CourseConversionRepository(
         val coursesWithWeeks = courseDao.getCoursesWithWeeksByTableId(tableId).first()
         val exportCourses = coursesWithWeeks.map { courseWithWeeks ->
             val weeks = courseWithWeeks.weeks.map { it.weekNumber }
+
+            // 修正 3: 从数据库获取索引，映射回 Light 颜色的 ARGB 值用于导出 JSON
+            val colorIndex = courseWithWeeks.course.colorInt
+            val exportedColorArgb = CourseImportExport.COURSE_COLOR_MAPS
+                .getOrNull(colorIndex)
+                ?.light?.toArgb()
+                ?: CourseImportExport.COURSE_COLOR_MAPS.first().light.toArgb()
+
             ExportCourseJsonModel(
                 id = courseWithWeeks.course.id,
                 name = courseWithWeeks.course.name,
@@ -209,7 +240,7 @@ class CourseConversionRepository(
                 day = courseWithWeeks.course.day,
                 startSection = courseWithWeeks.course.startSection,
                 endSection = courseWithWeeks.course.endSection,
-                color = courseWithWeeks.course.colorInt,
+                color = exportedColorArgb,
                 weeks = weeks
             )
         }

@@ -134,13 +134,12 @@ fun ScheduleGrid(
                         // 使用 0-based 的索引计算 offsetX
                         val offsetX = newDayIndex * cellWidth
                         val offsetY = (mergedBlock.startSection - 1) * sectionHeight
-                        val blockWidth = cellWidth
                         val blockHeight = (mergedBlock.endSection - mergedBlock.startSection + 1) * sectionHeight
 
                         Box(
                             modifier = Modifier
                                 .offset(x = offsetX, y = offsetY)
-                                .size(width = blockWidth, height = blockHeight)
+                                .size(width = cellWidth, height = blockHeight)
                                 .clickable { onCourseBlockClicked(mergedBlock) }
                         ) {
                             CourseBlock(

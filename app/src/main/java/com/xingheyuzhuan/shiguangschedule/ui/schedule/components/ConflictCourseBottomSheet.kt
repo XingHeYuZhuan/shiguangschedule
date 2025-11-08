@@ -1,6 +1,7 @@
 package com.xingheyuzhuan.shiguangschedule.ui.schedule.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,15 +9,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridDefaults.getDarkerColor
 import androidx.compose.ui.res.stringResource
 import com.xingheyuzhuan.shiguangschedule.R
+import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.COURSE_COLOR_MAPS
 
 /**
  * 冲突课程列表底部动作条。
@@ -34,6 +34,20 @@ fun ConflictCourseBottomSheet(
     onCourseClicked: (CourseWithWeeks) -> Unit,
     onDismissRequest: () -> Unit
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
+
+    val conflictTitleColor = if (isDarkTheme) {
+        ScheduleGridDefaults.ConflictCourseColorDark
+    } else {
+        ScheduleGridDefaults.ConflictCourseColor
+    }
+
+    val fallbackColorAdapted = if (isDarkTheme) {
+        COURSE_COLOR_MAPS.first().dark
+    } else {
+        COURSE_COLOR_MAPS.first().light
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = rememberModalBottomSheetState()
@@ -48,7 +62,7 @@ fun ConflictCourseBottomSheet(
                 text = stringResource(R.string.title_course_conflict),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(16.dp),
-                color = Color(0xFFFF6F00) // 冲突标题颜色
+                color = conflictTitleColor
             )
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
@@ -60,9 +74,15 @@ fun ConflictCourseBottomSheet(
                     val startSlot = timeSlots.find { it.number == course.startSection }?.startTime ?: "N/A"
                     val endSlot = timeSlots.find { it.number == course.endSection }?.endTime ?: "N/A"
 
-                    // 从课程数据中获取颜色，并应用配置文件中的透明度
-                    val cardColor = course.colorInt?.let { Color(it).copy(alpha = ScheduleGridDefaults.CourseBlockAlpha) }
-                        ?: ScheduleGridDefaults.DefaultCourseColor.copy(alpha = ScheduleGridDefaults.CourseBlockAlpha)
+                    val colorIndex = course.colorInt.takeIf { it in COURSE_COLOR_MAPS.indices }
+
+                    val cardBaseColor = colorIndex?.let { index ->
+                        val dualColor = COURSE_COLOR_MAPS[index]
+                        if (isDarkTheme) dualColor.dark else dualColor.light
+                    } ?: fallbackColorAdapted
+
+                    // 应用配置文件中的透明度
+                    val cardColor = cardBaseColor.copy(alpha = ScheduleGridDefaults.CourseBlockAlpha)
 
                     // 根据卡片颜色计算文本颜色，使用配置文件中的变深因子
                     //val textColor = getDarkerColor(cardColor, factor = ScheduleGridDefaults.TextDarkenFactor)
