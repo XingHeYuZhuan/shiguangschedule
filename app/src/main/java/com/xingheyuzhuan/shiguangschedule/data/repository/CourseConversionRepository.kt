@@ -1,5 +1,3 @@
-// File: CourseConversionRepository.kt
-
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
 import androidx.compose.ui.graphics.toArgb
@@ -10,6 +8,8 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeek
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
+import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.CourseConfigJsonModel
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.CourseTableExportModel
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.CourseTableImportModel
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.ExportCourseJsonModel
@@ -27,8 +27,29 @@ class CourseConversionRepository(
     private val appSettingsRepository: AppSettingsRepository
 ) {
     /**
+     * 确定最终要存储的颜色索引。
+     * 逻辑：强制将导入的 color 字段视为索引，并验证其范围。
+     * 1. 如果提供了 color 值 (Int?)，且它在 [0, COURSE_COLOR_MAPS.size - 1] 范围内，则使用它。
+     * 2. 否则（color 缺失或超出索引范围），随机选择一个索引。
+     *
+     * @param importColor 导入的颜色值（Int 或 null），现将其视为索引。
+     * @return 最终写入数据库的颜色索引（Int）。
+     */
+    private fun getValidatedOrRandomColorIndex(importColor: Int?): Int {
+        val colorMapsSize = CourseImportExport.COURSE_COLOR_MAPS.size
+
+        return if (importColor != null && importColor >= 0 && importColor < colorMapsSize) {
+            // 颜色值存在，且在有效的索引范围内，直接使用
+            importColor
+        } else {
+            // 颜色值缺失 (null) 或超出索引范围，随机选择一个索引
+            CourseImportExport.getRandomColorIndex()
+        }
+    }
+
+
+    /**
      * 从一个 JSON 课程列表导入课程，并覆盖指定的现有课表。
-     * 此函数主要用于教务系统等只提供课程列表的导入场景。
      *
      * @param tableId 要覆盖的现有课表的 ID。
      * @param coursesJsonModel 包含课程数据的 JSON 列表。
@@ -45,7 +66,8 @@ class CourseConversionRepository(
 
         coursesJsonModel.forEach { jsonCourse ->
             val courseId = UUID.randomUUID().toString()
-            val courseColor = jsonCourse.color ?: CourseImportExport.getRandomColor().toArgb()
+            // 修正 1: 使用索引验证逻辑，获取颜色索引
+            val courseIndex = getValidatedOrRandomColorIndex(jsonCourse.color)
 
             courseEntities.add(
                 Course(
@@ -57,7 +79,7 @@ class CourseConversionRepository(
                     day = jsonCourse.day,
                     startSection = jsonCourse.startSection,
                     endSection = jsonCourse.endSection,
-                    colorInt = courseColor
+                    colorInt = courseIndex // 写入颜色索引
                 )
             )
 
@@ -97,7 +119,8 @@ class CourseConversionRepository(
 
         courseTableJsonModel.courses.forEach { jsonCourse ->
             val courseId = jsonCourse.id ?: UUID.randomUUID().toString()
-            val courseColor = jsonCourse.color ?: CourseImportExport.getRandomColor().toArgb()
+            // 修正 2: 使用索引验证逻辑，获取颜色索引
+            val courseIndex = getValidatedOrRandomColorIndex(jsonCourse.color)
 
             courseEntities.add(
                 Course(
@@ -109,7 +132,7 @@ class CourseConversionRepository(
                     day = jsonCourse.day,
                     startSection = jsonCourse.startSection,
                     endSection = jsonCourse.endSection,
-                    colorInt = courseColor
+                    colorInt = courseIndex // 写入颜色索引
                 )
             )
 
@@ -140,6 +163,53 @@ class CourseConversionRepository(
         if (timeSlotEntities.isNotEmpty()) {
             timeSlotDao.insertAll(timeSlotEntities)
         }
+
+        // 处理课表配置的导入（兼容旧格式，允许 config 为 null）
+        val configJson = courseTableJsonModel.config
+        if (configJson != null) {
+            val currentConfig = appSettingsRepository.getCourseConfigOnce(tableId)
+            val updatedConfig = CourseTableConfig(
+                courseTableId = tableId,
+                showWeekends = currentConfig?.showWeekends ?: false,
+                semesterStartDate = configJson.semesterStartDate,
+                semesterTotalWeeks = configJson.semesterTotalWeeks,
+                defaultClassDuration = configJson.defaultClassDuration,
+                defaultBreakDuration = configJson.defaultBreakDuration,
+                firstDayOfWeek = configJson.firstDayOfWeek
+            )
+
+            // 3. 插入或更新配置
+            appSettingsRepository.insertOrUpdateCourseConfig(updatedConfig)
+        }
+    }
+
+    /**
+     * 从 JSON 模型更新指定课表的配置。
+     * 该函数用于独立导入配置，例如通过 JS 桥接单独设置配置项。
+     *
+     * @param tableId 课表的 ID。
+     * @param configJsonModel 包含配置数据的 JSON 模型（CourseConfigJsonModel）。
+     */
+    @Transaction
+    suspend fun importCourseConfig(
+        tableId: String,
+        configJsonModel: CourseConfigJsonModel
+    ) {
+        val currentConfig = appSettingsRepository.getCourseConfigOnce(tableId)
+
+        // 2. 构造新的配置实体
+        val updatedConfig = CourseTableConfig(
+            courseTableId = tableId,
+            showWeekends = currentConfig?.showWeekends ?: false,
+            semesterStartDate = configJsonModel.semesterStartDate,
+            semesterTotalWeeks = configJsonModel.semesterTotalWeeks,
+            defaultClassDuration = configJsonModel.defaultClassDuration,
+            defaultBreakDuration = configJsonModel.defaultBreakDuration,
+            firstDayOfWeek = configJsonModel.firstDayOfWeek
+        )
+
+        // 3. 插入或更新配置到数据库
+        appSettingsRepository.insertOrUpdateCourseConfig(updatedConfig)
     }
 
     /**
@@ -154,6 +224,14 @@ class CourseConversionRepository(
         val coursesWithWeeks = courseDao.getCoursesWithWeeksByTableId(tableId).first()
         val exportCourses = coursesWithWeeks.map { courseWithWeeks ->
             val weeks = courseWithWeeks.weeks.map { it.weekNumber }
+
+            // 修正 3: 从数据库获取索引，映射回 Light 颜色的 ARGB 值用于导出 JSON
+            val colorIndex = courseWithWeeks.course.colorInt
+            val exportedColorArgb = CourseImportExport.COURSE_COLOR_MAPS
+                .getOrNull(colorIndex)
+                ?.light?.toArgb()
+                ?: CourseImportExport.COURSE_COLOR_MAPS.first().light.toArgb()
+
             ExportCourseJsonModel(
                 id = courseWithWeeks.course.id,
                 name = courseWithWeeks.course.name,
@@ -162,7 +240,7 @@ class CourseConversionRepository(
                 day = courseWithWeeks.course.day,
                 startSection = courseWithWeeks.course.startSection,
                 endSection = courseWithWeeks.course.endSection,
-                color = courseWithWeeks.course.colorInt,
+                color = exportedColorArgb,
                 weeks = weeks
             )
         }
@@ -176,37 +254,57 @@ class CourseConversionRepository(
             )
         }
 
+        // 读取课表配置
+        val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
+
+        val configToExport = courseConfig ?: CourseTableConfig(courseTableId = tableId)
+
+        // 转换为不含 showWeekends 的 JSON 模型
+        val exportConfig = CourseConfigJsonModel(
+            semesterStartDate = configToExport.semesterStartDate,
+            semesterTotalWeeks = configToExport.semesterTotalWeeks,
+            defaultClassDuration = configToExport.defaultClassDuration,
+            defaultBreakDuration = configToExport.defaultBreakDuration,
+            firstDayOfWeek = configToExport.firstDayOfWeek
+        )
+
+
         return CourseTableExportModel(
             courses = exportCourses,
-            timeSlots = exportTimeSlots
+            timeSlots = exportTimeSlots,
+            config = exportConfig
         )
     }
 
     /**
-    * 将指定课表下的所有课程数据导出为 ICS 日历文件的内容字符串。
-    *
-    * @param tableId 要导出的课表的 ID。
-    * @param alarmMinutes 可选的提醒时间，单位分钟。传入null则不设置提醒。
-    * @return 包含 ICS 日历文件内容的字符串，如果失败则返回 null。
-    */
+     * 将指定课表下的所有课程数据导出为 ICS 日历文件的内容字符串。
+     *
+     * @param tableId 要导出的课表的 ID。
+     * @param alarmMinutes 可选的提醒时间，单位分钟。传入null则不设置提醒。
+     * @return 包含 ICS 日历文件内容的字符串，如果失败则返回 null。
+     */
     suspend fun exportToIcsString(tableId: String, alarmMinutes: Int?): String? {
         val courses = courseDao.getCoursesWithWeeksByTableId(tableId).first()
         val timeSlots = timeSlotDao.getTimeSlotsByCourseTableId(tableId).first()
-        val appSettings = appSettingsRepository.getAppSettingsOnce()
-        val semesterStartDate = appSettings?.semesterStartDate?.let { LocalDate.parse(it) }
 
-        if (semesterStartDate == null || appSettings.semesterTotalWeeks <= 0) {
+        // 1. 从 AppSettings 获取全局设置 (用于 skippedDates)
+        val appSettings = appSettingsRepository.getAppSettingsOnce()
+        val skippedDates = appSettings?.skippedDates
+
+        // 2. 从 CourseTableConfig 获取课表配置 (用于日期和总周数)
+        val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
+        val semesterStartDate = courseConfig?.semesterStartDate?.let { LocalDate.parse(it) }
+
+        // 检查必要配置是否存在
+        if (semesterStartDate == null || courseConfig.semesterTotalWeeks <= 0) {
             return null
         }
-
-        // 从 appSettings 获取 skippedDates
-        val skippedDates = appSettings.skippedDates
 
         return IcsExportTool.generateIcsFileContent(
             courses = courses,
             timeSlots = timeSlots,
             semesterStartDate = semesterStartDate,
-            semesterTotalWeeks = appSettings.semesterTotalWeeks,
+            semesterTotalWeeks = courseConfig.semesterTotalWeeks,
             alarmMinutes = alarmMinutes,
             skippedDates = skippedDates
         )

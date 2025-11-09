@@ -5,11 +5,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.xingheyuzhuan.shiguangschedule.MyApplication
+import com.xingheyuzhuan.shiguangschedule.data.db.main.AppSettings
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.TimeSlotRepository
+import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,15 +24,12 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
+import java.time.DayOfWeek
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalAdjusters
 
 /**
  * 课表中的合并课程块。
- *
- * @param day 星期几 (1=周一, 7=周日)。
- * @param startSection 开始节次。
- * @param endSection 结束节次。
- * @param courses 包含在此块中的课程列表。
- * @param isConflict 是否存在课程冲突。
  */
 data class MergedCourseBlock(
     val day: Int,
@@ -41,27 +41,20 @@ data class MergedCourseBlock(
 
 /**
  * 周课表 UI 的所有状态。
- *
- * @param showWeekends 是否显示周末。
- * @param totalWeeks 学期总周数。
- * @param timeSlots 时间段列表。
- * @param allCourses 包含所有周的课程。
- * @param isSemesterSet 是否已设置开学日期。
- * @param semesterStartDate 学期开始日期，用于计算假期天数。
  */
 data class WeeklyScheduleUiState(
     val showWeekends: Boolean = false,
     val totalWeeks: Int = 20,
     val timeSlots: List<TimeSlot> = emptyList(),
-    val allCourses: List<CourseWithWeeks> = emptyList(), // 包含所有周的课程
+    val allCourses: List<CourseWithWeeks> = emptyList(),
     val isSemesterSet: Boolean = false,
     val semesterStartDate: LocalDate? = null,
+    val firstDayOfWeek: Int = DayOfWeek.MONDAY.value,
+    val currentWeekNumber: Int? = null
 )
 
 /**
  * 周课表页面的 ViewModel。
- * 它持有 UI 状态，并与数据仓库交互。
- * 职责：只负责提供原始数据，不处理 UI 逻辑。
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class WeeklyScheduleViewModel(
@@ -73,57 +66,131 @@ class WeeklyScheduleViewModel(
     private val _uiState = MutableStateFlow(WeeklyScheduleUiState())
     val uiState: StateFlow<WeeklyScheduleUiState> = _uiState.asStateFlow()
 
-    private val allCourses: Flow<List<CourseWithWeeks>> =
-        appSettingsRepository.getAppSettings()
-            .flatMapLatest { settings ->
-                if (settings.currentCourseTableId != null) {
-                    courseTableRepository.getCoursesWithWeeksByTableId(settings.currentCourseTableId)
-                } else {
-                    flowOf(emptyList())
-                }
-            }
+    // 1. 订阅全局 AppSettings (包含 currentCourseTableId)
+    private val appSettingsFlow: Flow<AppSettings> = appSettingsRepository.getAppSettings()
 
+    // 2. 订阅当前课表的配置 (依赖 AppSettings)
+    private val courseTableConfigFlow: Flow<CourseTableConfig?> =
+        appSettingsFlow.flatMapLatest { settings ->
+            settings.currentCourseTableId?.let { tableId ->
+                appSettingsRepository.getCourseTableConfigFlow(tableId)
+            } ?: flowOf(null)
+        }
+
+    // 3. 订阅当前课表的时间段 (依赖 AppSettings)
     private val timeSlotsForCurrentTable: Flow<List<TimeSlot>> =
-        appSettingsRepository.getAppSettings()
-            .flatMapLatest { settings ->
-                if (settings.currentCourseTableId != null) {
-                    timeSlotRepository.getTimeSlotsByCourseTableId(settings.currentCourseTableId)
-                } else {
-                    flowOf(emptyList())
-                }
+        appSettingsFlow.flatMapLatest { settings ->
+            if (settings.currentCourseTableId != null) {
+                timeSlotRepository.getTimeSlotsByCourseTableId(settings.currentCourseTableId)
+            } else {
+                flowOf(emptyList())
             }
+        }
+
+    // 4. 订阅当前课表的全部课程 (依赖 AppSettings)
+    private val allCourses: Flow<List<CourseWithWeeks>> =
+        appSettingsFlow.flatMapLatest { settings ->
+            if (settings.currentCourseTableId != null) {
+                courseTableRepository.getCoursesWithWeeksByTableId(settings.currentCourseTableId)
+            } else {
+                flowOf(emptyList())
+            }
+        }
 
     init {
         viewModelScope.launch {
+            // 组合 appSettingsFlow, courseTableConfigFlow, timeSlots, allCourses
             combine(
-                appSettingsRepository.getAppSettings(),
+                appSettingsFlow,
+                courseTableConfigFlow, // 接收课表配置
                 timeSlotsForCurrentTable,
                 allCourses
-            ) { settings, timeSlots, allCoursesList ->
-                val semesterStartDate = try {
-                    settings.semesterStartDate?.let { LocalDate.parse(it) }
+            ) { _, config, timeSlots, allCoursesList ->
+
+                val startDateString = config?.semesterStartDate
+
+                val semesterStartDate: LocalDate? = try {
+                    startDateString?.let { LocalDate.parse(it) }
                 } catch (e: DateTimeParseException) {
                     null
                 }
 
                 val isSemesterSet = semesterStartDate != null
+                // 使用 ?.let 安全地获取配置，提供默认值
+                val totalWeeks = config?.semesterTotalWeeks ?: 20
+                val firstDayOfWeek = config?.firstDayOfWeek ?: DayOfWeek.MONDAY.value
+                val showWeekends = config?.showWeekends ?: false
 
-                val totalWeeks: Int = if (isSemesterSet) {
-                    settings.semesterTotalWeeks
+
+                // 1. 计算当前周数
+                val currentWeekNumber = if (semesterStartDate != null) {
+                    calculateCurrentWeek(semesterStartDate, totalWeeks, firstDayOfWeek)
                 } else {
-                    20 // 默认值
+                    null
                 }
 
+                fixInvalidCourseColors(allCoursesList)
+
                 WeeklyScheduleUiState(
-                    showWeekends = settings.showWeekends,
+                    showWeekends = showWeekends,
                     totalWeeks = totalWeeks,
                     allCourses = allCoursesList,
                     timeSlots = timeSlots,
                     isSemesterSet = isSemesterSet,
                     semesterStartDate = semesterStartDate,
+                    firstDayOfWeek = firstDayOfWeek,
+                    currentWeekNumber = currentWeekNumber
                 )
             }.collect { _uiState.value = it }
         }
+    }
+
+    /**
+     * 遍历所有课程，检查颜色索引是否有效。如果无效（例如旧的 ARGB 值），
+     * 则随机生成一个有效索引并更新数据库。
+     */
+    private fun fixInvalidCourseColors(courses: List<CourseWithWeeks>) = viewModelScope.launch {
+        // 获取有效的颜色索引范围 (0 到 11)
+        val validColorRange = CourseImportExport.COURSE_COLOR_MAPS.indices
+
+        for (courseWithWeeks in courses) {
+            val course = courseWithWeeks.course
+            val colorInt = course.colorInt
+
+            val isInvalid = colorInt !in validColorRange
+
+            if (isInvalid) {
+                // 1. 随机生成一个新的有效索引
+                val newColorInt = CourseImportExport.getRandomColorIndex()
+
+                // 2. 调用 Repository 更新数据库中的颜色索引
+                courseTableRepository.updateCourseColor(
+                    courseId = course.id,
+                    newColorInt = newColorInt
+                )
+            }
+        }
+    }
+
+    private fun getStartDayOfWeek(date: LocalDate, firstDayOfWeekInt: Int): LocalDate {
+        val firstDayOfWeek = DayOfWeek.of(firstDayOfWeekInt)
+        return date.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
+    }
+
+    private fun calculateCurrentWeek(
+        semesterStartDate: LocalDate,
+        totalWeeks: Int,
+        firstDayOfWeekInt: Int
+    ): Int? {
+        val alignedStartDate = getStartDayOfWeek(semesterStartDate, firstDayOfWeekInt)
+        val alignedToday = getStartDayOfWeek(LocalDate.now(), firstDayOfWeekInt)
+
+        if (alignedToday.isBefore(alignedStartDate)) return null
+
+        val diffWeeks = ChronoUnit.WEEKS.between(alignedStartDate, alignedToday).toInt()
+        val calculatedWeek = diffWeeks + 1
+
+        return if (calculatedWeek in 1..totalWeeks) calculatedWeek else null
     }
 }
 

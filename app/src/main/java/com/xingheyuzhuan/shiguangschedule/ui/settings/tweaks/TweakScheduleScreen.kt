@@ -2,6 +2,7 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings.tweaks
 
 import android.content.res.Configuration
+import android.text.format.DateFormat
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,14 +39,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
 import com.xingheyuzhuan.shiguangschedule.ui.components.DatePickerModal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * 调课页面主界面。
@@ -66,6 +71,19 @@ fun TweakScheduleScreen(
     var showFromDatePicker by remember { mutableStateOf(false) }
     var showToDatePicker by remember { mutableStateOf(false) }
 
+    val titleTweakSchedule = stringResource(R.string.title_tweak_schedule)
+    val a11yBack = stringResource(R.string.a11y_back)
+    val a11ySaveTweak = stringResource(R.string.a11y_save_tweak)
+    val labelSelectTweakTable = stringResource(R.string.label_select_tweak_table)
+    val actionSelectTable = stringResource(R.string.action_select_table)
+    val labelTweakFromDate = stringResource(R.string.label_tweak_from_date)
+    val labelTweakToDate = stringResource(R.string.label_tweak_to_date)
+    val textTweakHint = stringResource(R.string.text_tweak_hint)
+    val titleTweakFromCourse = stringResource(R.string.title_tweak_from_course)
+    val titleTweakToCourse = stringResource(R.string.title_tweak_to_course)
+    val dialogTitleSelectExportTable = stringResource(R.string.dialog_title_select_export_table)
+    val a11yArrow = stringResource(R.string.a11y_arrow)
+
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -83,18 +101,18 @@ fun TweakScheduleScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("调课") },
+                title = { Text(titleTweakSchedule) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = a11yBack
                         )
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.moveCourses() }) {
-                        Icon(imageVector = Icons.Default.Done, contentDescription = "保存")
+                        Icon(imageVector = Icons.Default.Done, contentDescription = a11ySaveTweak)
                     }
                 }
             )
@@ -117,17 +135,17 @@ fun TweakScheduleScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "选择要调整的课表",
+                        text = labelSelectTweakTable,
                         style = MaterialTheme.typography.titleMedium
                     )
                     TextButton(
                         onClick = { showCourseTablePicker = true }
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = uiState.selectedCourseTable?.name ?: "选择课表")
+                            Text(text = uiState.selectedCourseTable?.name ?: actionSelectTable)
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = "选择课表",
+                                contentDescription = actionSelectTable,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -141,12 +159,12 @@ fun TweakScheduleScreen(
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     DateButton(
-                        label = "被调整日期",
+                        label = labelTweakFromDate,
                         date = uiState.fromDate,
                         onClick = { showFromDatePicker = true }
                     )
                     DateButton(
-                        label = "调整到日期",
+                        label = labelTweakToDate,
                         date = uiState.toDate,
                         onClick = { showToDatePicker = true }
                     )
@@ -155,7 +173,7 @@ fun TweakScheduleScreen(
 
             item {
                 Text(
-                    text = "请确认以下两个日期的课程信息，点击右上角保存即可完成调课。",
+                    text = textTweakHint,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp)
                 )
@@ -171,17 +189,17 @@ fun TweakScheduleScreen(
                     ) {
                         CourseDisplayCard(
                             modifier = Modifier.weight(1f),
-                            title = "被调整的课程",
+                            title = titleTweakFromCourse,
                             courses = uiState.fromCourses
                         )
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "箭头",
+                            contentDescription = a11yArrow,
                             modifier = Modifier.size(24.dp)
                         )
                         CourseDisplayCard(
                             modifier = Modifier.weight(1f),
-                            title = "调整到日期的课程",
+                            title = titleTweakToCourse,
                             courses = uiState.toCourses
                         )
                     }
@@ -192,16 +210,16 @@ fun TweakScheduleScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         CourseDisplayCard(
-                            title = "被调整的课程",
+                            title = titleTweakFromCourse,
                             courses = uiState.fromCourses
                         )
                         Icon(
                             imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = "箭头",
+                            contentDescription = a11yArrow,
                             modifier = Modifier.size(24.dp)
                         )
                         CourseDisplayCard(
-                            title = "调整到日期的课程",
+                            title = titleTweakToCourse,
                             courses = uiState.toCourses
                         )
                     }
@@ -212,7 +230,7 @@ fun TweakScheduleScreen(
 
     if (showCourseTablePicker) {
         CourseTablePickerDialog(
-            title = "选择课表",
+            title = dialogTitleSelectExportTable,
             onDismissRequest = { showCourseTablePicker = false },
             onTableSelected = {
                 viewModel.onCourseTableSelected(it)
@@ -246,11 +264,11 @@ fun TweakScheduleScreen(
 
 /**
  * 用于显示单个课程列表的卡片。
- *
- * **修改点：为内部的 LazyColumn 添加了 heightIn(max = 250.dp) 以避免无限高度约束导致的崩溃。**
  */
 @Composable
 fun CourseDisplayCard(title: String, courses: List<CourseWithWeeks>, modifier: Modifier = Modifier) {
+    val textNoCourse = stringResource(R.string.text_no_course)
+    val courseTimeDaySectionDetailsTweak = stringResource(R.string.course_time_day_section_details_tweak)
     Card(modifier = modifier) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = title, style = MaterialTheme.typography.titleLarge)
@@ -262,7 +280,7 @@ fun CourseDisplayCard(title: String, courses: List<CourseWithWeeks>, modifier: M
                 if (courses.isEmpty()) {
                     item {
                         Text(
-                            text = "无课程",
+                            text = textNoCourse,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(8.dp)
                         )
@@ -277,7 +295,12 @@ fun CourseDisplayCard(title: String, courses: List<CourseWithWeeks>, modifier: M
                         ) {
                             Text(text = course.name, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                text = "星期 ${course.day.toChineseDay()} | 节次 ${course.startSection}-${course.endSection}",
+                                text = stringResource(
+                                    R.string.course_time_day_section_details_tweak,
+                                    getLocalizedDayString(course.day),
+                                    course.startSection,
+                                    course.endSection
+                                ),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -293,13 +316,22 @@ fun CourseDisplayCard(title: String, courses: List<CourseWithWeeks>, modifier: M
  */
 @Composable
 private fun DateButton(label: String, date: LocalDate, onClick: () -> Unit) {
+    val configuration = LocalConfiguration.current
+    val currentLocale: Locale = configuration.locales.get(0)
+    val dateDisplay: String = remember(date, currentLocale) {
+        val bestPattern: String = DateFormat.getBestDateTimePattern(currentLocale, "Md")
+        val finalFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern(bestPattern, currentLocale)
+        date.format(finalFormatter)
+    }
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall
         )
         TextButton(onClick = onClick) {
-            Text(text = date.format(DateTimeFormatter.ofPattern("M月d日")),
+            Text(
+                text = dateDisplay,
                 style = MaterialTheme.typography.titleMedium
             )
         }
@@ -313,17 +345,18 @@ private fun Long.toLocalDate(): LocalDate =
     java.time.Instant.ofEpochMilli(this).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
 
 /**
- * 辅助函数：将数字星期转换为中文字符
+ * 辅助 Composable 函数：将数字星期转换为本地化的字符串资源。
+ * 复用 strings.xml 中的 `week_days_full_names` 数组。
  */
-private fun Int.toChineseDay(): String {
-    return when (this) {
-        1 -> "一"
-        2 -> "二"
-        3 -> "三"
-        4 -> "四"
-        5 -> "五"
-        6 -> "六"
-        7 -> "日"
-        else -> ""
+@Composable
+private fun getLocalizedDayString(day: Int): String {
+    // 星期从 1 (周一) 到 7 (周日)。数组索引从 0 开始。
+    val weekDays = stringArrayResource(R.array.week_days_full_names)
+
+    // 校验 day 的有效范围 (1-7)
+    return if (day in 1..7) {
+        weekDays[day - 1] // 1 -> index 0, 7 -> index 6
+    } else {
+        stringResource(R.string.text_error)
     }
 }

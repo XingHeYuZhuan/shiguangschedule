@@ -16,8 +16,8 @@ android {
         applicationId = "com.xingheyuzhuan.shiguangschedule"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.1.10"
+        versionCode = 11
+        versionName = "1.1.11-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -29,6 +29,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     flavorDimensions += "version"
@@ -45,7 +46,7 @@ android {
             // 注入开关：开发者版本关闭基准灯塔标签验证
             buildConfigField("Boolean", "ENABLE_LIGHTHOUSE_VERIFICATION", "false")
 
-            // 开发者版本：允许在 UI 中显示 v
+            // 开发者版本：允许在 UI 中显示 DevTools 选项
             buildConfigField("Boolean", "ENABLE_DEV_TOOLS_OPTION_IN_UI", "true")
 
             // 允许在 UI 中显示地址栏切换按钮
@@ -156,7 +157,6 @@ dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
 
-// Protobuf插件配置 (保持简洁，不需要 sourceSets)
 protobuf {
     protoc {
         // 从版本目录中获取 protoc 编译器

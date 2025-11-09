@@ -79,4 +79,11 @@ interface CourseDao {
         day: Int,
         weekNumber: Int
     ): Flow<List<CourseWithWeeks>>
+
+    /**
+     * 专门用于根据课程 ID 更新 colorInt 字段。
+     * 用于将旧的 ARGB 值迁移到新的索引值。
+     */
+    @Query("UPDATE courses SET colorInt = :newColorInt WHERE id = :courseId")
+    suspend fun updateCourseColorById(courseId: String, newColorInt: Int)
 }

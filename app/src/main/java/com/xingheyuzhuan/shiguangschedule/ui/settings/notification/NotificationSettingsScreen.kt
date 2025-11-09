@@ -3,6 +3,7 @@ package com.xingheyuzhuan.shiguangschedule.ui.settings.notification
 import android.Manifest
 import android.app.AlarmManager
 import android.app.Application
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -15,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -56,8 +59,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
@@ -69,7 +72,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.xingheyuzhuan.shiguangschedule.R
+import com.xingheyuzhuan.shiguangschedule.service.CourseAlarmReceiver
 import com.xingheyuzhuan.shiguangschedule.service.CourseNotificationWorker
+import com.xingheyuzhuan.shiguangschedule.service.DndSchedulerWorker
 
 // 这是一个用于跳转到精确闹钟设置的通用函数
 fun openExactAlarmSettings(context: Context) {
@@ -108,7 +114,20 @@ fun hasNotificationPermission(context: Context): Boolean {
     }
 }
 
-// 触发 Worker 的辅助函数
+// 检查是否拥有勿扰模式权限的函数
+fun hasDndPermission(context: Context): Boolean {
+    val notificationManager = context.getSystemService<NotificationManager>()
+    return notificationManager?.isNotificationPolicyAccessGranted ?: false
+}
+
+// 跳转到勿扰模式设置的函数
+fun openDndSettings(context: Context) {
+    val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+    context.startActivity(intent)
+}
+
+
+// 触发 Notification Worker 的辅助函数
 private fun triggerNotificationWorker(context: Context) {
     val workRequest = OneTimeWorkRequestBuilder<CourseNotificationWorker>().build()
     WorkManager.getInstance(context).enqueueUniqueWork(
@@ -118,7 +137,13 @@ private fun triggerNotificationWorker(context: Context) {
     )
 }
 
-// 新增：跳转到应用信息页面的辅助函数
+// 触发 DND Worker 的辅助函数
+private fun triggerDndSchedulerWorker(context: Context) {
+    DndSchedulerWorker.enqueueWork(context)
+}
+
+
+// 跳转到应用信息页面的辅助函数
 fun openAppSettings(context: Context) {
     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
         data = "package:${context.packageName}".toUri()
@@ -126,7 +151,7 @@ fun openAppSettings(context: Context) {
     context.startActivity(intent)
 }
 
-// 新增：跳转到忽略电池优化设置的辅助函数
+// 跳转到忽略电池优化设置的辅助函数
 fun openIgnoreBatteryOptimizationSettings(context: Context) {
     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
         data = "package:${context.packageName}".toUri()
@@ -135,6 +160,7 @@ fun openIgnoreBatteryOptimizationSettings(context: Context) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("ASSIGNED_VALUE_IS_NEVER_READ")
 @Composable
 fun NotificationSettingsScreen(
     onNavigateBack: () -> Unit,
@@ -155,13 +181,31 @@ fun NotificationSettingsScreen(
     var tempRemindMinutesInput by remember { mutableStateOf(uiState.remindBeforeMinutes.toString()) }
     var showExactAlarmPermissionDialog by remember { mutableStateOf(false) }
     var showClearConfirmationDialog by remember { mutableStateOf(false) }
+    var showDndPermissionDialog by remember { mutableStateOf(false) }
+    var showAutoModeSelectionDialog by remember { mutableStateOf(false) }
+
+    // 模式选项
+    val modeOptions = mapOf(
+        "OFF" to stringResource(R.string.auto_mode_off),
+        CourseAlarmReceiver.MODE_DND to stringResource(R.string.auto_mode_dnd),
+        CourseAlarmReceiver.MODE_SILENT to stringResource(R.string.auto_mode_silent)
+    )
+
+    // 根据当前状态获取显示文本
+    val currentModeText = remember(uiState.autoModeEnabled, uiState.autoControlMode) {
+        if (!uiState.autoModeEnabled) {
+            modeOptions["OFF"]
+        } else {
+            modeOptions[uiState.autoControlMode]
+        }
+    }
 
     // --- 权限请求器 ---
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (!isGranted) {
-            Toast.makeText(context, "通知权限被拒绝，无法接收课程提醒。", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.toast_notification_permission_denied), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -176,6 +220,7 @@ fun NotificationSettingsScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.updateExactAlarmStatus(hasExactAlarmPermission(context))
+                viewModel.updateDndPermissionStatus(hasDndPermission(context))
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -187,10 +232,10 @@ fun NotificationSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("课程提醒设置") },
+                title = { Text(stringResource(R.string.title_course_notification_settings)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.a11y_back))
                     }
                 }
             )
@@ -201,29 +246,30 @@ fun NotificationSettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             item {
                 // 第一个卡片组：提醒功能、权限和后台设置
-                Text("常规", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.section_title_general), style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(8.dp))
                 Card(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("权限设置对于 Android 提醒非常重要", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.text_permission_importance_title), style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("为了确保提醒按时送达，你需要：\n1. 授予精确闹钟权限 (Android 12及以上)\n2. 开启应用的自启动权限\n3. 关闭应用的电池优化功能\n\n请在下方的设置项中手动开启这些权限。", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.text_permission_importance_detail), style = MaterialTheme.typography.bodyMedium)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-                        // 卡片 1: 提醒设置
+                        // 卡片 1: 课程提醒开关
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("课程提醒", style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.item_course_reminder), style = MaterialTheme.typography.titleMedium)
                             Switch(
                                 checked = uiState.reminderEnabled,
                                 onCheckedChange = { isEnabled ->
@@ -238,30 +284,65 @@ fun NotificationSettingsScreen(
                             )
                         }
                         HorizontalDivider()
+
                         SettingItemRow(
-                            title = "提前提醒时间",
-                            currentValue = "${uiState.remindBeforeMinutes} 分钟",
+                            title = stringResource(R.string.item_auto_mode),
+                            currentValue = currentModeText,
+                            onClick = {
+                                if (!uiState.reminderEnabled) {
+                                    Toast.makeText(context, context.getString(R.string.toast_enable_reminder_first), Toast.LENGTH_SHORT).show()
+                                } else {
+                                    showAutoModeSelectionDialog = true
+                                }
+                            }
+                        )
+                        if (!uiState.reminderEnabled) {
+                            Text(
+                                text = stringResource(R.string.text_auto_mode_dependency),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 8.dp)
+                            )
+                        }
+                        HorizontalDivider()
+
+
+                        SettingItemRow(
+                            title = stringResource(R.string.item_remind_time_before),
+                            currentValue = stringResource(R.string.remind_time_minutes_format, uiState.remindBeforeMinutes),
                             onClick = {
                                 tempRemindMinutesInput = uiState.remindBeforeMinutes.toString()
                                 showEditRemindMinutesDialog = true
                             }
                         )
+
+                        // 精确闹钟权限 (Android 12+)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            val statusText = if (uiState.exactAlarmStatus) "已开启" else "未开启"
+                            val statusText = if (uiState.exactAlarmStatus) stringResource(R.string.status_enabled) else stringResource(R.string.status_disabled)
                             SettingItemRow(
-                                title = "精确闹钟权限",
+                                title = stringResource(R.string.item_exact_alarm_permission),
                                 currentValue = statusText,
                                 onClick = { openExactAlarmSettings(context) }
                             )
                         }
+
+                        // 上课勿扰模式权限设置项
+                        HorizontalDivider()
+                        val dndStatusText = if (uiState.dndPermissionStatus) stringResource(R.string.status_authorized) else stringResource(R.string.status_unauthorized)
+                        SettingItemRow(
+                            title = stringResource(R.string.item_dnd_permission),
+                            currentValue = dndStatusText,
+                            onClick = { openDndSettings(context) }
+                        )
+
                         HorizontalDivider()
                         SettingItemRow(
-                            title = "后台运行和自启",
+                            title = stringResource(R.string.item_background_and_autostart),
                             onClick = { openAppSettings(context) }
                         )
                         HorizontalDivider()
                         SettingItemRow(
-                            title = "忽略电池优化",
+                            title = stringResource(R.string.item_ignore_battery_optimization),
                             onClick = { openIgnoreBatteryOptimizationSettings(context) }
                         )
                     }
@@ -269,25 +350,25 @@ fun NotificationSettingsScreen(
             }
 
             item {
-                Text("高级", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.section_title_advanced), style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(8.dp))
                 Card(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("跳过日期功能", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.section_title_skip_dates), style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("实验性的功能,不保证一定有用", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.text_skip_dates_experimental), style = MaterialTheme.typography.bodyMedium)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
                         SettingItemRow(
-                            title = "更新节假日信息",
+                            title = stringResource(R.string.item_update_holiday_info),
                             currentValue = null,
                             onClick = {
                                 viewModel.onUpdateHolidays(
-                                    onSuccess = { ctx -> Toast.makeText(ctx, "节假日信息更新成功！", Toast.LENGTH_SHORT).show() },
-                                    onFailure = { ctx, msg -> Toast.makeText(ctx, "更新失败：$msg", Toast.LENGTH_LONG).show() },
+                                    onSuccess = { ctx -> Toast.makeText(ctx, ctx.getString(R.string.toast_holidays_update_success), Toast.LENGTH_SHORT).show() },
+                                    onFailure = { ctx, msg -> Toast.makeText(ctx, ctx.getString(R.string.toast_update_failed, msg), Toast.LENGTH_LONG).show() },
                                     context
                                 )
                             }
@@ -302,7 +383,7 @@ fun NotificationSettingsScreen(
                             }
                         }
                         Text(
-                            text = "可能不稳定(一般情况下只有年末才公布下一年的节假日信息)",
+                            text = stringResource(R.string.update_holiday_info_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             modifier = Modifier.padding(start = 16.dp)
@@ -310,15 +391,19 @@ fun NotificationSettingsScreen(
                         HorizontalDivider()
 
                         SettingItemRow(
-                            title = "清空跳过日期",
+                            title = stringResource(R.string.item_clear_skipped_dates),
                             currentValue = null,
                             onClick = { showClearConfirmationDialog = true }
                         )
                         HorizontalDivider()
 
                         SettingItemRow(
-                            title = "查看跳过的日期",
-                            currentValue = if (uiState.skippedDates.isNotEmpty()) "${uiState.skippedDates.size} 个日期" else "无",
+                            title = stringResource(R.string.item_view_skipped_dates),
+                            currentValue = if (uiState.skippedDates.isNotEmpty()) {
+                                stringResource(R.string.skipped_dates_count_format, uiState.skippedDates.size)
+                            } else {
+                                stringResource(R.string.skipped_dates_none)
+                            },
                             onClick = { showViewSkippedDatesDialog = true }
                         )
                     }
@@ -326,6 +411,35 @@ fun NotificationSettingsScreen(
             }
         }
     }
+
+    if (showAutoModeSelectionDialog) {
+        AutoModeSelectionDialog(
+            modeOptions = modeOptions,
+            currentAutoModeEnabled = uiState.autoModeEnabled,
+            currentAutoControlMode = uiState.autoControlMode,
+            hasDndPermission = uiState.dndPermissionStatus,
+            onModeSelected = { selectedKey ->
+                val isEnabled = selectedKey != "OFF"
+                val controlMode = if (isEnabled) selectedKey else uiState.autoControlMode
+
+                if (isEnabled && !uiState.dndPermissionStatus) {
+                    showDndPermissionDialog = true
+                    return@AutoModeSelectionDialog
+                }
+
+                viewModel.onAutoModeStateChange(
+                    isEnabled = isEnabled,
+                    newControlMode = controlMode,
+                    triggerDndWorker = ::triggerDndSchedulerWorker,
+                    context = context
+                )
+
+                showAutoModeSelectionDialog = false
+            },
+            onDismiss = { showAutoModeSelectionDialog = false }
+        )
+    }
+
 
     if (showEditRemindMinutesDialog) {
         EditRemindMinutesDialog(
@@ -350,19 +464,19 @@ fun NotificationSettingsScreen(
     if (showExactAlarmPermissionDialog) {
         AlertDialog(
             onDismissRequest = { showExactAlarmPermissionDialog = false },
-            title = { Text("需要精确闹钟权限") },
-            text = { Text("为了确保提醒能在准确时间送达，请授予精确闹钟权限。") },
+            title = { Text(stringResource(R.string.dialog_title_exact_alarm_permission)) },
+            text = { Text(stringResource(R.string.dialog_text_exact_alarm_permission)) },
             confirmButton = {
                 Button(onClick = {
                     showExactAlarmPermissionDialog = false
                     openExactAlarmSettings(context)
                 }) {
-                    Text("去设置")
+                    Text(stringResource(R.string.action_go_to_settings))
                 }
             },
             dismissButton = {
                 Button(onClick = { showExactAlarmPermissionDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         )
@@ -371,27 +485,104 @@ fun NotificationSettingsScreen(
     if (showClearConfirmationDialog) {
         AlertDialog(
             onDismissRequest = { showClearConfirmationDialog = false },
-            title = { Text("确认清空") },
-            text = { Text("这会永久清除所有跳过的日期，无法恢复。确定要继续吗？") },
+            title = { Text(stringResource(R.string.dialog_title_clear_confirmation)) },
+            text = { Text(stringResource(R.string.dialog_text_clear_confirmation)) },
             confirmButton = {
                 Button(onClick = {
                     viewModel.onClearSkippedDates(
-                        onSuccess = { ctx -> Toast.makeText(ctx, "已清空所有跳过日期！", Toast.LENGTH_SHORT).show() },
-                        onFailure = { ctx, msg -> Toast.makeText(ctx, "清空失败：$msg", Toast.LENGTH_LONG).show() },
+                        onSuccess = { ctx -> Toast.makeText(ctx, ctx.getString(R.string.toast_clear_success), Toast.LENGTH_SHORT).show() },
+                        onFailure = { ctx, msg -> Toast.makeText(ctx, ctx.getString(R.string.toast_clear_failed, msg), Toast.LENGTH_LONG).show() },
                         context
                     )
                     showClearConfirmationDialog = false
                 }) {
-                    Text("确定")
+                    Text(stringResource(R.string.action_confirm))
                 }
             },
             dismissButton = {
                 Button(onClick = { showClearConfirmationDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         )
     }
+
+    if (showDndPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showDndPermissionDialog = false },
+            title = { Text(stringResource(R.string.dialog_title_dnd_permission)) },
+            text = { Text(stringResource(R.string.dialog_text_dnd_permission)) },
+            confirmButton = {
+                Button(onClick = {
+                    showDndPermissionDialog = false
+                    openDndSettings(context)
+                }) {
+                    Text(stringResource(R.string.action_go_to_settings))
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showDndPermissionDialog = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
+    }
+}
+@Composable
+fun AutoModeSelectionDialog(
+    modeOptions: Map<String, String>,
+    currentAutoModeEnabled: Boolean,
+    currentAutoControlMode: String,
+    hasDndPermission: Boolean,
+    onModeSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedKey by remember {
+        mutableStateOf(if (currentAutoModeEnabled) currentAutoControlMode else "OFF")
+    }
+
+    // 权限提示文本
+    val permissionText = if (!hasDndPermission) stringResource(R.string.auto_mode_dnd_permission_warning) else ""
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.dialog_title_auto_mode_selection)) },
+        text = {
+            Column {
+                Text(stringResource(R.string.dialog_title_auto_mode_selection) + permissionText, style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                modeOptions.forEach { (key, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedKey = key }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedKey == key,
+                            onClick = { selectedKey = key }
+                        )
+                        Spacer(modifier = Modifier.padding(8.dp))
+                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onModeSelected(selectedKey) }
+            ) {
+                Text(stringResource(R.string.action_confirm))
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        }
+    )
 }
 
 @Composable
@@ -422,7 +613,7 @@ fun SettingItemRow(
             }
             Icon(
                 imageVector = Icons.Filled.ChevronRight,
-                contentDescription = "详情",
+                contentDescription = stringResource(R.string.a11y_details),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -436,12 +627,18 @@ fun EditRemindMinutesDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val isInputValid = currentMinutes.toIntOrNull() in 0..60
-    val errorText = if (currentMinutes.isEmpty()) "请输入分钟数" else if (!isInputValid) "请输入0到60之间的数字" else null
+    val errorText = if (currentMinutes.isEmpty()) {
+        stringResource(R.string.error_input_empty)
+    } else if (currentMinutes.toIntOrNull() !in 0..60) {
+        stringResource(R.string.error_input_range)
+    } else {
+        null
+    }
+    val isInputValid = errorText == null
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("设置提前提醒时间") },
+        title = { Text(stringResource(R.string.dialog_title_set_remind_time)) },
         text = {
             Column {
                 OutlinedTextField(
@@ -449,7 +646,7 @@ fun EditRemindMinutesDialog(
                     onValueChange = {
                         onMinutesChange(it)
                     },
-                    label = { Text("分钟数") },
+                    label = { Text(stringResource(R.string.label_minutes_input)) },
                     singleLine = true,
                     isError = errorText != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -469,12 +666,12 @@ fun EditRemindMinutesDialog(
                 onClick = onConfirm,
                 enabled = isInputValid
             ) {
-                Text("确定")
+                Text(stringResource(R.string.action_confirm))
             }
         },
         dismissButton = {
             Button(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
@@ -487,10 +684,10 @@ fun ViewSkippedDatesDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("跳过的提醒日期") },
+        title = { Text(stringResource(R.string.dialog_title_view_skipped_dates)) },
         text = {
             if (dates.isEmpty()) {
-                Text("没有设置跳过的日期。")
+                Text(stringResource(R.string.text_no_skipped_dates))
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 100.dp),
@@ -516,16 +713,8 @@ fun ViewSkippedDatesDialog(
         },
         confirmButton = {
             Button(onClick = onDismiss) {
-                Text("关闭")
+                Text(stringResource(R.string.action_close))
             }
         }
-    )
-}
-
-@Preview(showBackground = true, name = "Notification Settings Screen Preview")
-@Composable
-fun NotificationSettingsScreenPreview() {
-    NotificationSettingsScreen(
-        onNavigateBack = {}
     )
 }

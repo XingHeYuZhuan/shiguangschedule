@@ -25,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.xingheyuzhuan.shiguangschedule.R
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.MyApplication
@@ -61,7 +63,10 @@ fun CourseTablePickerDialog(
         text = {
             Column {
                 if (courseTables.isEmpty()) {
-                    Text(text = "暂无课表可选择。", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = stringResource(R.string.text_no_course_tables),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth(),
@@ -73,7 +78,7 @@ fun CourseTablePickerDialog(
                             val isSelectedForDialog = courseTable.id == selectedTable?.id
 
                             CourseTablePickerCard(
-                                courseTable = courseTable, // 直接传入 CourseTable
+                                courseTable = courseTable,
                                 isSelected = isSelectedForDialog,
                                 isCurrentActive = isCurrentActive,
                                 onCardClick = {
@@ -93,12 +98,12 @@ fun CourseTablePickerDialog(
                 },
                 enabled = selectedTable != null
             ) {
-                Text("确认")
+                Text(stringResource(R.string.action_confirm))
             }
         },
         dismissButton = {
             Button(onClick = onDismissRequest) {
-                Text("取消")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
@@ -106,7 +111,7 @@ fun CourseTablePickerDialog(
 
 @Composable
 fun CourseTablePickerCard(
-    courseTable: CourseTable, // 直接接收 CourseTable
+    courseTable: CourseTable,
     isSelected: Boolean,
     isCurrentActive: Boolean,
     onCardClick: (CourseTable) -> Unit
@@ -135,15 +140,28 @@ fun CourseTablePickerCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = courseTable.name, style = MaterialTheme.typography.titleMedium)
-                Text(text = "ID: ${courseTable.id.substring(0, 8)}...", style = MaterialTheme.typography.bodySmall)
                 Text(
-                    text = "创建于: ${dateFormatter.format(Date(courseTable.createdAt))}",
+                    text = stringResource(
+                        R.string.course_table_id_prefix,
+                        courseTable.id.take(8) + "..."
+                    ),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = stringResource(
+                        R.string.course_table_created_at_prefix,
+                        dateFormatter.format(Date(courseTable.createdAt))
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
             if (isCurrentActive) {
-                Text("当前", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    stringResource(R.string.label_current),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

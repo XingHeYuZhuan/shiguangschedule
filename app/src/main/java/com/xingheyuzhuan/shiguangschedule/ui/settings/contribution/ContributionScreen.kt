@@ -17,10 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.model.ContributionList
 
 // 为方便 UI 代码，定义 Contributor 别名
@@ -39,10 +41,13 @@ fun ContributionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("贡献列表") },
+                title = { Text(stringResource(R.string.title_contribution_list)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回上一页")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.a11y_back_to_previous)
+                        )
                     }
                 }
             )
@@ -92,7 +97,10 @@ fun ContributionScreen(
 // 选项卡 Composable
 @Composable
 fun ContributionTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
-    val tabs = listOf("教务适配", "软件开发")
+    val tabs = listOf(
+        stringResource(R.string.tab_adapter_development),
+        stringResource(R.string.tab_app_development)
+    )
 
     TabRow(selectedTabIndex = selectedTabIndex) {
         tabs.forEachIndexed { index, title ->
@@ -109,7 +117,7 @@ fun ContributionTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
 @Composable
 fun ContributorListContent(list: List<Contributor>, context: Context) {
     if (list.isEmpty()) {
-        Text("当前类别暂无贡献者信息。", modifier = Modifier.padding(top = 16.dp))
+        Text(stringResource(R.string.text_no_contributors), modifier = Modifier.padding(top = 16.dp))
         return
     }
 
@@ -123,6 +131,9 @@ fun ContributorListContent(list: List<Contributor>, context: Context) {
 // 贡献者卡片 Composable
 @Composable
 fun ContributorCard(contributor: Contributor, context: Context) {
+    val a11yAvatar = stringResource(R.string.a11y_contributor_avatar, contributor.name)
+    val labelGithub = stringResource(R.string.label_github)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -141,7 +152,7 @@ fun ContributorCard(contributor: Contributor, context: Context) {
 
             AsyncImage(
                 model = "file:///android_asset/$fullAssetPath",
-                contentDescription = "贡献者头像: ${contributor.name}",
+                contentDescription = a11yAvatar,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(40.dp)
@@ -157,7 +168,7 @@ fun ContributorCard(contributor: Contributor, context: Context) {
             // 在卡片右侧展示 URL 提示
             Spacer(Modifier.weight(1f))
             Text(
-                text = "GitHub",
+                text = labelGithub,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline
             )
@@ -168,10 +179,17 @@ fun ContributorCard(contributor: Contributor, context: Context) {
 // 辅助 Composable: 错误信息
 @Composable
 fun ErrorMessage(message: String, onRetry: () -> Unit) {
+    val textLoadingFailed = stringResource(R.string.text_loading_failed, message)
+    val actionRetry = stringResource(R.string.action_retry)
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = "加载失败: $message", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 8.dp))
+        Text(
+            text = textLoadingFailed,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
         Button(onClick = onRetry) {
-            Text("重试")
+            Text(actionRetry)
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings.course
 
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -11,6 +10,8 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.TimeSlotRepository
+import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport
+import com.xingheyuzhuan.shiguangschedule.data.repository.DualColor
 import com.xingheyuzhuan.shiguangschedule.MyApplication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,13 +21,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
-import kotlin.random.Random
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 
 class AddEditCourseViewModel(
     private val courseTableRepository: CourseTableRepository,
@@ -47,6 +48,7 @@ class AddEditCourseViewModel(
         viewModelScope.launch {
             // 获取 appSettings 的数据流
             val appSettingsFlow = appSettingsRepository.getAppSettings()
+
             // 使用 flatMapLatest 监听 appSettings 的变化，并根据当前课表 ID 获取对应的时间段
             @OptIn(ExperimentalCoroutinesApi::class)
             val timeSlotsFlow = appSettingsFlow.flatMapLatest { settings ->
@@ -55,13 +57,25 @@ class AddEditCourseViewModel(
                     timeSlotRepository.getTimeSlotsByCourseTableId(courseTableId)
                 } else {
                     // 如果没有设置课表 ID，则返回空列表
-                    kotlinx.coroutines.flow.flowOf(emptyList())
+                    flowOf(emptyList())
+                }
+            }
+
+            @OptIn(ExperimentalCoroutinesApi::class)
+            val courseConfigFlow = appSettingsFlow.flatMapLatest { settings ->
+                val courseTableId = settings.currentCourseTableId
+                if (courseTableId != null) {
+                    appSettingsRepository.getCourseTableConfigFlow(courseTableId)
+                } else {
+                    // 如果没有设置课表 ID，则返回 null
+                    flowOf(null)
                 }
             }
 
             combine(
                 timeSlotsFlow,
                 appSettingsFlow,
+                courseConfigFlow,
                 if (courseId != null) {
                     courseTableRepository.getCoursesWithWeeksByTableId(appSettingsRepository.getAppSettings().first().currentCourseTableId.orEmpty())
                         .map { courses ->
@@ -70,42 +84,60 @@ class AddEditCourseViewModel(
                 } else {
                     MutableStateFlow(null)
                 }
-            ) { timeSlots, appSettings, courseWithWeeks ->
+            ) { timeSlots, appSettings, courseConfig, courseWithWeeks ->
                 _uiState.update { currentState ->
-                    val course = currentState.course ?: if (courseId == null) {
-                        Course(
+
+                    val totalWeeks = courseConfig?.semesterTotalWeeks ?: 20
+                    val maxColorIndex = CourseImportExport.COURSE_COLOR_MAPS.size - 1
+
+                    val (course: Course?, initialColorIndex: Int) = if (currentState.course != null) {
+                        Pair(currentState.course, currentState.colorIndex)
+                    } else if (courseId == null) {
+                        val newColorIndex = CourseImportExport.getRandomColorIndex()
+                        val newCourse = Course(
                             id = UUID.randomUUID().toString(),
                             courseTableId = appSettings.currentCourseTableId.orEmpty(),
                             name = "", teacher = "", position = "",
                             day = initialDay ?: 1,
                             startSection = initialSection ?: 1,
                             endSection = initialSection ?: 1,
-                            colorInt = getRandomColor().toArgb()
+                            colorInt = newColorIndex
                         )
+                        Pair(newCourse, newColorIndex)
                     } else {
-                        courseWithWeeks?.course
+                        val existingCourse = courseWithWeeks?.course
+                        val existingColorIndex = existingCourse?.colorInt
+
+                        // 验证索引是否在有效范围内，如果不在则随机选择
+                        val validatedIndex = if (existingColorIndex != null && existingColorIndex >= 0 && existingColorIndex <= maxColorIndex) {
+                            existingColorIndex
+                        } else {
+                            CourseImportExport.getRandomColorIndex()
+                        }
+
+                        Pair(existingCourse, validatedIndex)
                     }
 
                     val weeks = currentState.weeks.takeIf { it.isNotEmpty() } ?: if(courseId == null) {
-                        (1..appSettings.semesterTotalWeeks).toSet()
+                        (1..totalWeeks).toSet()
                     } else {
                         courseWithWeeks?.weeks?.map { it.weekNumber }?.toSet() ?: emptySet()
                     }
 
                     currentState.copy(
                         isEditing = courseId != null,
-                        course = course,
+                        course = course, // 使用解构后的 course
                         name = course?.name.orEmpty(),
                         teacher = course?.teacher.orEmpty(),
                         position = course?.position.orEmpty(),
                         day = course?.day ?: 1,
                         startSection = course?.startSection ?: 1,
                         endSection = course?.endSection ?: 1,
-                        color = Color(course?.colorInt ?: Color.Unspecified.toArgb()),
+                        colorIndex = initialColorIndex, // 使用解构后的 initialColorIndex
                         weeks = weeks,
                         timeSlots = timeSlots,
                         currentCourseTableId = appSettings.currentCourseTableId,
-                        semesterTotalWeeks = appSettings.semesterTotalWeeks
+                        semesterTotalWeeks = totalWeeks
                     )
                 }
             }.collect()
@@ -127,12 +159,17 @@ class AddEditCourseViewModel(
     fun onWeeksChange(newWeeks: Set<Int>) {
         _uiState.update { it.copy(weeks = newWeeks) }
     }
-    fun onColorChange(color: Color) { _uiState.update { it.copy(color = color) } }
+
+    fun onColorChange(colorIndex: Int) { _uiState.update { it.copy(colorIndex = colorIndex) } }
 
     // 统一的保存函数
     fun onSave() {
         viewModelScope.launch {
             val state = uiState.value
+
+            // 修正：直接存储 UI State 中当前选中的颜色索引 (Int)
+            val colorIndexToSave = state.colorIndex
+
             val courseToSave = state.course?.copy(
                 name = state.name,
                 teacher = state.teacher,
@@ -140,12 +177,12 @@ class AddEditCourseViewModel(
                 day = state.day,
                 startSection = state.startSection,
                 endSection = state.endSection,
-                colorInt = state.color.toArgb(),
+                colorInt = colorIndexToSave, // 存储颜色索引
                 courseTableId = state.currentCourseTableId.orEmpty()
             )
             if (courseToSave != null) {
                 courseTableRepository.upsertCourse(courseToSave, state.weeks.toList())
-                _uiEvent.send(UiEvent.SaveSuccess) // 发送保存成功事件
+                _uiEvent.send(UiEvent.SaveSuccess)
             }
         }
     }
@@ -155,7 +192,7 @@ class AddEditCourseViewModel(
         viewModelScope.launch {
             uiState.value.course?.let { course ->
                 courseTableRepository.deleteCourse(course)
-                _uiEvent.send(UiEvent.DeleteSuccess) // 发送删除成功事件
+                _uiEvent.send(UiEvent.DeleteSuccess)
             }
         }
     }
@@ -163,18 +200,8 @@ class AddEditCourseViewModel(
     // 统一的取消函数
     fun onCancel() {
         viewModelScope.launch {
-            _uiEvent.send(UiEvent.Cancel) // 发送取消事件
+            _uiEvent.send(UiEvent.Cancel)
         }
-    }
-
-    private fun getRandomColor(): Color {
-        val colors = listOf(
-            Color(0xFFF44336), Color(0xFFE91E63), Color(0xFF9C27B0), Color(0xFF673AB7),
-            Color(0xFF3F51B5), Color(0xFF2196F3), Color(0xFF03A9F4), Color(0xFF00BCD4),
-            Color(0xFF009688), Color(0xFF4CAF50), Color(0xFF8BC34A), Color(0xFFCDDC39),
-            Color(0xFFFFEB3B), Color(0xFFFFC107), Color(0xFFFF9800), Color(0xFFFF5722)
-        )
-        return colors[Random.nextInt(colors.size)]
     }
 
     companion object {
@@ -215,15 +242,10 @@ data class AddEditCourseUiState(
     val day: Int = 1,
     val startSection: Int = 1,
     val endSection: Int = 2,
-    val color: Color = Color.Unspecified,
+    val colorIndex: Int = 0,
     val weeks: Set<Int> = emptySet(),
     val timeSlots: List<TimeSlot> = emptyList(),
     val currentCourseTableId: String? = null,
     val semesterTotalWeeks: Int = 20,
-    val courseColors: List<Color> = listOf(
-        Color(0xFFF44336), Color(0xFFE91E63), Color(0xFF9C27B0), Color(0xFF673AB7),
-        Color(0xFF3F51B5), Color(0xFF2196F3), Color(0xFF03A9F4), Color(0xFF00BCD4),
-        Color(0xFF009688), Color(0xFF4CAF50), Color(0xFF8BC34A), Color(0xFFCDDC39),
-        Color(0xFFFFEB3B), Color(0xFFFFC107), Color(0xFFFF9800), Color(0xFFFF5722)
-    )
+    val courseColorMaps: List<DualColor> = CourseImportExport.COURSE_COLOR_MAPS
 )

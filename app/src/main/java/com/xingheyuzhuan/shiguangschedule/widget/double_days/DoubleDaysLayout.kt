@@ -1,12 +1,14 @@
 package com.xingheyuzhuan.shiguangschedule.widget.double_days
 
+import android.graphics.Paint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
+import androidx.glance.LocalSize
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.appWidgetBackground
@@ -17,32 +19,45 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
-import androidx.glance.layout.width
-import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.padding
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
+import androidx.glance.layout.width
+import androidx.glance.layout.wrapContentSize
 import com.xingheyuzhuan.shiguangschedule.MainActivity
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetCourse
+import com.xingheyuzhuan.shiguangschedule.widget.EllipsizedBitmapText
 import com.xingheyuzhuan.shiguangschedule.widget.WidgetColors
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle as LocalDateTextStyle
 import java.util.Locale
+import java.time.format.TextStyle as LocalDateTextStyle
+
+
+private const val BASE_WIDGET_WIDTH = 300f
+private const val BASE_WIDGET_HEIGHT = 170f
+private const val MAX_LAYOUT_SCALE = 4.0f
+
 
 /**
  * 双日课程小组件的布局。
- * 显示今天和明天的课程，每边最多显示2节，并在底部显示剩余课程总数。
  */
 @Composable
 fun DoubleDaysLayout(coursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, Int?>>) {
+    val context = LocalContext.current
+    val currentSize = LocalSize.current
+
+    val widthScale = currentSize.width.value / BASE_WIDGET_WIDTH
+    val heightScale = currentSize.height.value / BASE_WIDGET_HEIGHT
+
+    val rawScale = minOf(widthScale, heightScale)
+    val finalScale = rawScale.coerceIn(1.0f, MAX_LAYOUT_SCALE)
+
     val coursesAndWeekState = coursesAndWeekFlow.collectAsState(initial = Pair(emptyList(), null))
 
     val (coursesList, currentWeek) = coursesAndWeekState.value
@@ -62,7 +77,9 @@ fun DoubleDaysLayout(coursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, Int
     }.take(2)
 
     val effectiveTomorrowCourses = rawTomorrowCourses.filter { !it.isSkipped }.take(2)
-    val systemCornerRadius = 21.dp
+
+    // 使用统一的 finalScale 来计算圆角
+    val systemCornerRadius = (21 * finalScale).dp
 
     // 整个小组件的容器
     Box(
@@ -77,71 +94,81 @@ fun DoubleDaysLayout(coursesAndWeekFlow: Flow<Pair<List<List<WidgetCourse>>, Int
         Column(
             modifier = GlanceModifier.fillMaxSize()
         ) {
-            // 顶部区域：只显示周数或假期状态
             Row(
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = (8 * finalScale).dp, vertical = (2 * finalScale).dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalAlignment = Alignment.End
             ) {
-                Spacer(modifier = GlanceModifier.defaultWeight())
-                Text(
-                    text = if (currentWeek != null) "第${currentWeek}周" else "假期中",
-                    style = TextStyle(fontSize = 12.sp, color = WidgetColors.textHint)
+                EllipsizedBitmapText(
+                    text = if (currentWeek != null) {
+                        context.getString(R.string.status_current_week_format, currentWeek)
+                    } else {
+                        context.getString(R.string.title_vacation)
+                    },
+                    fontSizeDp = (13f * finalScale).dp,
+                    color = WidgetColors.textHint,
+                    maxWidthDp = (80 * finalScale).dp,
+                    textAlign = Paint.Align.RIGHT,
+                    modifier = GlanceModifier.wrapContentSize()
                 )
             }
 
-            // 主要内容区域：根据不同的状态显示不同的布局
             if (isVacation) {
-                // 假期中 (全局一体化显示)
                 Column(
                     modifier = GlanceModifier
                         .fillMaxSize()
-                        .padding(20.dp),
+                        .padding(horizontal = (20 * finalScale).dp, vertical = (20 * finalScale).dp),
                     horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
                     verticalAlignment = Alignment.Vertical.CenterVertically
                 ) {
-                    Text(
-                        text = "假期中",
-                        style = TextStyle(fontSize = 14.sp, color = WidgetColors.textPrimary, fontWeight = FontWeight.Bold)
+                    EllipsizedBitmapText(
+                        text = context.getString(R.string.title_vacation),
+                        fontSizeDp = (14f * finalScale).dp,
+                        color = WidgetColors.textPrimary,
+                        maxWidthDp = (BASE_WIDGET_WIDTH * finalScale).dp,
+                        modifier = GlanceModifier.fillMaxWidth()
                     )
-                    Text(
-                        text = "期待新学期",
-                        style = TextStyle(fontSize = 12.sp, color = WidgetColors.textSecondary)
+                    EllipsizedBitmapText(
+                        text = context.getString(R.string.widget_vacation_expecting),
+                        fontSizeDp = (12f * finalScale).dp,
+                        color = WidgetColors.textSecondary,
+                        maxWidthDp = (BASE_WIDGET_WIDTH * finalScale).dp,
+                        modifier = GlanceModifier.fillMaxWidth()
                     )
                 }
             } else {
-                // 非假期状态下，总是显示左右两栏，由 DayScheduleColumn 负责各自的“无课程”状态
                 Row(
                     modifier = GlanceModifier
                         .fillMaxWidth()
                         .defaultWeight()
-                        .padding(bottom = 6.dp),
+                        .padding(bottom = (6 * finalScale).dp),
                     verticalAlignment = Alignment.Top
                 ) {
-                    // 左侧：今天的课程
                     DayScheduleColumn(
                         date = today,
                         courses = effectiveTodayCourses,
                         modifier = GlanceModifier.defaultWeight(),
-                        totalRemainingCount = totalRemainingTodayCourses
+                        totalRemainingCount = totalRemainingTodayCourses,
+                        scale = finalScale
                     )
 
                     // 中间分割线
                     Box(
                         modifier = GlanceModifier
-                            .width(1.dp)
+                            .width((1 * finalScale).dp)
                             .fillMaxHeight()
                             .background(WidgetColors.divider)
-                            .padding(vertical = 4.dp)
+                            .padding(vertical = (4 * finalScale).dp)
                     ) { /* content lambda 块 */ }
 
-                    // 右侧：明天的课程
                     DayScheduleColumn(
                         date = tomorrow,
                         courses = effectiveTomorrowCourses,
                         modifier = GlanceModifier.defaultWeight(),
-                        totalRemainingCount = totalTomorrowCourses
+                        totalRemainingCount = totalTomorrowCourses,
+                        scale = finalScale
                     )
                 }
             }
@@ -157,29 +184,44 @@ fun DayScheduleColumn(
     date: LocalDate,
     courses: List<WidgetCourse>,
     modifier: GlanceModifier,
-    totalRemainingCount: Int
+    totalRemainingCount: Int,
+    scale: Float
 ) {
+    val context = LocalContext.current
     val dateString = date.format(DateTimeFormatter.ofPattern("M.d", Locale.getDefault()))
     val dayOfWeekString = date.dayOfWeek.getDisplayName(LocalDateTextStyle.SHORT, Locale.getDefault())
-    val dayTitle = if (date == LocalDate.now()) "今天" else "明天"
+
+    val dayTitleResId = if (date == LocalDate.now()) R.string.widget_title_today else R.string.widget_title_tomorrow
 
     Column(
-        modifier = modifier.fillMaxHeight().padding(horizontal = 4.dp),
+        modifier = modifier.fillMaxHeight().padding(horizontal = (4 * scale).dp),
         horizontalAlignment = Alignment.Horizontal.Start
     ) {
-        // 日期和标题
         Row(
-            modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = GlanceModifier.fillMaxWidth().padding(horizontal = (4 * scale).dp, vertical = (2 * scale).dp),
+            verticalAlignment = Alignment.Top
         ) {
-            Text(
-                text = dayTitle,
-                style = TextStyle(fontSize = 13.sp, color = WidgetColors.textPrimary, fontWeight = FontWeight.Bold)
+            EllipsizedBitmapText(
+                text = context.getString(dayTitleResId),
+                fontSizeDp = (13f * scale).dp,
+                color = WidgetColors.textPrimary,
+                maxWidthDp = (30 * scale).dp,
+                modifier = GlanceModifier.width((30 * scale).dp)
             )
-            Spacer(modifier = GlanceModifier.width(4.dp))
-            Text(
-                text = "$dateString $dayOfWeekString",
-                style = TextStyle(fontSize = 11.sp, color = WidgetColors.textHint)
+            Spacer(modifier = GlanceModifier.width((4 * scale).dp))
+
+            val safeDateInfoMaxWidth = (100 * scale).dp
+
+            EllipsizedBitmapText(
+                text = context.getString(
+                    R.string.widget_date_dayofweek_format,
+                    dateString,
+                    dayOfWeekString
+                ),
+                fontSizeDp = (13f * scale).dp,
+                color = WidgetColors.textHint,
+                maxWidthDp = safeDateInfoMaxWidth,
+                modifier = GlanceModifier.defaultWeight()
             )
         }
 
@@ -190,51 +232,77 @@ fun DayScheduleColumn(
                 modifier = GlanceModifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "无课程",
-                    style = TextStyle(fontSize = 11.sp, color = WidgetColors.textSecondary)
+                EllipsizedBitmapText(
+                    text = context.getString(R.string.text_no_course),
+                    fontSizeDp = (11f * scale).dp,
+                    color = WidgetColors.textSecondary,
+                    maxWidthDp = ((BASE_WIDGET_WIDTH / 2) * scale).dp,
+                    modifier = GlanceModifier.fillMaxWidth()
                 )
             }
         } else {
-            Column(modifier = GlanceModifier.fillMaxWidth()) {
-                courses.forEachIndexed { index, course ->
-                    CourseItemDoubleDay(course = course, index = index)
-                    if (index < courses.size - 1) {
-                        Spacer(modifier = GlanceModifier.height(3.dp))
+            Column(
+                modifier = GlanceModifier.fillMaxWidth().defaultWeight()
+            ) {
+                val slots = 2
+                (0 until slots).forEach { slotIndex ->
+                    val course = courses.getOrNull(slotIndex)
+
+                    Box(
+                        modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+                        contentAlignment = Alignment.TopStart
+                    ) {
+                        if (course != null) {
+                            CourseItemDoubleDayContent(course = course, index = slotIndex, scale = scale)
+                        }
+                    }
+
+                    if (slotIndex == 0) {
                         Row(
-                            modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 3.dp)
+                            modifier = GlanceModifier.fillMaxWidth().height((1 * scale).dp)
+                                .padding(horizontal = (7 * scale).dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Spacer(modifier = GlanceModifier.width(4.dp))
                             Box(
                                 modifier = GlanceModifier
                                     .defaultWeight()
-                                    .height(1.dp)
+                                    .fillMaxHeight()
                                     .background(WidgetColors.divider)
-                                    .cornerRadius(0.5.dp)
+                                    .cornerRadius((0.5 * scale).dp)
                             ) { /* content lambda 块 */ }
                         }
-                        Spacer(modifier = GlanceModifier.height(3.dp))
                     }
                 }
             }
 
-            Spacer(modifier = GlanceModifier.defaultWeight())
-
-            // 底部区域：显示剩余课程总数
             Column(
-                modifier = GlanceModifier.fillMaxWidth().padding(top = 4.dp),
+                modifier = GlanceModifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally
             ) {
-                // 显示剩余课程总数
-                Text(
-                    text = if (courses.isEmpty() && totalRemainingCount > 0 && date == LocalDate.now()) {
-                        "今日课程已结束"
-                    } else if (courses.isEmpty() && totalRemainingCount > 0) {
-                        "$dayTitle 还有${totalRemainingCount}节课"
-                    } else {
-                        "$dayTitle 还有${totalRemainingCount}节课"
-                    },
-                    style = TextStyle(fontSize = 11.sp, color = WidgetColors.textHint)
+                Spacer(modifier = GlanceModifier.height((4 * scale).dp))
+
+                val textContent = when {
+                    courses.isEmpty() && totalRemainingCount > 0 && date == LocalDate.now() ->
+                        context.getString(R.string.widget_today_courses_finished)
+                    totalRemainingCount > 0 -> {
+                        val formatResId = if (date == LocalDate.now()) {
+                            R.string.widget_remaining_courses_format_today
+                        } else {
+                            R.string.widget_remaining_courses_format_tomorrow
+                        }
+                        context.getString(formatResId, totalRemainingCount)
+                    }
+                    else ->
+                        context.getString(R.string.text_no_course)
+                }
+
+                EllipsizedBitmapText(
+                    text = textContent,
+                    fontSizeDp = (11f * scale).dp,
+                    color = WidgetColors.textHint,
+                    maxWidthDp = ((BASE_WIDGET_WIDTH / 2) * scale).dp,
+                    textAlign = Paint.Align.CENTER,
+                    modifier = GlanceModifier.wrapContentSize()
                 )
             }
         }
@@ -242,7 +310,7 @@ fun DayScheduleColumn(
 }
 
 /**
- * 获取课程指示器 Drawable 资源 (复用 ModerateLayout 的逻辑)
+ * 获取课程指示器 Drawable 资源
  */
 fun getCourseIndicatorDrawable(index: Int): Int {
     return when (index % 5) {
@@ -255,66 +323,91 @@ fun getCourseIndicatorDrawable(index: Int): Int {
 }
 
 /**
- * 双日布局中的单个课程项
+ * 双日布局中的单个课程项内容
  */
 @Composable
-fun CourseItemDoubleDay(course: WidgetCourse, index: Int) {
+fun CourseItemDoubleDayContent(
+    course: WidgetCourse,
+    index: Int,
+    scale: Float
+) {
+
+    val totalWidgetWidthValue = LocalSize.current.width.value
+    val dayScheduleColumnWidthValue = totalWidgetWidthValue / 2f
+    val itemHorizontalPaddingValue = 8f * scale
+    val indicatorWidthValue = 4f * scale
+    val spacerWidthValue = 6f * scale
+    val fixedScaledOccupancyValue = itemHorizontalPaddingValue + indicatorWidthValue + spacerWidthValue
+    val safetyMarginValue = 2f * scale
+    val calculatedWidthValue = dayScheduleColumnWidthValue - fixedScaledOccupancyValue - safetyMarginValue
+
+    val calculatedMaxWidth = if (calculatedWidthValue > 1f) calculatedWidthValue.dp else 1.dp
+
     Row(
         modifier = GlanceModifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp),
+            .fillMaxSize()
+            .padding(horizontal = (4 * scale).dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 左侧彩色指示条
         Image(
             provider = ImageProvider(getCourseIndicatorDrawable(index)),
             contentDescription = null,
             modifier = GlanceModifier
-                .width(4.dp)
-                // 调整高度以适应更多信息行
-                .height(42.dp)
+                .width((4 * scale).dp)
+                .fillMaxHeight()
         )
 
-        Spacer(modifier = GlanceModifier.width(6.dp))
+        Spacer(modifier = GlanceModifier.width((6 * scale).dp))
 
-        // 右侧课程内容
         Column(
             modifier = GlanceModifier.defaultWeight(),
-            horizontalAlignment = Alignment.Horizontal.Start
+            horizontalAlignment = Alignment.Horizontal.Start,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // 课程名称
-            Text(
+            EllipsizedBitmapText(
                 text = course.name,
-                style = TextStyle(fontSize = 12.sp, color = WidgetColors.textPrimary, fontWeight = FontWeight.Medium),
-                maxLines = 1
+                fontSizeDp = (12f * scale).dp,
+                color = WidgetColors.textPrimary,
+                maxWidthDp = calculatedMaxWidth,
+                modifier = GlanceModifier.fillMaxWidth()
             )
 
-            // 教师信息
             if (course.teacher.isNotBlank()) {
-                Spacer(modifier = GlanceModifier.height(1.dp)) // 课程名和教师之间的间距
-                Text(
+                Spacer(modifier = GlanceModifier.height((1 * scale).dp))
+                EllipsizedBitmapText(
                     text = course.teacher,
-                    style = TextStyle(fontSize = 10.sp, color = WidgetColors.textSecondary), // 使用次级颜色
-                    maxLines = 1
+                    fontSizeDp = (10f * scale).dp,
+                    color = WidgetColors.textSecondary,
+                    maxWidthDp = calculatedMaxWidth,
+                    modifier = GlanceModifier.fillMaxWidth()
                 )
             }
 
-            // 时间和地点
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}",
-                    style = TextStyle(fontSize = 10.sp, color = WidgetColors.textTertiary),
-                    maxLines = 1
+                val safeTimeMaxWidth = (100 * scale).dp
+
+                EllipsizedBitmapText(
+                    text = "${course.startTime.take(5)}-${course.endTime.take(5)}",
+                    fontSizeDp = (10f * scale).dp,
+                    color = WidgetColors.textTertiary,
+                    maxWidthDp = safeTimeMaxWidth,
+                    modifier = GlanceModifier.wrapContentSize()
                 )
+
                 if (course.position.isNotBlank()) {
-                    Spacer(modifier = GlanceModifier.width(4.dp))
-                    Text(
+                    Spacer(modifier = GlanceModifier.width((4 * scale).dp))
+
+
+                    EllipsizedBitmapText(
                         text = course.position,
-                        style = TextStyle(fontSize = 10.sp, color = WidgetColors.textHint),
-                        maxLines = 1
+                        fontSizeDp = (10f * scale).dp,
+                        color = WidgetColors.textHint,
+                        maxWidthDp = calculatedMaxWidth,
+                        textAlign = Paint.Align.RIGHT,
+                        modifier = GlanceModifier.defaultWeight()
                     )
                 }
             }

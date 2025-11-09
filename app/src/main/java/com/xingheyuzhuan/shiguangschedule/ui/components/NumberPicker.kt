@@ -33,7 +33,7 @@ fun <T> NativeNumberPicker(
 ) {
     // 校验可见项数量必须为≥3的奇数
     require(visibleItemsCount >= 3 && visibleItemsCount % 2 != 0) {
-        "visibleItemsCount must be an odd number and at least 3"
+        "可见项数量 (visibleItemsCount) 必须是大于等于 3 的奇数"
     }
 
     // 计算初始选中项的索引位置

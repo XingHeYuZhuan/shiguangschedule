@@ -41,12 +41,11 @@ class AndroidBridge(
     private val context: Context,
     private val coroutineScope: CoroutineScope,
     private val webView: WebView,
-    private val uiEventChannel: Channel<WebUiEvent>, // UI 事件通道
+    private val uiEventChannel: Channel<WebUiEvent>,
     private val courseConversionRepository: CourseConversionRepository,
     private val timeSlotRepository: TimeSlotRepository,
     private val onTaskCompleted: () -> Unit
 ) {
-    // ... (其他私有成员保持不变)
     private val json = Json {
         prettyPrint = true
         ignoreUnknownKeys = true
@@ -227,6 +226,42 @@ class AndroidBridge(
         }
     }
 
+    /**
+     * 将课表配置数据传回 Android 端进行保存。
+     *
+     * @param configJsonString 课表配置的 JSON 字符串，对应 CourseConfigJsonModel。
+     * @param promiseId 用于异步回调的 Promise ID。
+     */
+    @JavascriptInterface
+    fun saveCourseConfig(configJsonString: String, promiseId: String) {
+        Log.d(TAG, "接收到课表配置数据，大小: ${configJsonString.length} 字节")
+        coroutineScope.launch(Dispatchers.Main) {
+            try {
+                val tableId = importTableId
+
+                if (tableId == null) {
+                    Toast.makeText(context, "配置导入失败：未选择目标课表。", Toast.LENGTH_LONG).show()
+                    rejectJsPromise(promiseId, "课表选择已取消或未设置。")
+                    return@launch
+                }
+
+                // 解析 JSON 字符串 (由于模型已设置默认值，缺失可选字段不会报错)
+                val importedConfig = json.decodeFromString<CourseImportExport.CourseConfigJsonModel>(configJsonString)
+
+                // 调用 Repository 层的业务逻辑更新配置
+                // 该方法会处理配置的合并逻辑（例如保留 showWeekends）
+                courseConversionRepository.importCourseConfig(tableId, importedConfig)
+
+                Toast.makeText(context, "课表配置导入成功！", Toast.LENGTH_LONG).show()
+                resolveJsPromise(promiseId, "true")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "课表配置导入失败: ${e.message}", Toast.LENGTH_LONG).show()
+                rejectJsPromise(promiseId, "课表配置导入失败: ${e.message}")
+            }
+        }
+    }
+
     /** JS 调用：将预设时间段数据传回 Android 端进行保存。 */
     @JavascriptInterface
     fun savePresetTimeSlots(timeSlotsJsonString: String, promiseId: String) {
@@ -234,8 +269,6 @@ class AndroidBridge(
         coroutineScope.launch(Dispatchers.Main) {
             try {
                 val tableId = importTableId
-
-                importTableId = null
 
                 if (tableId == null) {
                     Toast.makeText(context, "导入失败：未选择课表。", Toast.LENGTH_LONG).show()
@@ -270,6 +303,7 @@ class AndroidBridge(
     @JavascriptInterface
     fun notifyTaskCompletion() {
         handler.post {
+            importTableId = null
             onTaskCompleted()
         }
     }

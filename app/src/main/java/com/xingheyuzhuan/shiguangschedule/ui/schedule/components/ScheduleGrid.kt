@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
+import androidx.compose.ui.res.stringArrayResource
+import com.xingheyuzhuan.shiguangschedule.R
 
 /**
  * 渲染课表网格的 UI 组件。
@@ -47,12 +49,16 @@ fun ScheduleGrid(
     mergedCourses: List<MergedCourseBlock>,
     showWeekends: Boolean,
     todayIndex: Int,
+    firstDayOfWeek: Int,
     onCourseBlockClicked: (MergedCourseBlock) -> Unit,
     onGridCellClicked: (Int, Int) -> Unit,
     onTimeSlotClicked: () -> Unit
 ) {
-    val weekDays = listOf("一", "二", "三", "四", "五", "六", "日")
-    val displayDays = if (showWeekends) weekDays else weekDays.take(5)
+    val weekDays = stringArrayResource(R.array.week_days_full_names).toList()
+
+    val reorderedWeekDays = rearrangeDays(weekDays, firstDayOfWeek)
+
+    val displayDays = if (showWeekends) reorderedWeekDays else reorderedWeekDays.take(5)
     val displayDayCount = displayDays.size
 
     val screenWidth = with(LocalDensity.current) {
@@ -93,7 +99,6 @@ fun ScheduleGrid(
                 modifier = Modifier.height(totalGridContentHeight)
             )
 
-            // 网格和课程层，使用 Box 来堆叠
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -114,25 +119,33 @@ fun ScheduleGrid(
                     dayCount = displayDayCount,
                     timeSlotsCount = timeSlotsCount,
                     sectionHeight = sectionHeight,
-                    onGridCellClicked = onGridCellClicked
+                    onGridCellClicked = { displayIndex, section ->
+                        val originalDay = mapDisplayIndexToDay(displayIndex, firstDayOfWeek)
+                        onGridCellClicked(originalDay, section)
+                    }
                 )
 
                 // 浮动层：课程块渲染
                 mergedCourses.forEach { mergedBlock ->
-                    val offsetX = (mergedBlock.day - 1) * cellWidth
-                    val offsetY = (mergedBlock.startSection - 1) * sectionHeight
-                    val blockWidth = cellWidth
-                    val blockHeight = (mergedBlock.endSection - mergedBlock.startSection + 1) * sectionHeight
+                    val newDayIndex = mapDayToDisplayIndex(mergedBlock.day, firstDayOfWeek, showWeekends)
 
-                    Box(
-                        modifier = Modifier
-                            .offset(x = offsetX, y = offsetY)
-                            .size(width = blockWidth, height = blockHeight)
-                            .clickable { onCourseBlockClicked(mergedBlock) }
-                    ) {
-                        CourseBlock(
-                            mergedBlock = mergedBlock
-                        )
+                    // 只有当课程在显示的列范围内时才绘制
+                    if (newDayIndex != -1) {
+                        // 使用 0-based 的索引计算 offsetX
+                        val offsetX = newDayIndex * cellWidth
+                        val offsetY = (mergedBlock.startSection - 1) * sectionHeight
+                        val blockHeight = (mergedBlock.endSection - mergedBlock.startSection + 1) * sectionHeight
+
+                        Box(
+                            modifier = Modifier
+                                .offset(x = offsetX, y = offsetY)
+                                .size(width = cellWidth, height = blockHeight)
+                                .clickable { onCourseBlockClicked(mergedBlock) }
+                        ) {
+                            CourseBlock(
+                                mergedBlock = mergedBlock
+                            )
+                        }
                     }
                 }
             }
@@ -199,7 +212,7 @@ private fun DayHeader(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "周$day",
+                    text = day,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor,
@@ -338,17 +351,72 @@ private fun ClickableGrid(
             Row(modifier = Modifier
                 .fillMaxWidth()
                 .height(sectionHeight)) {
-                for (day in 1..dayCount) {
+                // 【修改 5.1：遍历 0-based 索引】
+                for (displayIndex in 0 until dayCount) {
                     Spacer(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .clickable {
-                                onGridCellClicked(day, section)
+                                onGridCellClicked(displayIndex, section)
                             }
                     )
                 }
             }
         }
     }
+}
+
+
+/**
+ * 根据起始日重新排列星期列表。
+ * @param originalDays 原始星期列表 (周一, 周二, ..., 周日)
+ * @param firstDayOfWeek 一周的起始日 (1=周一, 7=周日)
+ * @return 排列后的星期列表
+ */
+private fun rearrangeDays(originalDays: List<String>, firstDayOfWeek: Int): List<String> {
+    val startIndex = firstDayOfWeek - 1 // 转换为 0-based 索引 (0=周一, 6=周日)
+    if (startIndex == 0) return originalDays
+
+    // 将列表分成两部分并交换位置
+    val part1 = originalDays.subList(startIndex, originalDays.size)
+    val part2 = originalDays.subList(0, startIndex)
+    return part1 + part2
+}
+
+/**
+ * 将课程的 Day (1-7) 映射到当前网格的显示索引 (0-N)。
+ * @param courseDay 课程的星期几 (1=周一, 7=周日)
+ * @param firstDayOfWeek 一周的起始日 (1=周一, 7=周日)
+ * @param showWeekends 是否显示周末
+ * @return 在显示列表中的 0-based 索引，如果不在显示范围内则返回 -1
+ */
+private fun mapDayToDisplayIndex(courseDay: Int, firstDayOfWeek: Int, showWeekends: Boolean): Int {
+    val totalDays = if (showWeekends) 7 else 5
+
+    // 1. 计算理论上的 0-based 索引
+    // (courseDay - firstDayOfWeek) 给出相对于起始日的偏移量，
+    // + 7 确保结果为正，% 7 得到最终的 0-6 索引。
+    val theoreticalIndex = (courseDay - firstDayOfWeek + 7) % 7
+
+    // 2. 检查是否在显示的列数范围内
+    if (theoreticalIndex >= totalDays) {
+        return -1
+    }
+
+    return theoreticalIndex
+}
+
+/**
+ * 将网格的显示索引 (0-N) 映射回课程 DayOfWeek (1-7)。
+ * 用于 onGridCellClicked 回调。
+ */
+private fun mapDisplayIndexToDay(displayIndex: Int, firstDayOfWeek: Int): Int {
+    // 1. 计算理论上的 1-based 索引
+    // (firstDayOfWeek - 1) 是起始日的 0-based 索引
+    // (firstDayOfWeek - 1 + displayIndex) 是目标日期的 0-based 索引
+    // % 7 得到 0-6 循环索引
+    // + 1 转换回 1-7 DayOfWeek
+    val day = (firstDayOfWeek - 1 + displayIndex) % 7 + 1
+    return day
 }

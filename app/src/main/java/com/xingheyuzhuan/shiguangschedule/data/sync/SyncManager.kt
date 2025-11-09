@@ -11,6 +11,7 @@ import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.TimeSlotRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.WidgetRepository
 import com.xingheyuzhuan.shiguangschedule.service.CourseNotificationWorker
+import com.xingheyuzhuan.shiguangschedule.service.DndSchedulerWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -40,7 +41,7 @@ class SyncManager(
     private fun triggerNotificationWorker() {
         val workRequest = OneTimeWorkRequestBuilder<CourseNotificationWorker>().build()
         WorkManager.getInstance(appContext).enqueueUniqueWork(
-            "CourseNotificationWorker_Sync_Update", // 确保唯一名称
+            "CourseNotificationWorker_Sync_Update",
             ExistingWorkPolicy.REPLACE,
             workRequest
         )
@@ -69,7 +70,10 @@ class SyncManager(
                     .debounce(500.milliseconds) // 在 500ms 内只处理一次更新事件
                     .onEach {
                         Log.d("SyncManager", "Widget 数据库数据更新，正在调度 Worker 任务...")
+
                         triggerNotificationWorker()
+
+                        DndSchedulerWorker.enqueueWork(appContext)
                     }
                     .launchIn(scope)
 

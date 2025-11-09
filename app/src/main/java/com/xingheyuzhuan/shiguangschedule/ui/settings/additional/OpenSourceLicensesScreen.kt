@@ -15,8 +15,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
+import com.xingheyuzhuan.shiguangschedule.R
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,12 +27,14 @@ fun OpenSourceLicensesScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "开源许可证") },
+                title = {
+                    Text(text = stringResource(R.string.title_open_source_licenses))
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = stringResource(R.string.a11y_back)
                         )
                     }
                 }

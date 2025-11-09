@@ -1,11 +1,14 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings.conversion
 
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.xingheyuzhuan.shiguangschedule.MyApplication
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseConversionRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport
@@ -25,10 +28,11 @@ import java.nio.charset.Charset
  * 处理所有业务逻辑和状态，并通过事件通道与 UI 沟通。
  */
 class CourseTableConversionViewModel(
+    application: Application,
     private val courseConversionRepository: CourseConversionRepository,
     private val courseTableRepository: CourseTableRepository,
     private val appSettingsRepository: AppSettingsRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     // UI 状态流，仅包含 UI 显示相关的状态（如对话框可见性、加载状态）
     private val _uiState = MutableStateFlow(ConversionUiState())
@@ -37,6 +41,8 @@ class CourseTableConversionViewModel(
     // UI 事件通道，用于发送一次性副作用（如启动文件选择器，显示 Snackbar）
     private val _events = Channel<ConversionEvent>()
     val events = _events.receiveAsFlow()
+
+    private val context = getApplication<Application>()
 
     fun onImportClick() {
         _uiState.value = _uiState.value.copy(showImportTableDialog = true)
@@ -80,14 +86,16 @@ class CourseTableConversionViewModel(
                         val jsonString = Json.encodeToString(jsonModel)
                         _events.send(ConversionEvent.LaunchExportFileCreator(jsonString))
                     } else {
-                        _events.send(ConversionEvent.ShowMessage("导出失败：找不到课表"))
+                        val message = context.getString(R.string.error_export_table_not_found)
+                        _events.send(ConversionEvent.ShowMessage(message))
                     }
                 } else if (_uiState.value.exportType == ExportType.ICS) {
                     _events.send(ConversionEvent.LaunchExportIcsFileCreator(tableId, alarmMinutes))
                 }
             } catch (e: Exception) {
                 Log.e("CourseTableConversionViewModel", "导出失败：${e.message}", e)
-                _events.send(ConversionEvent.ShowMessage("导出失败：${e.message}"))
+                val message = context.getString(R.string.error_export_failed, e.message)
+                _events.send(ConversionEvent.ShowMessage(message))
             } finally {
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 dismissDialog()
@@ -103,10 +111,12 @@ class CourseTableConversionViewModel(
                 val importModel = Json.decodeFromString<CourseImportExport.CourseTableImportModel>(jsonString)
                 courseConversionRepository.importCourseTableFromJson(tableId, importModel)
 
-                _events.send(ConversionEvent.ShowMessage("课表导入成功！"))
+                val message = context.getString(R.string.toast_import_success)
+                _events.send(ConversionEvent.ShowMessage(message))
             } catch (e: Exception) {
                 Log.e("CourseTableConversionViewModel", "导入失败：${e.message}", e)
-                _events.send(ConversionEvent.ShowMessage("导入失败：${e.message}"))
+                val message = context.getString(R.string.error_import_failed, e.message)
+                _events.send(ConversionEvent.ShowMessage(message))
             } finally {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
@@ -122,13 +132,16 @@ class CourseTableConversionViewModel(
                     outputStream.bufferedWriter(Charset.forName("UTF-8")).use { writer ->
                         writer.write(icsContent)
                     }
-                    _events.send(ConversionEvent.ShowMessage("日历文件导出成功！"))
+                    val message = context.getString(R.string.toast_ics_export_success)
+                    _events.send(ConversionEvent.ShowMessage(message))
                 } else {
-                    _events.send(ConversionEvent.ShowMessage("日历文件导出失败：获取数据失败"))
+                    val message = context.getString(R.string.error_ics_export_data_failed)
+                    _events.send(ConversionEvent.ShowMessage(message))
                 }
             } catch (e: Exception) {
                 Log.e("CourseTableConversionViewModel", "日历文件导出失败：${e.message}", e)
-                _events.send(ConversionEvent.ShowMessage("日历文件导出失败：${e.message}"))
+                val message = context.getString(R.string.error_ics_export_failed, e.message)
+                _events.send(ConversionEvent.ShowMessage(message))
             } finally {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
@@ -163,6 +176,7 @@ object CourseTableConversionViewModelFactory : ViewModelProvider.Factory {
             val app = application as MyApplication
             @Suppress("UNCHECKED_CAST")
             return CourseTableConversionViewModel(
+                application,
                 app.courseConversionRepository,
                 app.courseTableRepository,
                 app.appSettingsRepository

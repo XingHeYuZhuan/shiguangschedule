@@ -36,16 +36,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.Screen
 import com.xingheyuzhuan.shiguangschedule.ui.components.BottomNavigationBar
 import com.xingheyuzhuan.shiguangschedule.ui.components.DatePickerModal
 import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
 import java.time.LocalDate
+import java.time.DayOfWeek
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
@@ -60,13 +63,14 @@ fun SettingsScreen(
     navController: NavHostController,
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory)
 ) {
-    val appSettings by viewModel.appSettingsState.collectAsState()
+    val courseTableConfig by viewModel.courseTableConfigState.collectAsState()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
-    val showWeekends = appSettings.showWeekends
-    val semesterStartDateString = appSettings.semesterStartDate
-    val semesterTotalWeeks = appSettings.semesterTotalWeeks
+    val showWeekends = courseTableConfig?.showWeekends ?: false
+    val semesterStartDateString = courseTableConfig?.semesterStartDate
+    val semesterTotalWeeks = courseTableConfig?.semesterTotalWeeks ?: 20
+    val firstDayOfWeekInt = courseTableConfig?.firstDayOfWeek ?: DayOfWeek.MONDAY.value
     val displayCurrentWeek by viewModel.currentWeekState.collectAsState()
 
     val semesterStartDate: LocalDate? = remember(semesterStartDateString) {
@@ -83,6 +87,7 @@ fun SettingsScreen(
     var showTotalWeeksDialog by remember { mutableStateOf(false) }
     var showManualWeekDialog by remember { mutableStateOf(false) }
     var showDatePickerModal by remember { mutableStateOf(false) }
+    var showFirstDayOfWeekDialog by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
@@ -90,7 +95,7 @@ fun SettingsScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("课程表设置") },
+                title = { Text(stringResource(R.string.title_schedule_settings)) },
                 scrollBehavior = scrollBehavior
             )
         },
@@ -113,10 +118,12 @@ fun SettingsScreen(
                     onShowWeekendsChanged = { isChecked -> viewModel.onShowWeekendsChanged(isChecked) },
                     semesterStartDate = semesterStartDate,
                     semesterTotalWeeks = semesterTotalWeeks,
+                    firstDayOfWeekInt = firstDayOfWeekInt,
                     displayCurrentWeek = displayCurrentWeek,
                     onSemesterStartDateClick = { showDatePickerModal = true },
                     onSemesterTotalWeeksClick = { showTotalWeeksDialog = true },
                     onManualWeekClick = { showManualWeekDialog = true },
+                    onFirstDayOfWeekClick = { showFirstDayOfWeekDialog = true },
                     onTweakScheduleClick = { navController.navigate(Screen.TweakSchedule.route) }
                 )
             }
@@ -145,7 +152,7 @@ fun SettingsScreen(
 
     if (showTotalWeeksDialog) {
         NumberPickerDialog(
-            title = "选择总周数",
+            title = stringResource(R.string.dialog_title_select_total_weeks),
             range = 1..30,
             initialValue = semesterTotalWeeks,
             onDismiss = { showTotalWeeksDialog = false },
@@ -167,6 +174,17 @@ fun SettingsScreen(
             }
         )
     }
+
+    if (showFirstDayOfWeekDialog) {
+        DayOfWeekPickerDialog(
+            initialDayOfWeekInt = firstDayOfWeekInt,
+            onDismiss = { showFirstDayOfWeekDialog = false },
+            onConfirm = { selectedDayInt ->
+                viewModel.onFirstDayOfWeekSelected(selectedDayInt)
+                showFirstDayOfWeekDialog = false
+            }
+        )
+    }
 }
 
 /**
@@ -178,10 +196,12 @@ private fun GeneralSettingsSection(
     onShowWeekendsChanged: (Boolean) -> Unit,
     semesterStartDate: LocalDate?,
     semesterTotalWeeks: Int,
+    firstDayOfWeekInt: Int,
     displayCurrentWeek: Int?,
     onSemesterStartDateClick: () -> Unit,
     onSemesterTotalWeeksClick: () -> Unit,
     onManualWeekClick: () -> Unit,
+    onFirstDayOfWeekClick: () -> Unit,
     onTweakScheduleClick: () -> Unit
 ) {
     Card(
@@ -193,53 +213,54 @@ private fun GeneralSettingsSection(
             verticalArrangement = Arrangement.spacedBy(ITEM_SPACING)
         ) {
             Text(
-                "通用设置",
+                stringResource(R.string.section_title_general_settings),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
 
             // 显示周末设置项
             SettingItem(
-                title = "是否显示周末",
-                subtitle = "开启后，课程表中将显示周末的课程安排"
+                title = stringResource(R.string.item_show_weekends),
+                subtitle = stringResource(R.string.desc_show_weekends)
             ) {
                 Switch(checked = showWeekends, onCheckedChange = onShowWeekendsChanged)
             }
 
             // 开始上课时间设置项
             SettingItem(
-                title = "设置开学日期",
-                subtitle = "选择学期第一周(教务系统参考的第一周)的周一",
+                title = stringResource(R.string.item_set_start_date),
+                subtitle = stringResource(R.string.desc_set_start_date),
                 onClick = onSemesterStartDateClick
             ) {
                 Text(
-                    text = semesterStartDate?.format(DateTimeFormatter.ofPattern("yyyy年M月d日")) ?: "未设置",
+                    text = semesterStartDate?.format(DateTimeFormatter.ofPattern(stringResource(R.string.date_format_year_month_day)))
+                        ?: stringResource(R.string.status_not_set),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
 
             // 本学期总周数设置项
             SettingItem(
-                title = "本学期总周数",
-                subtitle = "设置学期总共持续多少周",
+                title = stringResource(R.string.item_total_weeks),
+                subtitle = stringResource(R.string.desc_total_weeks),
                 onClick = onSemesterTotalWeeksClick
             ) {
                 Text(
-                    text = "$semesterTotalWeeks 周",
+                    text = stringResource(R.string.status_total_weeks_format, semesterTotalWeeks),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
 
             // 当前周数设置项
             SettingItem(
-                title = "当前周数",
-                subtitle = "手动调整当前周数",
+                title = stringResource(R.string.item_current_week),
+                subtitle = stringResource(R.string.desc_current_week_manual),
                 onClick = onManualWeekClick
             ) {
                 val weekStatusText = when {
-                    semesterStartDate == null -> "请设置开始日期"
-                    displayCurrentWeek == null -> "假期中"
-                    else -> "第 $displayCurrentWeek 周"
+                    semesterStartDate == null -> stringResource(R.string.status_set_start_date_first)
+                    displayCurrentWeek == null -> stringResource(R.string.status_on_vacation)
+                    else -> stringResource(R.string.status_current_week_format, displayCurrentWeek)
                 }
                 Text(
                     text = weekStatusText,
@@ -247,10 +268,26 @@ private fun GeneralSettingsSection(
                 )
             }
 
+            SettingItem(
+                title = stringResource(R.string.item_first_day_of_week),
+                subtitle = stringResource(R.string.desc_first_day_of_week),
+                onClick = onFirstDayOfWeekClick
+            ) {
+                val dayText = when (firstDayOfWeekInt) {
+                    DayOfWeek.MONDAY.value -> stringResource(R.string.day_of_week_monday)
+                    DayOfWeek.SUNDAY.value -> stringResource(R.string.day_of_week_sunday)
+                    else -> stringResource(R.string.day_of_week_monday)
+                }
+                Text(
+                    text = dayText,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
             // 课程调动设置项
             SettingItem(
-                title = "课程调动",
-                subtitle = "一键将指定日期的所有课程调整到新日期",
+                title = stringResource(R.string.item_schedule_tweak),
+                subtitle = stringResource(R.string.desc_schedule_tweak),
                 onClick = onTweakScheduleClick
             )
         }
@@ -271,41 +308,41 @@ private fun AdvancedSettingsSection(navController: NavHostController) {
             verticalArrangement = Arrangement.spacedBy(ITEM_SPACING)
         ) {
             Text(
-                "高级功能",
+                stringResource(R.string.section_title_advanced_features),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             // 课表导入/导出设置项
             SettingItem(
-                title = "课表导入/导出",
-                subtitle = "支持多种导入导出方式",
+                title = stringResource(R.string.item_course_conversion),
+                subtitle = stringResource(R.string.desc_course_conversion),
                 onClick = { navController.navigate(Screen.CourseTableConversion.route) }
             )
             // 课程提醒设置项
             SettingItem(
-                title = "课程提醒设置",
-                subtitle = "管理您的课程提醒通知",
+                title = stringResource(R.string.title_course_notification_settings),
+                subtitle = stringResource(R.string.desc_notification_settings),
                 onClick = { navController.navigate(Screen.NotificationSettings.route) }
             )
 
             // 管理课表设置项
             SettingItem(
-                title = "管理课表",
-                subtitle = "管理多份课程表，可切换、删除",
+                title = stringResource(R.string.title_manage_course_tables),
+                subtitle = stringResource(R.string.desc_manage_course_tables),
                 onClick = { navController.navigate(Screen.ManageCourseTables.route) }
             )
 
             // 自定义时间段设置项
             SettingItem(
-                title = "自定义时间段",
-                subtitle = "编辑您的课程时间段设置",
+                title = stringResource(R.string.item_time_slot_customization),
+                subtitle = stringResource(R.string.desc_time_slot_customization),
                 onClick = { navController.navigate(Screen.TimeSlotSettings.route) }
             )
 
             // 更多选项设置项
             SettingItem(
-                title = "更多",
-                subtitle = "提供我们的更多信息",
+                title = stringResource(R.string.item_more_options),
+                subtitle = stringResource(R.string.desc_more_options),
                 onClick = { navController.navigate(Screen.MoreOptions.route) },
                 icon = Icons.Default.MoreHoriz
             )
@@ -352,18 +389,21 @@ fun ManualWeekPickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int?) -> Unit
 ) {
-    val weekOptions = listOf("假期中") + (1..totalWeeks).map { "第 $it 周" }
+    val optionOnVacationText = stringResource(R.string.dialog_option_on_vacation)
+
+    // 构建选项列表
+    val weekOptions = listOf(optionOnVacationText) + (1..totalWeeks).map { stringResource(R.string.status_current_week_format, it) }
 
     val initialSelectedValue = when (currentWeek) {
-        null -> "假期中"
-        else -> "第 $currentWeek 周"
+        null -> optionOnVacationText
+        else -> stringResource(R.string.status_current_week_format, currentWeek)
     }
 
     var dialogSelectedValue by remember { mutableStateOf(initialSelectedValue) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("手动设置当前周数") },
+        title = { Text(stringResource(R.string.dialog_title_manual_set_week)) },
         text = {
             NativeNumberPicker(
                 values = weekOptions,
@@ -376,19 +416,72 @@ fun ManualWeekPickerDialog(
         },
         confirmButton = {
             Button(onClick = {
-                val weekNumber = if (dialogSelectedValue == "假期中") {
+                val weekNumber = if (dialogSelectedValue == optionOnVacationText) {
                     null
                 } else {
                     dialogSelectedValue.filter { it.isDigit() }.toIntOrNull()
                 }
                 onConfirm(weekNumber)
             }) {
-                Text("确定")
+                Text(stringResource(R.string.action_confirm))
             }
         },
         dismissButton = {
             Button(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.action_cancel))
+            }
+        }
+    )
+}
+
+/**
+ * 每周起始日选择器对话框
+ */
+@Composable
+fun DayOfWeekPickerDialog(
+    initialDayOfWeekInt: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    val dayOfWeekMondayText = stringResource(R.string.day_of_week_monday)
+    val dayOfWeekSundayText = stringResource(R.string.day_of_week_sunday)
+
+    // 选项列表，及其对应的 DayOfWeek Int 值 (1=周一, 7=周日)
+    val dayOptionsMap = mapOf(
+        dayOfWeekMondayText to DayOfWeek.MONDAY.value,
+        dayOfWeekSundayText to DayOfWeek.SUNDAY.value
+    )
+    val dayOptions = dayOptionsMap.keys.toList()
+
+    val initialSelectedDayText = dayOptionsMap.entries.firstOrNull { it.value == initialDayOfWeekInt }?.key
+        ?: dayOfWeekMondayText // 默认显示周一
+
+    var dialogSelectedText by remember { mutableStateOf(initialSelectedDayText) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.dialog_title_set_first_day_of_week)) },
+        text = {
+            NativeNumberPicker(
+                values = dayOptions,
+                selectedValue = dialogSelectedText,
+                onValueChange = { newValue ->
+                    dialogSelectedText = newValue
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            Button(onClick = {
+                val selectedDayInt = dayOptionsMap[dialogSelectedText] ?: DayOfWeek.MONDAY.value
+                onConfirm(selectedDayInt)
+            }) {
+                Text(stringResource(R.string.action_confirm))
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
@@ -423,12 +516,12 @@ private fun NumberPickerDialog(
         },
         confirmButton = {
             Button(onClick = { onConfirm(dialogSelectedValue) }) {
-                Text("确定")
+                Text(stringResource(R.string.action_confirm))
             }
         },
         dismissButton = {
             Button(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
