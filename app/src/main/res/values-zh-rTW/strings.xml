@@ -93,7 +93,7 @@
     <string name="widget_name_moderate">今日課程4x2</string>
     <string name="widget_name_double_days">近日課程4x2</string>
     <string name="widget_name_large">今日課程4x3</string>
-    <string name="widget_tomorrow_course_preview">明日課程預告</string>
+    <string name="widget_tomorrow_course_preview">明日預告</string>
     <string name="widget_no_courses_tomorrow">明天沒有課程</string>
     <string name="widget_today_courses_finished">今日課程已結束</string>
     <string name="widget_vacation_expecting">期待新學期</string>
