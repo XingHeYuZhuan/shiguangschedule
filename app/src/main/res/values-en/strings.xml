@@ -93,7 +93,7 @@
     <string name="widget_name_moderate">Today 4x2</string>
     <string name="widget_name_double_days">Recent Days 4x2</string>
     <string name="widget_name_large">Today 4x3</string>
-    <string name="widget_tomorrow_course_preview">Tomorrow\'s preview</string>
+    <string name="widget_tomorrow_course_preview">Tomorrow</string>
     <string name="widget_no_courses_tomorrow">No courses tomorrow</string>
     <string name="widget_today_courses_finished">Today\'s classes ended.</string>
     <string name="widget_vacation_expecting">Looking forward to new semester</string>
