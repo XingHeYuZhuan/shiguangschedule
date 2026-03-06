@@ -383,7 +383,7 @@
     <string name="toast_url_empty_enter_first">URL为空，请先输入网址。</string>
     <string name="item_devtools_debug">DevTools 网页调试</string>
     <string name="a11y_devtools">DevTools</string>
-    <string name="toast_devtools_enabled_format">DevTools 网页调试已 %1$s。</string>
+    <string name="toast_devtools_enabled_format">DevTools 网页调试%1$s。</string>
     <string name="text_import_guide">请登录教务系统后切换到有课表显示的页面再点击导入课程，点击右上角的更多查看其他选项</string>
     <string name="action_execute_import">执行导入</string>
     <string name="toast_no_script_manual_import">该适配器没有脚本，请手动导入。</string>

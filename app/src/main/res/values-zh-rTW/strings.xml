@@ -1,7 +1,7 @@
 <resources>
     <!-- 應用基礎資訊 -->
     <string name="app_name">拾光課程表</string>
-    
+
     <!-- 通用按鈕和提示資訊 -->
     <string name="action_confirm">確定</string>
     <string name="action_cancel">取消</string>
@@ -19,7 +19,7 @@
     <string name="a11y_state_selected">已選取</string>
     <string name="a11y_state_not_selected">未選取</string>
     <string name="confirm_delete">確認刪除</string>
-    
+
     <!-- 主介面及今日課表 -->
     <string name="nav_today_schedule">今日課表</string>
     <string name="nav_course_schedule">課表</string>
@@ -76,7 +76,7 @@
     <string name="title_vacation">假期中</string>
     <string name="status_semester_ended">學期結束（已超%1$s週）</string>
     <string name="status_week_calc_error">週次計算錯誤</string>
-    
+
     <!-- 時間與星期格式 -->
     <string-array name="week_days_short_names">
         <item>一</item>
@@ -96,7 +96,7 @@
         <item>週六</item>
         <item>週日</item>
     </string-array>
-    
+
     <!-- 通知與鬧鐘 -->
     <string name="notification_channel_desc_course_alert">上課提醒通知</string>
     <string name="notification_title_course_alert">上課提醒</string>
@@ -121,7 +121,7 @@
     <string name="widget_date_dayofweek_format">%1$s %2$s</string>
     <string name="widget_title_today">今天</string>
     <string name="widget_title_tomorrow">明天</string>
-    
+
     <!-- 通知設定 -->
     <string name="title_course_notification_settings">課程提醒設定</string>
     <string name="section_title_general">一般</string>
@@ -171,7 +171,7 @@
     <string name="text_no_skipped_dates">沒有設定跳過的日期。</string>
     <string name="action_close">關閉</string>
     <string name="toast_notification_permission_denied">通知權限被拒絕，無法接收課程提醒。</string>
-    
+
     <!-- 設定選項 -->
     <string name="title_schedule_settings">課程表設定</string>
     <string name="section_title_general_settings">一般設定</string>
@@ -212,7 +212,7 @@
     <string name="course_table_id_prefix">ID: %s</string>
     <string name="course_table_created_at_prefix">建立於: %s</string>
     <string name="label_current">目前</string>
-    
+
     <!-- 管理課表 -->
     <string name="title_manage_course_tables">管理課表</string>
     <string name="dialog_title_add_table">新增課表</string>
@@ -298,7 +298,7 @@
     <string name="error_import_failed">匯入失敗：\%1$s</string>
     <string name="error_ics_export_data_failed">行事曆檔案匯出失敗：取得資料失敗</string>
     <string name="error_ics_export_failed">行事曆檔案匯出失敗：\%1$s</string>
-    
+
     <!-- 更多設定 -->
     <string name="title_more_options">更多</string>
     <string name="a11y_app_icon">應用程式圖示</string>
@@ -383,7 +383,7 @@
     <string name="toast_url_empty_enter_first">URL為空，請先輸入網址。</string>
     <string name="item_devtools_debug">DevTools 網頁除錯</string>
     <string name="a11y_devtools">DevTools</string>
-    <string name="toast_devtools_enabled_format">DevTools 網頁除錯已 %1$s。</string>
+    <string name="toast_devtools_enabled_format">DevTools 網頁除錯%1$s。</string>
     <string name="text_import_guide">請登入教務系統後切換到有課表顯示的頁面再點選匯入課程，點選右上角的更多檢視其他選項</string>
     <string name="action_execute_import">執行匯入</string>
     <string name="toast_no_script_manual_import">該適配器沒有指令碼，請手動匯入。</string>
@@ -409,7 +409,7 @@
     <string name="label_github">GitHub</string>
     <string name="a11y_back_to_previous">返回上一頁</string>
     <string name="a11y_contributor_avatar">貢獻者頭像: %1$s</string>
-    
+
     <!-- 教務適配倉庫 -->
     <string name="title_update_repo_screen">更新教務適配倉庫</string>
     <string name="label_select_repo">選擇倉庫</string>
