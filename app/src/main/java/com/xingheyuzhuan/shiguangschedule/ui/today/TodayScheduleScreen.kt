@@ -20,8 +20,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
-import com.xingheyuzhuan.shiguangschedule.ui.components.BottomNavigationBar
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -42,9 +40,6 @@ fun TodayScheduleScreen(
         )
     )
 ) {
-    val currentBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = currentBackStackEntry?.destination?.route
-
     val semesterStatus by viewModel.semesterStatus.collectAsState()
     val todayCourses by viewModel.todayCourses.collectAsState()
     // 1. 获取全局样式配置
@@ -53,6 +48,7 @@ fun TodayScheduleScreen(
     val isDark = isSystemInDarkTheme()
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text(text = stringResource(R.string.title_today_schedule)) },
@@ -61,9 +57,6 @@ fun TodayScheduleScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
-        },
-        bottomBar = {
-            BottomNavigationBar(navController = navController, currentRoute = currentRoute)
         }
     ) { innerPadding ->
         Column(
