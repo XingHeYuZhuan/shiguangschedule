@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
@@ -29,6 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.Screen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.SectionTitle
+import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingItemCard
+import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsSectionContainer
 
 /**
  * 快捷操作二级页面
@@ -59,36 +63,23 @@ fun QuickActionsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 16.dp, bottom = 16.dp)
         ) {
             item {
-                // 课表调整分类卡片
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // 分类标题
-                        Text(
-                            text = stringResource(R.string.label_quick_action_category_schedule),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        // 调课功能项
+                SectionTitle(stringResource(R.string.label_quick_action_category_schedule))
+                SettingsSectionContainer {
+                    // 调课功能项
+                    SettingItemCard(isFirst = true, isLast = false) {
                         QuickActionItem(
                             title = stringResource(R.string.item_schedule_tweak),
                             subtitle = stringResource(R.string.desc_schedule_tweak),
                             onClick = { navController.navigate(Screen.TweakSchedule.route) }
                         )
+                    }
 
-                        // 2. 快速删除功能项
+                    // 2. 快速删除功能项
+                    SettingItemCard(isFirst = false, isLast = true) {
                         QuickActionItem(
                             title = stringResource(R.string.item_quick_delete),
                             subtitle = stringResource(R.string.quick_delete_subtitle),
@@ -115,19 +106,14 @@ private fun QuickActionItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(vertical = 8.dp),
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(end = 12.dp)
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.bodyLarge
             )
             Text(
                 text = subtitle,

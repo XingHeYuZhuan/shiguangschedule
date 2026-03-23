@@ -3,6 +3,7 @@ package com.xingheyuzhuan.shiguangschedule.ui.settings.additional
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,7 +31,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -65,42 +66,45 @@ import com.xingheyuzhuan.shiguangschedule.Screen
 import com.xingheyuzhuan.shiguangschedule.tool.UpdateChecker
 import com.xingheyuzhuan.shiguangschedule.tool.UpdateStatus
 import com.xingheyuzhuan.shiguangschedule.tool.UpdateChecker.Companion.UPDATE_CHANNELS
+import com.xingheyuzhuan.shiguangschedule.ui.settings.SectionTitle
+import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingItemCard
+import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsSectionContainer
 import kotlinx.coroutines.launch
 
 private const val GITHUB_REPO_URL = "https://github.com/XingHeYuZhuan/shiguangschedule"
 
 @Composable
-private fun SettingListItem(
+private fun MoreOptionItem(
     icon: ImageVector,
     title: String,
-    onClick: () -> Unit,
-    showDivider: Boolean = true
+    onClick: () -> Unit
 ) {
-    ListItem(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        headlineContent = { Text(text = title) },
-        leadingContent = {
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
-        },
-        trailingContent = {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = stringResource(R.string.a11y_navigate)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge
             )
         }
-    )
-    if (showDivider) {
-        HorizontalDivider(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp),
-            thickness = 0.5.dp,
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = stringResource(R.string.a11y_navigate),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -390,6 +394,7 @@ fun MoreOptionsScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .padding(horizontal = 16.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -435,77 +440,76 @@ fun MoreOptionsScreen(navController: NavController) {
             }
 
             // 设置项列表区域
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // 检查更新
-                    SettingListItem(
+            SettingsSectionContainer {
+                // 检查更新
+                SettingItemCard(isFirst = true, isLast = false) {
+                    MoreOptionItem(
                         icon = Icons.Default.Update,
                         title = stringResource(R.string.item_check_software_update),
-                        onClick = onCheckClick,
-                        showDivider = true
+                        onClick = onCheckClick
                     )
+                }
 
-                    // 语言切换
-                    SettingListItem(
+                // 语言切换
+                SettingItemCard(isFirst = false, isLast = false) {
+                    MoreOptionItem(
                         icon = Icons.Default.Language,
                         title = stringResource(R.string.item_language_settings),
                         onClick = {
                             handleLanguageSettingClick(context) {
                                 showLanguageDialog = true
                             }
-                        },
-                        showDivider = true
+                        }
                     )
+                }
 
-                    // GitHub 仓库
-                    SettingListItem(
+                // GitHub 仓库
+                SettingItemCard(isFirst = false, isLast = false) {
+                    MoreOptionItem(
                         icon = Icons.Default.Code,
                         title = stringResource(R.string.item_github_repo),
                         onClick = {
                             val intent = Intent(Intent.ACTION_VIEW, GITHUB_REPO_URL.toUri())
                             context.startActivity(intent)
-                        },
-                        showDivider = true
+                        }
                     )
+                }
 
-                    // 查看开源许可证
-                    SettingListItem(
+                // 查看开源许可证
+                SettingItemCard(isFirst = false, isLast = false) {
+                    MoreOptionItem(
                         icon = Icons.AutoMirrored.Filled.ListAlt,
                         title = stringResource(R.string.item_open_source_licenses),
                         onClick = {
                             navController.navigate(Screen.OpenSourceLicenses.route)
                         }
                     )
+                }
 
-                    // 更新教务适配仓库
-                    SettingListItem(
+                // 更新教务适配仓库
+                SettingItemCard(isFirst = false, isLast = false) {
+                    MoreOptionItem(
                         icon = Icons.Default.Update,
                         title = stringResource(R.string.item_update_repo),
                         onClick = {
                             navController.navigate(Screen.UpdateRepo.route)
                         }
                     )
-                    // 贡献者列表
-                    SettingListItem(
+                }
+
+                // 贡献者列表
+                SettingItemCard(isFirst = false, isLast = true) {
+                    MoreOptionItem(
                         icon = Icons.Default.PeopleAlt,
                         title = stringResource(R.string.item_contributors),
                         onClick = {
                             navController.navigate(Screen.ContributionList.route)
-                        },
-                        showDivider = true
+                        }
                     )
-                    // 鸣谢内容
-                    AcknowledgmentContent()
                 }
             }
+
+            AcknowledgmentContent()
             Spacer(modifier = Modifier.height(32.dp))
         }
     }

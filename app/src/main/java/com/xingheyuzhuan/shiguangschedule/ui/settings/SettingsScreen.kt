@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -34,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -109,34 +112,32 @@ fun SettingsScreen(
                 .padding(innerPadding)
                 .padding(horizontal = SETTING_PADDING),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(SECTION_SPACING)
+            verticalArrangement = Arrangement.spacedBy(SECTION_SPACING),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 16.dp, bottom = 16.dp)
         ) {
             item {
-                // 通用设置卡片
-                GeneralSettingsSection(
-                    showWeekends = showWeekends,
-                    onShowWeekendsChanged = { isChecked -> viewModel.onShowWeekendsChanged(isChecked) },
-                    semesterStartDate = semesterStartDate,
-                    semesterTotalWeeks = semesterTotalWeeks,
-                    firstDayOfWeekInt = firstDayOfWeekInt,
-                    displayCurrentWeek = displayCurrentWeek,
-                    onSemesterStartDateClick = { showDatePickerModal = true },
-                    onSemesterTotalWeeksClick = { showTotalWeeksDialog = true },
-                    onManualWeekClick = { showManualWeekDialog = true },
-                    onFirstDayOfWeekClick = { showFirstDayOfWeekDialog = true },
-                    onQuickActionsClick = { navController.navigate(Screen.QuickActions.route) }
-                )
+                SectionTitle(stringResource(R.string.section_title_general_settings))
+                SettingsSectionContainer {
+                    GeneralSettingsSection(
+                        showWeekends = showWeekends,
+                        onShowWeekendsChanged = { isChecked -> viewModel.onShowWeekendsChanged(isChecked) },
+                        semesterStartDate = semesterStartDate,
+                        semesterTotalWeeks = semesterTotalWeeks,
+                        firstDayOfWeekInt = firstDayOfWeekInt,
+                        displayCurrentWeek = displayCurrentWeek,
+                        onSemesterStartDateClick = { showDatePickerModal = true },
+                        onSemesterTotalWeeksClick = { showTotalWeeksDialog = true },
+                        onManualWeekClick = { showManualWeekDialog = true },
+                        onFirstDayOfWeekClick = { showFirstDayOfWeekDialog = true },
+                        onQuickActionsClick = { navController.navigate(Screen.QuickActions.route) }
+                    )
+                }
             }
             item {
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 4.dp,horizontal = 16.dp),
-                    thickness = 1.dp, // 设置分隔线的厚度
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-            }
-            item {
-                // 高级功能卡片
-                AdvancedSettingsSection(navController)
+                SectionTitle(stringResource(R.string.section_title_advanced_features))
+                SettingsSectionContainer {
+                    AdvancedSettingsSection(navController)
+                }
             }
         }
     }
@@ -187,6 +188,58 @@ fun SettingsScreen(
     }
 }
 
+@Composable
+fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    )
+}
+
+/**
+ * 可复用的设置部分容器
+ */
+@Composable
+fun SettingsSectionContainer(
+    content: @Composable () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun SettingItemCard(
+    isFirst: Boolean = false,
+    isLast: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    val cornerRadius = when {
+        isFirst && isLast -> RoundedCornerShape(16.dp)
+        isFirst -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+        isLast -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+        else -> RoundedCornerShape(4.dp)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        shape = cornerRadius,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        content()
+    }
+}
+
 /**
  * 通用设置卡片
  */
@@ -204,29 +257,20 @@ private fun GeneralSettingsSection(
     onFirstDayOfWeekClick: () -> Unit,
     onQuickActionsClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(
-            modifier = Modifier.padding(SETTING_PADDING),
-            verticalArrangement = Arrangement.spacedBy(ITEM_SPACING)
-        ) {
-            Text(
-                stringResource(R.string.section_title_general_settings),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            // 显示周末设置项
+    SettingsSectionContainer {
+        // 显示周末设置项
+        SettingItemCard(isFirst = true, isLast = false) {
             SettingItem(
                 title = stringResource(R.string.item_show_weekends),
-                subtitle = stringResource(R.string.desc_show_weekends)
+                subtitle = stringResource(R.string.desc_show_weekends),
+                onClick = { onShowWeekendsChanged(!showWeekends) }
             ) {
                 Switch(checked = showWeekends, onCheckedChange = onShowWeekendsChanged)
             }
+        }
 
-            // 开始上课时间设置项
+        // 开始上课时间设置项
+        SettingItemCard(isFirst = false, isLast = false) {
             SettingItem(
                 title = stringResource(R.string.item_set_start_date),
                 subtitle = stringResource(R.string.desc_set_start_date),
@@ -238,8 +282,10 @@ private fun GeneralSettingsSection(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+        }
 
-            // 本学期总周数设置项
+        // 本学期总周数设置项
+        SettingItemCard(isFirst = false, isLast = false) {
             SettingItem(
                 title = stringResource(R.string.item_total_weeks),
                 subtitle = stringResource(R.string.desc_total_weeks),
@@ -250,8 +296,10 @@ private fun GeneralSettingsSection(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+        }
 
-            // 当前周数设置项
+        // 当前周数设置项
+        SettingItemCard(isFirst = false, isLast = false) {
             SettingItem(
                 title = stringResource(R.string.item_current_week),
                 subtitle = stringResource(R.string.desc_current_week_manual),
@@ -267,7 +315,9 @@ private fun GeneralSettingsSection(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+        }
 
+        SettingItemCard(isFirst = false, isLast = false) {
             SettingItem(
                 title = stringResource(R.string.item_first_day_of_week),
                 subtitle = stringResource(R.string.desc_first_day_of_week),
@@ -283,8 +333,10 @@ private fun GeneralSettingsSection(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+        }
 
-            // 快捷操作页面
+        // 快捷操作页面
+        SettingItemCard(isFirst = false, isLast = true) {
             SettingItem(
                 title = stringResource(R.string.item_quick_actions),
                 subtitle = stringResource(R.string.desc_quick_actions),
@@ -299,60 +351,63 @@ private fun GeneralSettingsSection(
  */
 @Composable
 private fun AdvancedSettingsSection(navController: NavHostController) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(
-            modifier = Modifier.padding(SETTING_PADDING),
-            verticalArrangement = Arrangement.spacedBy(ITEM_SPACING)
-        ) {
-            Text(
-                stringResource(R.string.section_title_advanced_features),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            // 课表导入/导出设置项
+    SettingsSectionContainer {
+        // 课表导入/导出设置项
+        SettingItemCard(isFirst = true, isLast = false) {
             SettingItem(
                 title = stringResource(R.string.item_course_conversion),
                 subtitle = stringResource(R.string.desc_course_conversion),
                 onClick = { navController.navigate(Screen.CourseTableConversion.route) }
             )
-            // 课程提醒设置项
+        }
+        
+        // 课程提醒设置项
+        SettingItemCard(isFirst = false, isLast = false) {
             SettingItem(
                 title = stringResource(R.string.title_course_notification_settings),
                 subtitle = stringResource(R.string.desc_notification_settings),
                 onClick = { navController.navigate(Screen.NotificationSettings.route) }
             )
+        }
 
-            // 管理课表设置项
+        // 管理课表设置项
+        SettingItemCard(isFirst = false, isLast = false) {
             SettingItem(
                 title = stringResource(R.string.title_manage_course_tables),
                 subtitle = stringResource(R.string.desc_manage_course_tables),
                 onClick = { navController.navigate(Screen.ManageCourseTables.route) }
             )
+        }
 
-            // 课程管理设置项
+        // 课程管理设置项
+        SettingItemCard(isFirst = false, isLast = false) {
             SettingItem(
                 title = stringResource(R.string.item_course_management),
                 subtitle = stringResource(R.string.desc_course_management),
                 onClick = { navController.navigate(Screen.CourseManagementList.route) }
             )
+        }
 
-            // 自定义时间段设置项
+        // 自定义时间段设置项
+        SettingItemCard(isFirst = false, isLast = false) {
             SettingItem(
                 title = stringResource(R.string.item_time_slot_customization),
                 subtitle = stringResource(R.string.desc_time_slot_customization),
                 onClick = { navController.navigate(Screen.TimeSlotSettings.route) }
             )
+        }
 
-            // 个性化配置
+        // 个性化配置
+        SettingItemCard(isFirst = false, isLast = false) {
             SettingItem(
                 title = stringResource(R.string.item_personalization),
                 subtitle = stringResource(R.string.desc_personalization),
                 onClick = { navController.navigate(Screen.StyleSettings.route) }
             )
-            // 更多选项设置项
+        }
+        
+        // 更多选项设置项
+        SettingItemCard(isFirst = false, isLast = true) {
             SettingItem(
                 title = stringResource(R.string.item_more_options),
                 subtitle = stringResource(R.string.desc_more_options),
@@ -378,13 +433,11 @@ private fun SettingItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = onClick != null) { onClick?.invoke() }
-            .padding(vertical = 8.dp),
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(modifier = Modifier
-            .weight(1f)
-            .padding(end = 8.dp)) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(subtitle, style = MaterialTheme.typography.bodyMedium)
         }
