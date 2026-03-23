@@ -44,6 +44,7 @@ fun ScheduleGrid(
     showWeekends: Boolean,
     todayIndex: Int,
     firstDayOfWeek: Int,
+    currentSectionIndex: Int = -1,
     onCourseBlockClicked: (MergedCourseBlock) -> Unit,
     onGridCellClicked: (Int, Int) -> Unit,
     onTimeSlotClicked: () -> Unit
@@ -77,7 +78,7 @@ fun ScheduleGrid(
             DayHeader(style, displayDays, dates, currentYear, todayIndex, gridLineColor)
 
             Row(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                TimeColumn(style, timeSlots, onTimeSlotClicked, Modifier.height(totalGridHeight), gridLineColor)
+                TimeColumn(style, timeSlots, onTimeSlotClicked, Modifier.height(totalGridHeight), gridLineColor, currentSectionIndex)
 
                 Box(Modifier.height(totalGridHeight).weight(1f)) {
                     ClickableGrid(
@@ -172,32 +173,57 @@ private fun DayHeader(style: ScheduleGridStyleComposed, displayDays: List<String
 }
 
 @Composable
-private fun TimeColumn(style: ScheduleGridStyleComposed, timeSlots: List<TimeSlot>, onTimeSlotClicked: () -> Unit, modifier: Modifier, lineColor: Color) {
+private fun TimeColumn(style: ScheduleGridStyleComposed, timeSlots: List<TimeSlot>, onTimeSlotClicked: () -> Unit, modifier: Modifier, lineColor: Color, currentSectionIndex: Int = -1) {
     Column(modifier.width(style.timeColumnWidth)) {
-        timeSlots.forEach { slot ->
-            Column(Modifier.fillMaxWidth().height(style.sectionHeight).clickable { onTimeSlotClicked() }.drawBehind {
-                if (!style.hideGridLines) {
-                    // 右侧线与底部线
-                    drawLine(lineColor, Offset(size.width, 0f), Offset(size.width, size.height), 1f)
-                    drawLine(lineColor, Offset(0f, size.height), Offset(size.width, size.height), 1f)
-                }
-            }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        timeSlots.forEachIndexed { index, slot ->
+            val isCurrentSection = index + 1 == currentSectionIndex
+            val backgroundColor = if (isCurrentSection) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                Color.Transparent
+            }
+            val textColor = if (isCurrentSection) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            }
+            val timeColor = if (isCurrentSection) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(style.sectionHeight)
+                    .clickable { onTimeSlotClicked() }
+                    .background(backgroundColor)
+                    .drawBehind {
+                        if (!style.hideGridLines) {
+                            drawLine(lineColor, Offset(size.width, 0f), Offset(size.width, size.height), 1f)
+                            drawLine(lineColor, Offset(0f, size.height), Offset(size.width, size.height), 1f)
+                        }
+                    },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
                     text = slot.number.toString(),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = textColor
                 )
                 if (!style.hideSectionTime) {
                     Text(
                         text = slot.startTime,
                         fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = timeColor
                     )
                     Text(
                         text = slot.endTime,
                         fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = timeColor
                     )
                 }
             }

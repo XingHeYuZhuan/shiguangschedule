@@ -57,7 +57,8 @@ data class WeeklyScheduleUiState(
     val weekIndexInPager: Int? = null,
     val weekTitle: String = "",
     val currentWeekNumber: Int? = null,
-    val pagerMondayDate: LocalDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    val pagerMondayDate: LocalDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
+    val currentSectionIndex: Int = -1
 )
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -157,6 +158,8 @@ class WeeklyScheduleViewModel @Inject constructor(
                     firstDayOfWeekInt = firstDayOfWeekInt
                 )
 
+                val currentSectionIndex = calculateCurrentSectionIndex(timeSlots)
+
                 // 修正颜色（仅针对本周课程做检查以减小负担）
                 val currentWeekCourses = cache[configPkg.mondayDate.toString()] ?: emptyList()
                 fixInvalidCourseColors(currentWeekCourses.flatMap { it.courses }, configPkg.style)
@@ -174,7 +177,8 @@ class WeeklyScheduleViewModel @Inject constructor(
                     weekIndexInPager = weekIndex,
                     weekTitle = generateTitle(weekIndex, startDate, totalWeeks, configPkg.provider),
                     currentWeekNumber = currentWeekNum,
-                    pagerMondayDate = configPkg.mondayDate
+                    pagerMondayDate = configPkg.mondayDate,
+                    currentSectionIndex = currentSectionIndex
                 )
             }.collect { _uiState.value = it }
         }
@@ -194,6 +198,28 @@ class WeeklyScheduleViewModel @Inject constructor(
             weekIndex != null && weekIndex in 1..totalWeeks -> p(R.string.title_current_week, arrayOf(weekIndex.toString()))
             else -> p(R.string.title_vacation, emptyArray())
         }
+    }
+
+    private fun calculateCurrentSectionIndex(timeSlots: List<TimeSlot>): Int {
+        if (timeSlots.isEmpty()) return -1
+        val now = LocalTime.now()
+        val currentMinutes = now.hour * 60 + now.minute
+        
+        timeSlots.forEachIndexed { index, slot ->
+            val startParts = slot.startTime.split(":")
+            val endParts = slot.endTime.split(":")
+            
+            if (startParts.size == 2 && endParts.size == 2) {
+                val startMinutes = startParts[0].toInt() * 60 + startParts[1].toInt()
+                val endMinutes = endParts[0].toInt() * 60 + endParts[1].toInt()
+                
+                if (currentMinutes in startMinutes until endMinutes) {
+                    return index + 1
+                }
+            }
+        }
+        
+        return -1
     }
 
     fun updatePagerDate(newDate: LocalDate) = _pagerMondayDate.update { newDate }
