@@ -178,17 +178,17 @@ private fun TimeColumn(style: ScheduleGridStyleComposed, timeSlots: List<TimeSlo
         timeSlots.forEachIndexed { index, slot ->
             val isCurrentSection = index + 1 == currentSectionIndex
             val backgroundColor = if (isCurrentSection) {
-                MaterialTheme.colorScheme.secondaryContainer
+                MaterialTheme.colorScheme.primaryContainer.copy(0.4f)
             } else {
                 Color.Transparent
             }
             val textColor = if (isCurrentSection) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                MaterialTheme.colorScheme.onSurface
             } else {
                 MaterialTheme.colorScheme.onSurface
             }
             val timeColor = if (isCurrentSection) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                MaterialTheme.colorScheme.onSurfaceVariant
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             }
