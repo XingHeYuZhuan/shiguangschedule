@@ -131,9 +131,15 @@ class WeeklyScheduleViewModel @Inject constructor(
 
                 val isWithinSemester = pageWeekNum != null && pageWeekNum in 1..config.semesterTotalWeeks
 
+                // 获取数据流
                 val coursesFlow = if (settings.showNonCurrentWeekCourses && isWithinSemester) {
-                    // 不读取显示比当前查看周数小的课程
-                    courseTableRepository.getCoursesWithWeeksByTableIdStartingFrom(tableId, pageWeekNum!!)
+                    // 读取全部课程，然后在 map 中进行过滤
+                    courseTableRepository.getCoursesWithWeeksByTableId(tableId).map { allCourses ->
+                        allCourses.filter { cw ->
+                            // 仅保留包含当前页周数或更大周数的课程（即尚未结束的课程）
+                            cw.weeks.any { it.weekNumber >= pageWeekNum }
+                        }
+                    }
                 } else {
                     courseTableRepository.getCoursesWithWeeksByDate(tableId, day, config)
                 }

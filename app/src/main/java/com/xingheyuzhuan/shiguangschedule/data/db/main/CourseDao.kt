@@ -53,29 +53,6 @@ interface CourseDao {
     fun getCoursesWithWeeksByTableId(courseTableId: String): Flow<List<CourseWithWeeks>>
 
     /**
-     * 获取指定课表ID下，所有在指定周次或之后的课程。
-     * 用于过滤已上完的课程（仅保留尚未结束的课程）。
-     */
-    @Transaction
-    @Query(
-        """
-        SELECT DISTINCT c.* FROM courses AS c
-        INNER JOIN course_weeks AS cw ON c.id = cw.courseId
-        WHERE c.courseTableId = :courseTableId
-          AND cw.weekNumber >= :minWeek
-        ORDER BY 
-            c.day ASC,
-            CASE WHEN c.isCustomTime = 0 THEN c.startSection ELSE 99 END ASC,  
-            CASE WHEN c.isCustomTime = 1 THEN c.customStartTime ELSE '99:99' END ASC
-        """
-    )
-    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
-    fun getCoursesWithWeeksByTableIdStartingFrom(
-        courseTableId: String,
-        minWeek: Int
-    ): Flow<List<CourseWithWeeks>>
-
-    /**
      * 检查指定 ID 的课程是否存在。
      * 用于 Repository 判断是执行插入(Insert)还是精准更新(Update)。
      */
