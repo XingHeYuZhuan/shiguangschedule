@@ -132,7 +132,8 @@ class WeeklyScheduleViewModel @Inject constructor(
                 val isWithinSemester = pageWeekNum != null && pageWeekNum in 1..config.semesterTotalWeeks
 
                 val coursesFlow = if (settings.showNonCurrentWeekCourses && isWithinSemester) {
-                    courseTableRepository.getCoursesWithWeeksByTableId(tableId)
+                    // 不读取显示比当前查看周数小的课程
+                    courseTableRepository.getCoursesWithWeeksByTableIdStartingFrom(tableId, pageWeekNum!!)
                 } else {
                     courseTableRepository.getCoursesWithWeeksByDate(tableId, day, config)
                 }

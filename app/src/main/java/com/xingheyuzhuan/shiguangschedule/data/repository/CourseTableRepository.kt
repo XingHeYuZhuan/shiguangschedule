@@ -43,6 +43,13 @@ class CourseTableRepository @Inject constructor(
     }
 
     /**
+     * 获取指定课表ID下，从指定周次开始的所有课程。
+     */
+    fun getCoursesWithWeeksByTableIdStartingFrom(tableId: String, minWeek: Int): Flow<List<CourseWithWeeks>> {
+        return courseDao.getCoursesWithWeeksByTableIdStartingFrom(tableId, minWeek)
+    }
+
+    /**
      * 创建一个新的课表。
      * 负责生成 ID 并执行插入操作，并**同步**为新课表创建默认时间段和配置。
      *
