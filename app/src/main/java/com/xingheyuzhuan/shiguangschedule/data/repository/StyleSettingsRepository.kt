@@ -101,13 +101,9 @@ class StyleSettingsRepository @Inject constructor(
     /** 设置透明度 (0.0f - 1.0f) */
     suspend fun setCourseBlockAlpha(alpha: Float) = updateStyle { courseBlockAlphaFloat = alpha }
 
-    /** 设置重叠课程颜色 (ARGB Long 值) */
-    suspend fun setOverlapCourseColorLong(longColor: Long, isDark: Boolean) = updateStyle {
-        if (isDark) {
-            overlapCourseColorDarkLong = longColor
-        } else {
-            overlapCourseColorLong = longColor
-        }
+    /** 设置重叠样式切换开关 */
+    suspend fun setOverlapStyleToggle(enabled: Boolean) = updateStyle {
+        overlapStyleToggle = enabled
     }
 
     /** 设置颜色列表映射 */

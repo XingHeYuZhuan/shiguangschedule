@@ -36,8 +36,9 @@ message ScheduleGridStyleProto {
   optional float course_block_alpha_float = 7;      // 不透明度 (0.0 - 1.0)
 
   // 重叠/堆叠颜色配置 (ARGB Long)
-  optional int64 overlap_course_color_long = 9;       // 浅色模式重叠色
-  optional int64 overlap_course_color_dark_long = 10; // 深色模式重叠色
+  // 已经废弃:删除旧颜色字段并保留编号
+  reserved 9, 10;
+  reserved "overlap_course_color_long", "overlap_course_color_dark_long";
 
   // 课程颜色池：用于循环分配或自定义颜色方案
   repeated DualColorProto course_color_maps = 11;
@@ -58,6 +59,8 @@ message ScheduleGridStyleProto {
   optional bool text_align_center_vertical = 22;   // 垂直居中开关
 
   optional BorderTypeProto border_type = 23;  // 边框类型
+
+  optional bool overlap_style_toggle = 24;   // 重叠样式切换开关
 
 
   optional string background_image_path = 19; // 存储图片在私有目录下的绝对路径

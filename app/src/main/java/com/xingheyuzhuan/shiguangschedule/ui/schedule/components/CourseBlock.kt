@@ -3,6 +3,7 @@ package com.xingheyuzhuan.shiguangschedule.ui.schedule.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,12 +14,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -46,12 +52,6 @@ fun CourseBlock(
     val firstCourse = mergedBlock.courses.firstOrNull()
     val isDarkTheme = isSystemInDarkTheme() // 获取当前主题模式
 
-    val overlapColorAdapted = if (isDarkTheme) {
-        style.overlapCourseColorDark
-    } else {
-        style.overlapCourseColor
-    }
-
     // 尝试获取颜色索引 (colorInt)
     val colorIndex = firstCourse?.course?.colorInt
         // 检查索引是否在映射表范围内，否则返回 null
@@ -73,8 +73,16 @@ fun CourseBlock(
         style.courseColorMaps.first().light
     }
 
+    // --- 冲突颜色列表提取 ---
+    val conflictColors = remember(mergedBlock.courses, isDarkTheme) {
+        mergedBlock.courses.map { cw ->
+            val idx = cw.course.colorInt.coerceIn(style.courseColorMaps.indices)
+            if (isDarkTheme) style.courseColorMaps[idx].dark else style.courseColorMaps[idx].light
+        }
+    }
+
     val blockColor = if (mergedBlock.isConflict) {
-        overlapColorAdapted.copy(alpha = style.courseBlockAlpha)
+        (if (isDarkTheme) Color.Black else Color.White).copy(alpha = style.courseBlockAlpha)
     } else {
         (courseColorAdapted ?: fallbackColorAdapted).copy(alpha = style.courseBlockAlpha)
     }
@@ -123,7 +131,7 @@ fun CourseBlock(
 
     // 对齐逻辑处理
     val horizontalAlignment = if (style.textAlignCenterHorizontal) Alignment.CenterHorizontally else Alignment.Start
-    val verticalArrangement = if (style.textAlignCenterVertical) androidx.compose.foundation.layout.Arrangement.Center else androidx.compose.foundation.layout.Arrangement.Top
+    val verticalArrangement = if (style.textAlignCenterVertical) Arrangement.Center else Arrangement.Top
     val textAlign = if (style.textAlignCenterHorizontal) TextAlign.Center else TextAlign.Start
 
     Box(
@@ -132,6 +140,29 @@ fun CourseBlock(
             .then(borderModifier) // 应用边框
             .clip(shape)
             .background(color = blockColor)
+            .then(
+                if (mergedBlock.isConflict) {
+                    Modifier.drawBehind {
+                        val stripeBrush = Brush.linearGradient(
+                            colors = if (conflictColors.size > 1) {
+                                val list = mutableListOf<Color>()
+                                conflictColors.forEach { color ->
+                                    val adjustedColor = color.copy(alpha = style.courseBlockAlpha)
+                                    list.add(adjustedColor)
+                                    list.add(adjustedColor)
+                                }
+                                list
+                            } else {
+                                listOf(conflictColors[0].copy(alpha = style.courseBlockAlpha), conflictColors[0].copy(alpha = style.courseBlockAlpha))
+                            },
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, size.height),
+                            tileMode = TileMode.Repeated
+                        )
+                        drawRect(brush = stripeBrush)
+                    }
+                } else Modifier
+            )
     ) {
         // 原始内容层
         Column(
@@ -141,25 +172,26 @@ fun CourseBlock(
             horizontalAlignment = horizontalAlignment, // 水平对齐
             verticalArrangement = verticalArrangement   // 垂直对齐
         ) {
-            if (mergedBlock.isConflict) {
-                mergedBlock.courses.forEach { course ->
+            if (mergedBlock.isConflict && !style.overlapStyleToggle) {
+                // 未开启样式切换：居中显示大字提示
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = course.course.name,
-                        fontSize = s12,
-                        fontWeight = FontWeight.Bold,
+                        text = stringResource(R.string.label_courses_overlap, mergedBlock.courses.size),
+                        fontSize = s13,
+                        fontWeight = FontWeight.Black,
                         color = textColor,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = textAlign,
-                        modifier = Modifier.weight(1f, fill = false)
+                        style = TextStyle(
+                            shadow = Shadow(
+                                color = (if (isDarkTheme) Color.Black else Color.White).copy(alpha = 0.6f),
+                                offset = Offset(2f, 2f),
+                                blurRadius = 8f
+                            )
+                        )
                     )
                 }
-                Text(
-                    text = stringResource(R.string.label_overlap),
-                    fontSize = s10,
-                    color = textColor,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
             } else {
                 // 时间显示
                 if (isCustomTimeCourse) {
@@ -224,10 +256,28 @@ fun CourseBlock(
                         )
                     }
                 }
+
+                // 开启样式切换后，在文字内容下方追加重叠提示
+                if (mergedBlock.isConflict) {
+                    Text(
+                        text = stringResource(R.string.label_courses_overlap, mergedBlock.courses.size),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = textColor.copy(alpha = 0.9f),
+                        textAlign = textAlign,
+                        style = TextStyle(
+                            lineHeight = 1.em,
+                            shadow = Shadow(
+                                color = (if (isDarkTheme) Color.Black else Color.White).copy(alpha = 0.4f),
+                                blurRadius = 4f
+                            )
+                        )
+                    )
+                }
             }
         }
 
-        // 非本周课程标记 (使用手动导入的 stacks_24px.xml)
+        // 非本周课程标记
         if (mergedBlock.hasNonCurrentWeekCourses) {
             Icon(
                 painter = painterResource(id = R.drawable.stacks_24px),
@@ -251,14 +301,14 @@ fun CourseBlock(
                     .drawBehind {
                         val stripeWidth = 5.dp.toPx()
                         val stripeColor = (if (isDarkTheme) Color.White else Color.Black).copy(alpha = 0.06f)
-                        val brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                        val brush = Brush.linearGradient(
                             0.0f to stripeColor,
                             0.45f to stripeColor,
                             0.55f to Color.Transparent,
                             1.0f to Color.Transparent,
-                            start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                            end = androidx.compose.ui.geometry.Offset(stripeWidth, stripeWidth),
-                            tileMode = androidx.compose.ui.graphics.TileMode.Repeated
+                            start = Offset(0f, 0f),
+                            end = Offset(stripeWidth, stripeWidth),
+                            tileMode = TileMode.Repeated
                         )
                         drawRect(brush = brush)
                     }

@@ -74,7 +74,7 @@
     <string name="course_position_prefix">Location: %1$s</string>
     <string name="course_teacher_prefix">Instructor: %1$s</string>
     <string name="title_course_overlap">Overlapping Courses</string>
-    <string name="label_overlap">(Overlap)</string>
+    <string name="label_courses_overlap">%d overlapping</string>
     <string name="course_time_sections_count">(%1$s periods)</string>
     <string name="title_select_week">Select week</string>
     <string name="title_current_week">Week %1$s</string>
@@ -472,7 +472,6 @@
     <string name="label_opacity">Opacity</string>
     <string name="title_light_color_pool">Light Mode Color Pool</string>
     <string name="title_dark_color_pool">Dark Mode Color Pool</string>
-    <string name="label_color_overlap">Overlap</string>
     <string name="preview_light_mode">Light Mode Preview\nFixed dark text</string>
     <string name="preview_dark_mode">Dark Mode Preview\nFixed light text</string>
     <string name="action_reset_style">Reset to default style</string>
@@ -488,6 +487,7 @@
     <string name="placeholder_input_value">Enter value</string>
 
     <!-- Quick Actions -->
+    <string name="label_overlap_style_toggle">Toggle overlapping style</string>
     <string name="item_quick_actions">Quick Actions</string>
     <string name="desc_quick_actions">Includes schedule tweaks, temporary changes, etc.</string>
     <string name="label_quick_action_category_schedule">Schedule Adjustments</string>

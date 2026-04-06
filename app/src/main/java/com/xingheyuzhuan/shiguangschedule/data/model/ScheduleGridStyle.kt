@@ -29,10 +29,6 @@ data class ScheduleGridStyle(
     val courseBlockInnerPaddingDp: Float = DEFAULT_BLOCK_INNER_PADDING,
     val courseBlockAlphaFloat: Float = DEFAULT_BLOCK_ALPHA,
 
-    // 颜色 (单位: Long/ARGB)
-    val overlapCourseColorLong: Long = DEFAULT_OVERLAP_COLOR,
-    val overlapCourseColorDarkLong: Long = DEFAULT_OVERLAP_COLOR_DARK,
-
     // 颜色列表
     val courseColorMaps: List<DualColor> = DEFAULT_COLOR_MAPS,
 
@@ -49,6 +45,7 @@ data class ScheduleGridStyle(
     val textAlignCenterHorizontal: Boolean = false,
     val textAlignCenterVertical: Boolean = false,
     val borderType: BorderTypeProto = BorderTypeProto.BORDER_TYPE_NONE,
+    val overlapStyleToggle: Boolean = false,
 
     // 背景壁纸路径 (存储在私有目录下的绝对路径)
     val backgroundImagePath: String? = null
@@ -69,8 +66,6 @@ data class ScheduleGridStyle(
         internal val DEFAULT_BLOCK_INNER_PADDING = 4f
         internal val DEFAULT_BLOCK_ALPHA = 1f
         internal val DEFAULT_FONT_SCALE = 1f
-        internal val DEFAULT_OVERLAP_COLOR = 0xFFFF9999L
-        internal val DEFAULT_OVERLAP_COLOR_DARK = 0xFF660000L
 
         internal val DEFAULT_COLOR_MAPS = listOf(
             DualColor(light = Color(0xFFFFCC99), dark = Color(0xFF663300)),
@@ -98,8 +93,6 @@ data class ScheduleGridStyle(
             courseBlockOuterPaddingDp = DEFAULT_BLOCK_OUTER_PADDING,
             courseBlockInnerPaddingDp = DEFAULT_BLOCK_INNER_PADDING,
             courseBlockAlphaFloat = DEFAULT_BLOCK_ALPHA,
-            overlapCourseColorLong = DEFAULT_OVERLAP_COLOR,
-            overlapCourseColorDarkLong = DEFAULT_OVERLAP_COLOR_DARK,
             courseColorMaps = DEFAULT_COLOR_MAPS,
             courseBlockFontScale = DEFAULT_FONT_SCALE,
             hideGridLines = false,
@@ -112,6 +105,7 @@ data class ScheduleGridStyle(
             textAlignCenterHorizontal = false,
             textAlignCenterVertical = false,
             borderType = BorderTypeProto.BORDER_TYPE_NONE,
+            overlapStyleToggle = false,
             backgroundImagePath = null
         )
     }
@@ -135,7 +129,7 @@ fun DualColor.toProto(): DualColorProto {
 }
 
 /**
- * Protobuf -> ScheduleGridStyle 转换函数
+ * Protobuf -> ScheduleGridStyle 转换 function
  */
 fun ScheduleGridStyleProto.toCompose(): ScheduleGridStyle {
     val d = ScheduleGridStyle.DEFAULT
@@ -155,10 +149,6 @@ fun ScheduleGridStyleProto.toCompose(): ScheduleGridStyle {
         courseBlockAlphaFloat = if (hasCourseBlockAlphaFloat()) courseBlockAlphaFloat else d.courseBlockAlphaFloat,
         courseBlockFontScale = if (hasCourseBlockFontScale()) courseBlockFontScale else d.courseBlockFontScale,
 
-        // 4. 颜色配置
-        overlapCourseColorLong = if (hasOverlapCourseColorLong()) overlapCourseColorLong else d.overlapCourseColorLong,
-        overlapCourseColorDarkLong = if (hasOverlapCourseColorDarkLong()) overlapCourseColorDarkLong else d.overlapCourseColorDarkLong,
-
         // 5. 列表转换
         courseColorMaps = if (this.courseColorMapsList.isEmpty()) d.courseColorMaps else this.courseColorMapsList.map { it.toCompose() },
 
@@ -175,6 +165,7 @@ fun ScheduleGridStyleProto.toCompose(): ScheduleGridStyle {
         textAlignCenterHorizontal = if (hasTextAlignCenterHorizontal()) textAlignCenterHorizontal else d.textAlignCenterHorizontal,
         textAlignCenterVertical = if (hasTextAlignCenterVertical()) textAlignCenterVertical else d.textAlignCenterVertical,
         borderType = if (hasBorderType()) borderType else d.borderType,
+        overlapStyleToggle = if (hasOverlapStyleToggle()) overlapStyleToggle else d.overlapStyleToggle,
 
         // 8. 背景图路径映射
         backgroundImagePath = if (hasBackgroundImagePath() && backgroundImagePath.isNotEmpty()) backgroundImagePath else null
@@ -193,8 +184,6 @@ fun ScheduleGridStyle.toProto(): ScheduleGridStyleProto {
         courseBlockOuterPaddingDp = this@toProto.courseBlockOuterPaddingDp
         courseBlockInnerPaddingDp = this@toProto.courseBlockInnerPaddingDp
         courseBlockAlphaFloat = this@toProto.courseBlockAlphaFloat
-        overlapCourseColorLong = this@toProto.overlapCourseColorLong
-        overlapCourseColorDarkLong = this@toProto.overlapCourseColorDarkLong
         courseBlockFontScale = this@toProto.courseBlockFontScale
 
         addAllCourseColorMaps(this@toProto.courseColorMaps.map { it.toProto() })
@@ -209,6 +198,7 @@ fun ScheduleGridStyle.toProto(): ScheduleGridStyleProto {
         textAlignCenterHorizontal = this@toProto.textAlignCenterHorizontal
         textAlignCenterVertical = this@toProto.textAlignCenterVertical
         borderType = this@toProto.borderType
+        overlapStyleToggle = this@toProto.overlapStyleToggle
 
         // 路径映射
         backgroundImagePath = this@toProto.backgroundImagePath ?: ""

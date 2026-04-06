@@ -7,7 +7,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -52,7 +51,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -103,7 +101,6 @@ fun StyleSettingsScreen(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     var showColorPicker by remember { mutableStateOf(false) }
-    var pickingCategory by remember { mutableIntStateOf(0) }
     var isDarkTarget by remember { mutableStateOf(false) }
     var selectedColorIndex by remember { mutableIntStateOf(0) }
 
@@ -166,10 +163,15 @@ fun StyleSettingsScreen(
                 Row(modifier = contentModifier) {
                     previewContent(Modifier.fillMaxHeight().weight(0.4f))
                     Card(modifier = Modifier.fillMaxHeight().weight(0.6f), shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp)) {
-                        SettingsListContent(currentStyle, viewModel, onWallpaperClick = {
-                            launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        }) { cat, isDark, idx ->
-                            pickingCategory = cat; isDarkTarget = isDark; selectedColorIndex = idx
+                        SettingsListContent(
+                            currentStyle = currentStyle,
+                            viewModel = viewModel,
+                            onWallpaperClick = {
+                                launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            }
+                        ) { isDark, idx ->
+                            isDarkTarget = isDark
+                            selectedColorIndex = idx
                             showColorPicker = true
                         }
                     }
@@ -178,10 +180,15 @@ fun StyleSettingsScreen(
                 Column(modifier = contentModifier) {
                     previewContent(Modifier.fillMaxWidth().weight(0.45f))
                     Card(modifier = Modifier.fillMaxWidth().weight(0.55f), shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)) {
-                        SettingsListContent(currentStyle, viewModel, onWallpaperClick = {
-                            launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        }) { cat, isDark, idx ->
-                            pickingCategory = cat; isDarkTarget = isDark; selectedColorIndex = idx
+                        SettingsListContent(
+                            currentStyle = currentStyle,
+                            viewModel = viewModel,
+                            onWallpaperClick = {
+                                launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            }
+                        ) { isDark, idx ->
+                            isDarkTarget = isDark
+                            selectedColorIndex = idx
                             showColorPicker = true
                         }
                     }
@@ -190,12 +197,9 @@ fun StyleSettingsScreen(
 
             if (showColorPicker) {
                 ModalBottomSheet(onDismissRequest = { showColorPicker = false }, sheetState = sheetState) {
-                    val initialColor = if (pickingCategory == 1) {
-                        if (isDarkTarget) currentStyle.overlapCourseColorDark else currentStyle.overlapCourseColor
-                    } else {
-                        val pair = currentStyle.courseColorMaps.getOrNull(selectedColorIndex)
-                        if (isDarkTarget) pair?.dark ?: Color.Gray else pair?.light ?: Color.Gray
-                    }
+                    val initialColor = styleState?.courseColorMaps?.getOrNull(selectedColorIndex)?.let { pair ->
+                        if (isDarkTarget) pair.dark else pair.light
+                    } ?: Color.Gray
 
                     var currentColorInPicker by remember { mutableStateOf(initialColor) }
 
@@ -204,11 +208,7 @@ fun StyleSettingsScreen(
                         config = ColorPickerConfig(showAlpha = false),
                         onColorChanged = { newColor ->
                             currentColorInPicker = newColor
-                            if (pickingCategory == 1) {
-                                viewModel.updateOverlapColor(newColor, isDarkTarget)
-                            } else {
-                                viewModel.updatePrimaryColor(selectedColorIndex, newColor, isDarkTarget)
-                            }
+                            viewModel.updatePrimaryColor(selectedColorIndex, newColor, isDarkTarget)
                         },
                         previewContent = {
                             ColorPreviewBox(currentColorInPicker, !isDarkTarget)
@@ -226,7 +226,7 @@ private fun SettingsListContent(
     currentStyle: ScheduleGridStyleComposed,
     viewModel: StyleSettingsViewModel,
     onWallpaperClick: () -> Unit,
-    onPick: (category: Int, isDark: Boolean, index: Int) -> Unit
+    onPick: (isDark: Boolean, index: Int) -> Unit
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -276,7 +276,6 @@ private fun SettingsListContent(
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         Text(stringResource(R.string.style_category_grid_size), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-        // 尺寸类全部使用默认的 1f 步长（整数吸附）
         StyleSliderItem(stringResource(R.string.label_section_height), currentStyle.sectionHeight.value, 40f..120f) { viewModel.updateSectionHeight(it) }
         StyleSliderItem(stringResource(R.string.label_time_column_width), currentStyle.timeColumnWidth.value, 20f..80f) { viewModel.updateTimeColumnWidth(it) }
         StyleSliderItem(stringResource(R.string.label_day_header_height), currentStyle.dayHeaderHeight.value, 30f..80f) { viewModel.updateDayHeaderHeight(it) }
@@ -290,16 +289,15 @@ private fun SettingsListContent(
         StyleSwitchItem(stringResource(R.string.label_remove_location_at), currentStyle.removeLocationAt) { viewModel.updateRemoveLocationAt(it) }
         StyleSwitchItem(stringResource(R.string.label_text_align_center_h), currentStyle.textAlignCenterHorizontal) { viewModel.updateTextAlignCenterHorizontal(it) }
         StyleSwitchItem(stringResource(R.string.label_text_align_center_v), currentStyle.textAlignCenterVertical) { viewModel.updateTextAlignCenterVertical(it) }
+        StyleSwitchItem(stringResource(R.string.label_overlap_style_toggle), currentStyle.overlapStyleToggle) { viewModel.updateOverlapStyleToggle(it) }
         BorderTypeSelector(currentStyle.borderType) { viewModel.updateBorderType(it) }
 
-        // 字体缩放使用 0.1 步长
         StyleSliderItem(stringResource(R.string.label_font_scale), currentStyle.fontScale, 0.5f..2.0f, 0.1f) { viewModel.updateCourseBlockFontScale(it) }
-        // 圆角和边距使用 1f 步长（整数）
         StyleSliderItem(stringResource(R.string.label_corner_radius), currentStyle.courseBlockCornerRadius.value, 0f..24f, 1f) { viewModel.updateCornerRadius(it) }
         StyleSliderItem(stringResource(R.string.label_inner_padding), currentStyle.courseBlockInnerPadding.value, 0f..12f, 1f) { viewModel.updateInnerPadding(it) }
         StyleSliderItem(stringResource(R.string.label_outer_padding), currentStyle.courseBlockOuterPadding.value, 0f..8f, 1f) { viewModel.updateOuterPadding(it) }
-        // 透明度使用 0.05 步长
         StyleSliderItem(stringResource(R.string.label_opacity), currentStyle.courseBlockAlpha, 0.1f..1f, 0.05f) { viewModel.updateAlpha(it) }
+
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
@@ -310,9 +308,7 @@ private fun SettingsListContent(
             bgColor = lightColorScheme().surfaceContainerLow,
             isDarkSection = false,
             colors = currentStyle.courseColorMaps.map { it.light },
-            conflictColor = currentStyle.overlapCourseColor,
-            onEditColor = { onPick(0, false, it) },
-            onEditConflict = { onPick(1, false, 0) }
+            onEditColor = { onPick(false, it) }
         )
 
         ColorSchemeSection(
@@ -320,9 +316,7 @@ private fun SettingsListContent(
             bgColor = darkColorScheme().surfaceContainerLow,
             isDarkSection = true,
             colors = currentStyle.courseColorMaps.map { it.dark },
-            conflictColor = currentStyle.overlapCourseColorDark,
-            onEditColor = { onPick(0, true, it) },
-            onEditConflict = { onPick(1, true, 0) }
+            onEditColor = { onPick( true, it) }
         )
     }
 }
@@ -370,9 +364,7 @@ private fun ColorSchemeSection(
     bgColor: Color,
     isDarkSection: Boolean,
     colors: List<Color>,
-    conflictColor: Color,
-    onEditColor: (Int) -> Unit,
-    onEditConflict: () -> Unit
+    onEditColor: (Int) -> Unit
 ) {
     val contentColor = if (isDarkSection) Color.White else Color.Black
 
@@ -380,20 +372,11 @@ private fun ColorSchemeSection(
         Text(title, style = MaterialTheme.typography.labelLarge, color = contentColor)
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(conflictColor).border(2.dp, contentColor.copy(0.3f), CircleShape).clickable { onEditConflict() })
-                Text(stringResource(R.string.label_color_overlap), style = MaterialTheme.typography.labelSmall, color = contentColor.copy(0.6f), modifier = Modifier.padding(top = 4.dp))
-            }
-
-            VerticalDivider(modifier = Modifier.height(40.dp).padding(horizontal = 12.dp), color = contentColor.copy(0.1f))
-
-            Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                colors.forEachIndexed { index, color ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(color).clickable { onEditColor(index) })
-                        Text("${index + 1}", style = MaterialTheme.typography.labelSmall, color = contentColor.copy(0.6f), modifier = Modifier.padding(top = 4.dp))
-                    }
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            colors.forEachIndexed { index, color ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(color).clickable { onEditColor(index) })
+                    Text("${index + 1}", style = MaterialTheme.typography.labelSmall, color = contentColor.copy(0.6f), modifier = Modifier.padding(top = 4.dp))
                 }
             }
         }
@@ -468,7 +451,6 @@ private fun StyleSliderItem(
     var showDialog by remember { mutableStateOf(false) }
     val isIntegerStep = stepValue >= 1f
 
-    // 定义格式化辅助函数
     fun formatValue(v: Float): String = if (isIntegerStep) "${v.toInt()}" else "%.1f".format(v)
 
     val steps = remember(range, stepValue) {
@@ -493,7 +475,6 @@ private fun StyleSliderItem(
                     androidx.compose.material3.OutlinedTextField(
                         value = textFieldValue,
                         onValueChange = { input ->
-                            // 如果是整数步长，只允许数字；否则允许数字和小数点
                             if (isIntegerStep) {
                                 if (input.all { it.isDigit() }) textFieldValue = input
                             } else {

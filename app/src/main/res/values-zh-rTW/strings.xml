@@ -74,7 +74,7 @@
     <string name="course_position_prefix">地點: %1$s</string>
     <string name="course_teacher_prefix">老師: %1$s</string>
     <string name="title_course_overlap">重疊課程列表</string>
-    <string name="label_overlap">（重疊）</string>
+    <string name="label_courses_overlap">%d門重疊</string>
     <string name="course_time_sections_count">(%1$s節)</string>
     <string name="title_select_week">選擇週次</string>
     <string name="title_current_week">第 %1$s 週</string>
@@ -472,7 +472,6 @@
     <string name="label_opacity">不透明度</string>
     <string name="title_light_color_pool">淺色模式顏色池</string>
     <string name="title_dark_color_pool">深色模式顏色池</string>
-    <string name="label_color_overlap">重疊</string>
     <string name="preview_light_mode">淺色模式預覽\n固定深色文字</string>
     <string name="preview_dark_mode">深色模式預覽\n固定淺色文字</string>
     <string name="action_reset_style">恢復預設樣式設置</string>
@@ -488,6 +487,7 @@
     <string name="placeholder_input_value">請輸入數值</string>
 
     <!-- 快捷操作 -->
+    <string name="label_overlap_style_toggle">重疊課程塊樣式切換</string>
     <string name="item_quick_actions">快捷操作</string>
     <string name="desc_quick_actions">包含調課、課程臨時變動等功能</string>
     <string name="label_quick_action_category_schedule">課表調整</string>
