@@ -27,7 +27,6 @@
     
     <!-- Main Interface and Today's Schedule -->
     <string name="action_reset">Reset</string>
-    <string name="action_switch_course_table">Switch schedule</string>
     <string name="nav_today_schedule">Today</string>
     <string name="nav_course_schedule">Schedule</string>
     <string name="nav_settings">Settings</string>

@@ -25,7 +25,6 @@
     <string name="common_action_continue_editing">继续编辑</string>
     <string name="label_recent_visit">最近访问</string>
     <string name="action_reset">重置</string>
-    <string name="action_switch_course_table">切换课表</string>
 
     <!-- 主界面及今日课表 -->
     <string name="nav_today_schedule">今日课表</string>

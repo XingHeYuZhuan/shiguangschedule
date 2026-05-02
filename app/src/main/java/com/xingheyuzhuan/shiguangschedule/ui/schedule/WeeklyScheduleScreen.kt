@@ -163,7 +163,7 @@ fun WeeklyScheduleScreen(
                         IconButton(onClick = { showTableSwitcher = true }) {
                             Icon(
                                 imageVector = Icons.Default.SwapHoriz,
-                                contentDescription = stringResource(R.string.action_switch_course_table),
+                                contentDescription = stringResource(R.string.action_select_table),
                                 tint = customTextColor
                             )
                         }
@@ -296,7 +296,7 @@ fun WeeklyScheduleScreen(
     // 课表切换弹窗
     if (showTableSwitcher) {
         CourseTablePickerDialog(
-            title = stringResource(R.string.action_switch_course_table),
+            title = stringResource(R.string.action_select_table),
             onDismissRequest = { showTableSwitcher = false },
             onTableSelected = { table: CourseTable ->
                 viewModel.switchCourseTable(table.id)
