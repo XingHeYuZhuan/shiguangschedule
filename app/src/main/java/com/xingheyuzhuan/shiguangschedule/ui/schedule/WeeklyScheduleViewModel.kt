@@ -237,6 +237,14 @@ class WeeklyScheduleViewModel @Inject constructor(
 
     fun updatePagerDate(newDate: LocalDate) = _pagerMondayDate.update { newDate }
 
+    fun switchCourseTable(tableId: String) {
+        viewModelScope.launch {
+            val currentSettings = appSettingsRepository.getAppSettingsOnce()
+            val newSettings = currentSettings.copy(currentCourseTableId = tableId)
+            appSettingsRepository.insertOrUpdateAppSettings(newSettings)
+        }
+    }
+
     private fun fixInvalidCourseColors(courses: List<CourseWithWeeks>, style: ScheduleGridStyle) {
         viewModelScope.launch {
             val validRange = style.courseColorMaps.indices

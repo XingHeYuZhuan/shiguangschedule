@@ -27,6 +27,7 @@
     
     <!-- 主介面及今日課表 -->
     <string name="action_reset">重置</string>
+    <string name="action_switch_course_table">切換課表</string>
     <string name="nav_today_schedule">今日課表</string>
     <string name="nav_course_schedule">課表</string>
     <string name="nav_settings">我的</string>

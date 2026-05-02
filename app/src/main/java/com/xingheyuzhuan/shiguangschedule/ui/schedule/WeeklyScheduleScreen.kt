@@ -12,6 +12,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,10 +28,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.Destination
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.navigation.AddEditCourseChannel
 import com.xingheyuzhuan.shiguangschedule.navigation.PresetCourseData
 import com.xingheyuzhuan.shiguangschedule.ui.components.BottomNavigationBar
+import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.OverlapCourseBottomSheet
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGrid
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed
@@ -86,6 +89,7 @@ fun WeeklyScheduleScreen(
     // UI 交互控制
     var showWeekSelector by remember { mutableStateOf(false) }
     var showOverlapBottomSheet by remember { mutableStateOf(false) }
+    var showTableSwitcher by remember { mutableStateOf(false) }
     var overlapCoursesToShow by remember { mutableStateOf(emptyList<CourseWithWeeks>()) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -152,6 +156,15 @@ fun WeeklyScheduleScreen(
                                     .size(20.dp)
                                     .offset(y = (-4).dp),
                                 tint = customSubTextColor
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { showTableSwitcher = true }) {
+                            Icon(
+                                imageVector = Icons.Default.SwapHoriz,
+                                contentDescription = stringResource(R.string.action_switch_course_table),
+                                tint = customTextColor
                             )
                         }
                     },
@@ -277,6 +290,18 @@ fun WeeklyScheduleScreen(
                 onNavigate(Destination.AddEditCourse(courseId = course.course.id))
             },
             onDismissRequest = { showOverlapBottomSheet = false }
+        )
+    }
+
+    // 课表切换弹窗
+    if (showTableSwitcher) {
+        CourseTablePickerDialog(
+            title = stringResource(R.string.action_switch_course_table),
+            onDismissRequest = { showTableSwitcher = false },
+            onTableSelected = { table: CourseTable ->
+                viewModel.switchCourseTable(table.id)
+                showTableSwitcher = false
+            }
         )
     }
 }
