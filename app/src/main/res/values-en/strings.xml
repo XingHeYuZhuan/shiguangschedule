@@ -56,7 +56,7 @@
     <string name="action_double_week">Even weeks</string>
     <string name="label_course_color">Course color</string>
     <string name="button_select_color">Select color</string>
-    <string name="snackbar_add_course_after_start">Please add courses after semester starts</string>
+    <string name="snackbar_add_course_within_semester">Please add or adjust courses during the academic weeks</string>
     <string name="label_section_range_suffix">Period(s)</string>
     <string name="title_select_time">Select class time</string>
     <string name="button_select_weeks">Select weeks</string>

@@ -56,7 +56,7 @@
     <string name="action_double_week">双周</string>
     <string name="label_course_color">课程颜色</string>
     <string name="button_select_color">选择颜色</string>
-    <string name="snackbar_add_course_after_start">请在开学后添加课程</string>
+    <string name="snackbar_add_course_within_semester">请在教学周期间添加或调整课程</string>
     <string name="label_section_range_suffix">节</string>
     <string name="title_select_time">选择上课时间</string>
     <string name="button_select_weeks">选择周数</string>

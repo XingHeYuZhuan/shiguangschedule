@@ -88,7 +88,7 @@ fun WeeklyScheduleScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val snackbarMsg = stringResource(id = R.string.snackbar_add_course_after_start)
+    val snackbarMsg = stringResource(id = R.string.snackbar_add_course_within_semester)
 
     val pagerState = rememberPagerState(
         initialPage = INFINITE_PAGER_CENTER,
@@ -321,8 +321,13 @@ fun WeeklyScheduleScreen(
                                 )
                             }
                         } else {
-                            if (uiState.semesterStartDate != null && !today.isBefore(uiState.semesterStartDate)) {
+                            val currentWeek = uiState.weekIndexInPager ?: 0
+                            val isCurrentPageValid = currentWeek in 1..uiState.totalWeeks
+
+                            if (isCurrentPageValid) {
                                 coroutineScope.launch {
+                                    val currentWeekSet = setOf(currentWeek)
+
                                     val presetData = if (composedStyle.scheduleMode == ScheduleModeProto.TIME_24H_MODE) {
                                         val startHour = sectionOrHour.coerceIn(0, 23)
                                         val endHour = (startHour + 1) % 24
@@ -332,18 +337,18 @@ fun WeeklyScheduleScreen(
 
                                         PresetCourseData(
                                             day = day,
-                                            startSection = 1,
-                                            endSection = 1,
                                             isCustomTime = true,
                                             customStartTime = startTimeStr,
-                                            customEndTime = endTimeStr
+                                            customEndTime = endTimeStr,
+                                            presetWeeks = currentWeekSet
                                         )
                                     } else {
                                         PresetCourseData(
                                             day = day,
                                             startSection = sectionOrHour,
                                             endSection = sectionOrHour,
-                                            isCustomTime = false
+                                            isCustomTime = false,
+                                            presetWeeks = currentWeekSet
                                         )
                                     }
 
@@ -364,7 +369,10 @@ fun WeeklyScheduleScreen(
                         isGridHolding = isHolding
                     },
                     onCourseMovedWithinGrid = { clickedBlock, newDay, newStartSection, newEndSection ->
-                        if (uiState.semesterStartDate != null && !today.isBefore(uiState.semesterStartDate)) {
+                        val currentWeek = uiState.weekIndexInPager ?: 0
+                        val isCurrentPageValid = currentWeek in 1..uiState.totalWeeks
+
+                        if (isCurrentPageValid) {
                             val courseId = clickedBlock.courses.firstOrNull()?.course?.id
                             if (courseId != null) {
                                 coroutineScope.launch {
@@ -383,7 +391,10 @@ fun WeeklyScheduleScreen(
                         }
                     },
                     onCourseTimeAdjusted = { clickedBlock, newStart, newEnd ->
-                        if (uiState.semesterStartDate != null && !today.isBefore(uiState.semesterStartDate)) {
+                        val currentWeek = uiState.weekIndexInPager ?: 0
+                        val isCurrentPageValid = currentWeek in 1..uiState.totalWeeks
+
+                        if (isCurrentPageValid) {
                             val courseId = clickedBlock.courses.firstOrNull()?.course?.id
                             if (courseId != null) {
                                 coroutineScope.launch {
