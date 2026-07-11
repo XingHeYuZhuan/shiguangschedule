@@ -56,6 +56,7 @@ import com.xingheyuzhuan.shiguangschedule.navigation.AddEditCourseChannel
 import com.xingheyuzhuan.shiguangschedule.navigation.PresetCourseData
 import com.xingheyuzhuan.shiguangschedule.ui.components.BottomNavigationBar
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.CourseDetailBottomSheet
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.FloatingCourseBar
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGrid
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridActions
@@ -114,6 +115,7 @@ fun WeeklyScheduleScreen(
     var showWeekSelector by remember { mutableStateOf(false) }
     var showTableSwitcher by remember { mutableStateOf(false) }
     var isGridHolding by remember { mutableStateOf(false) }
+    var selectedBlockForDetail by remember { mutableStateOf<MergedCourseBlock?>(null) }
 
     val composedStyle by remember(uiState.style) {
         derivedStateOf { with(ScheduleGridStyleComposed) { uiState.style.toComposedStyle() } }
@@ -316,9 +318,7 @@ fun WeeklyScheduleScreen(
                 val gridActions = remember(uiState, floatingDuration, snackbarMsg) {
                     object : ScheduleGridActions {
                         override fun onCourseBlockClicked(block: MergedCourseBlock) {
-                            block.courses.firstOrNull()?.course?.id?.let {
-                                onNavigate(Destination.AddEditCourse(courseId = it))
-                            }
+                            selectedBlockForDetail = block
                         }
 
                         override fun onGridCellClicked(day: Int, section: Int) {
@@ -503,6 +503,18 @@ fun WeeklyScheduleScreen(
             onTableSelected = { table: CourseTable ->
                 viewModel.switchCourseTable(table.id)
                 showTableSwitcher = false
+            }
+        )
+    }
+
+    // 课程详情弹窗
+    if (selectedBlockForDetail != null) {
+        CourseDetailBottomSheet(
+            block = selectedBlockForDetail!!,
+            onDismissRequest = { selectedBlockForDetail = null },
+            onEditClick = { courseId ->
+                selectedBlockForDetail = null
+                onNavigate(Destination.AddEditCourse(courseId = courseId))
             }
         )
     }
