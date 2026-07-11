@@ -56,7 +56,7 @@
     <string name="action_double_week">雙週</string>
     <string name="label_course_color">課程顏色</string>
     <string name="button_select_color">選擇顏色</string>
-    <string name="snackbar_add_course_after_start">請在開學後新增課程</string>
+    <string name="snackbar_add_course_within_semester">請在開學後新增課程</string>
     <string name="label_section_range_suffix">節</string>
     <string name="title_select_time">選擇上課時間</string>
     <string name="button_select_weeks">選擇週數</string>
@@ -106,6 +106,7 @@
     </string-array>
     
     <!-- 通知與鬧鐘 -->
+    <string name="format_week_display">%1$d週</string>
     <string name="notification_channel_desc_course_alert">上課提醒通知</string>
     <string name="notification_title_course_alert">上課提醒</string>
     <string name="item_auto_mode">上課自動模式</string>

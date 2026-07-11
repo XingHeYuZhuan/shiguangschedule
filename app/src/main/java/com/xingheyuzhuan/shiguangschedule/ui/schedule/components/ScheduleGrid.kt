@@ -1,6 +1,5 @@
 package com.xingheyuzhuan.shiguangschedule.ui.schedule.components
 
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.scrollBy
@@ -30,9 +29,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.xingheyuzhuan.shiguangschedule.R
-import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -41,95 +38,61 @@ import kotlin.time.Duration.Companion.milliseconds
 @Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @Composable
 fun ScheduleGrid(
-    gridScrollState: ScrollState,
+    state: ScheduleGridState,
+    viewState: ScheduleGridViewState,
+    actions: ScheduleGridActions,
     style: ScheduleGridStyleComposed,
-    dates: List<String>,
-    currentYear: String,
-    timeSlots: List<TimeSlot>,
-    mergedCourses: List<MergedCourseBlock>,
-    showWeekends: Boolean,
-    todayIndex: Int,
-    firstDayOfWeek: Int,
-    currentSectionIndex: Int = -1,
-    onCourseBlockClicked: (MergedCourseBlock) -> Unit,
-    onGridCellClicked: (Int, Int) -> Unit,
-    onTimeSlotClicked: () -> Unit,
-    onHoldStateChanged: (isHolding: Boolean) -> Unit = {},
-    onCourseMovedWithinGrid: (block: MergedCourseBlock, newDay: Int, newStartSection: Float, newEndSection: Float) -> Unit = { _, _, _, _ -> },
-    onCourseTimeAdjusted: (block: MergedCourseBlock, newStart: Float, newEnd: Float) -> Unit = { _, _, _ -> },
-    onInitiateFloatingMode: (block: MergedCourseBlock) -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
-    Box(Modifier.fillMaxSize()) {
+    Box(modifier.fillMaxSize()) {
         val density = LocalDensity.current
 
-        var expandedItem by remember(mergedCourses) { mutableStateOf<ISingleSchedulable?>(null) }
-
-        var activeMoveIntent by remember(expandedItem) { mutableStateOf<CourseMoveIntent?>(null) }
-        var bodyDragOffsetX by remember(expandedItem) { mutableStateOf(0f) }
-        var bodyDragOffsetY by remember(expandedItem) { mutableStateOf(0f) }
-
-        var isTopHandleDragging by remember(expandedItem) { mutableStateOf(false) }
-        var isBottomHandleDragging by remember(expandedItem) { mutableStateOf(false) }
-
-        var topHandleDragOffsetY by remember(expandedItem) { mutableStateOf(0f) }
-        var bottomHandleDragOffsetY by remember(expandedItem) { mutableStateOf(0f) }
-
-        var gridWidthPx by remember { mutableStateOf(0f) }
-        var viewportHeightPx by remember { mutableStateOf(0f) }
-
-        LaunchedEffect(mergedCourses) {
-            expandedItem = null
-            activeMoveIntent = null
-            isTopHandleDragging = false
-            isBottomHandleDragging = false
-            topHandleDragOffsetY = 0f
-            bottomHandleDragOffsetY = 0f
-            bodyDragOffsetX = 0f
-            bodyDragOffsetY = 0f
-            onHoldStateChanged(false)
+        LaunchedEffect(viewState.mergedCourses) {
+            state.resetAllStates()
+            actions.onHoldStateChanged(false)
         }
 
         val pageTextColor = style.pageTextColor ?: MaterialTheme.colorScheme.onSurface
         val pageSubTextColor = pageTextColor.copy(alpha = 0.7f)
         val weekDays = stringArrayResource(R.array.week_days_short_names).toList()
-        val reorderedWeekDays = rearrangeDays(weekDays, firstDayOfWeek)
-        val displayDays = if (showWeekends) reorderedWeekDays else reorderedWeekDays.take(5)
+        val reorderedWeekDays = rearrangeDays(weekDays, viewState.firstDayOfWeek)
+        val displayDays = if (viewState.showWeekends) reorderedWeekDays else reorderedWeekDays.take(5)
 
         val displayDaysCount = displayDays.size
         val is24HourMode = style.scheduleMode == ScheduleModeProto.TIME_24H_MODE
-        val maxGridSections = if (is24HourMode) 24 else timeSlots.size
+        val maxGridSections = if (is24HourMode) 24 else viewState.timeSlots.size
 
         val totalGridHeight = style.sectionHeight * maxGridSections
         val gridLineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
         val strokeWidthPx = 1f
 
-        val singleSchedulables = remember(mergedCourses, firstDayOfWeek, showWeekends) {
-            calculateSingleSchedulables(mergedCourses, firstDayOfWeek, showWeekends)
+        val singleSchedulables = remember(viewState.mergedCourses, viewState.firstDayOfWeek, viewState.showWeekends) {
+            calculateSingleSchedulables(viewState.mergedCourses, viewState.firstDayOfWeek, viewState.showWeekends)
         }
         val sectionHeightPx = with(density) { style.sectionHeight.toPx() }
 
         var activeDragHour by remember { mutableStateOf<Int?>(null) }
         var activeDragMinuteStr by remember { mutableStateOf<String?>(null) }
 
-        if (is24HourMode && expandedItem != null) {
+        if (is24HourMode && state.expandedItem != null) {
             val currentTargetSection = when {
-                isTopHandleDragging -> {
+                state.isTopHandleDragging -> {
                     val minGap = 0.25f
-                    val deltaSection = topHandleDragOffsetY / sectionHeightPx
-                    var proposedStart = expandedItem!!.startSection + deltaSection
+                    val deltaSection = state.topHandleDragOffsetY / sectionHeightPx
+                    var proposedStart = state.expandedItem!!.startSection + deltaSection
                     proposedStart = (proposedStart / 0.25f).roundToInt() * 0.25f
-                    proposedStart.coerceIn(0f, expandedItem!!.endSection - minGap)
+                    proposedStart.coerceIn(0f, state.expandedItem!!.endSection - minGap)
                 }
-                isBottomHandleDragging -> {
+                state.isBottomHandleDragging -> {
                     val minGap = 0.25f
-                    val deltaSection = bottomHandleDragOffsetY / sectionHeightPx
-                    var proposedEnd = expandedItem!!.endSection + deltaSection
+                    val deltaSection = state.bottomHandleDragOffsetY / sectionHeightPx
+                    var proposedEnd = state.expandedItem!!.endSection + deltaSection
                     proposedEnd = (proposedEnd / 0.25f).roundToInt() * 0.25f
-                    proposedEnd.coerceIn(expandedItem!!.startSection + minGap, maxGridSections.toFloat())
+                    proposedEnd.coerceIn(state.expandedItem!!.startSection + minGap, maxGridSections.toFloat())
                 }
-                activeMoveIntent != null -> {
-                    val duration = activeMoveIntent!!.duration
-                    var targetStart = activeMoveIntent!!.initialStartSection + (bodyDragOffsetY / sectionHeightPx)
+                state.activeMoveIntent != null -> {
+                    val duration = state.activeMoveIntent!!.duration
+                    var targetStart = state.activeMoveIntent!!.initialStartSection + (state.bodyDragOffsetY / sectionHeightPx)
                     targetStart = (targetStart / 0.25f).roundToInt() * 0.25f
                     targetStart.coerceIn(0f, maxGridSections - duration)
                 }
@@ -153,51 +116,51 @@ fun ScheduleGrid(
         }
 
         // 自动边缘滚动监测线程
-        LaunchedEffect(expandedItem, activeMoveIntent != null, isTopHandleDragging, isBottomHandleDragging) {
-            if (expandedItem != null && (activeMoveIntent != null || isTopHandleDragging || isBottomHandleDragging)) {
+        LaunchedEffect(state.isEditingActive) {
+            if (state.isEditingActive) {
                 while (true) {
-                    val item = expandedItem ?: break
+                    val item = state.expandedItem ?: break
                     val threshold = with(density) { 40.dp.toPx() }
                     val scrollSpeed = with(density) { 8.dp.toPx() }
 
                     var relativeTop: Float? = null
                     var relativeBottom: Float? = null
 
-                    if (activeMoveIntent != null) {
-                        val currentTopInGrid = item.startSection * sectionHeightPx + bodyDragOffsetY
-                        val currentBottomInGrid = item.endSection * sectionHeightPx + bodyDragOffsetY
-                        relativeTop = currentTopInGrid - gridScrollState.value
-                        relativeBottom = currentBottomInGrid - gridScrollState.value
-                    } else if (isTopHandleDragging) {
-                        val currentTopInGrid = item.startSection * sectionHeightPx + topHandleDragOffsetY
-                        relativeTop = currentTopInGrid - gridScrollState.value
-                    } else if (isBottomHandleDragging) {
-                        val currentBottomInGrid = item.endSection * sectionHeightPx + bottomHandleDragOffsetY
-                        relativeBottom = currentBottomInGrid - gridScrollState.value
+                    if (state.activeMoveIntent != null) {
+                        val currentTopInGrid = item.startSection * sectionHeightPx + state.bodyDragOffsetY
+                        val currentBottomInGrid = item.endSection * sectionHeightPx + state.bodyDragOffsetY
+                        relativeTop = currentTopInGrid - state.gridScrollState.value
+                        relativeBottom = currentBottomInGrid - state.gridScrollState.value
+                    } else if (state.isTopHandleDragging) {
+                        val currentTopInGrid = item.startSection * sectionHeightPx + state.topHandleDragOffsetY
+                        relativeTop = currentTopInGrid - state.gridScrollState.value
+                    } else if (state.isBottomHandleDragging) {
+                        val currentBottomInGrid = item.endSection * sectionHeightPx + state.bottomHandleDragOffsetY
+                        relativeBottom = currentBottomInGrid - state.gridScrollState.value
                     }
 
                     var scrollAmount = 0f
                     if (relativeTop != null && relativeTop < threshold) {
-                        if (gridScrollState.value > 0) {
+                        if (state.gridScrollState.value > 0) {
                             scrollAmount = -scrollSpeed
-                            if (gridScrollState.value + scrollAmount < 0) scrollAmount = -gridScrollState.value.toFloat()
+                            if (state.gridScrollState.value + scrollAmount < 0) scrollAmount = -state.gridScrollState.value.toFloat()
                         }
-                    } else if (relativeBottom != null && viewportHeightPx > 0f && relativeBottom > viewportHeightPx - threshold) {
-                        val maxScroll = gridScrollState.maxValue
-                        if (gridScrollState.value < maxScroll) {
+                    } else if (relativeBottom != null && state.viewportHeightPx > 0f && relativeBottom > state.viewportHeightPx - threshold) {
+                        val maxScroll = state.gridScrollState.maxValue
+                        if (state.gridScrollState.value < maxScroll) {
                             scrollAmount = scrollSpeed
-                            if (gridScrollState.value + scrollAmount > maxScroll) scrollAmount = (maxScroll - gridScrollState.value).toFloat()
+                            if (state.gridScrollState.value + scrollAmount > maxScroll) scrollAmount = (maxScroll - state.gridScrollState.value).toFloat()
                         }
                     }
 
                     if (scrollAmount != 0f) {
-                        gridScrollState.scrollBy(scrollAmount)
-                        if (activeMoveIntent != null) {
-                            bodyDragOffsetY += scrollAmount
-                        } else if (isTopHandleDragging) {
-                            topHandleDragOffsetY += scrollAmount
-                        } else if (isBottomHandleDragging) {
-                            bottomHandleDragOffsetY += scrollAmount
+                        state.gridScrollState.scrollBy(scrollAmount)
+                        if (state.activeMoveIntent != null) {
+                            state.bodyDragOffsetY += scrollAmount
+                        } else if (state.isTopHandleDragging) {
+                            state.topHandleDragOffsetY += scrollAmount
+                        } else if (state.isBottomHandleDragging) {
+                            state.bottomHandleDragOffsetY += scrollAmount
                         }
                     }
                     delay(16.milliseconds)
@@ -206,19 +169,19 @@ fun ScheduleGrid(
         }
 
         Column(Modifier.fillMaxSize()) {
-            DayHeader(style, displayDays, dates, currentYear, todayIndex, gridLineColor, pageTextColor, pageSubTextColor, strokeWidthPx)
+            DayHeader(style, displayDays, viewState.dates, viewState.currentYear, viewState.currentWeek,viewState.todayIndex, gridLineColor, pageTextColor, pageSubTextColor, strokeWidthPx)
 
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .onSizeChanged { viewportHeightPx = it.height.toFloat() }
-                    .verticalScroll(state = gridScrollState, enabled = expandedItem == null)
+                    .onSizeChanged { state.viewportHeightPx = it.height.toFloat() }
+                    .verticalScroll(state = state.gridScrollState, enabled = state.expandedItem == null)
             ) {
                 TimeColumn(
-                    style = style, timeSlots = timeSlots, maxGridSections = maxGridSections,
-                    is24HourMode = is24HourMode, onTimeSlotClicked = onTimeSlotClicked,
+                    style = style, timeSlots = viewState.timeSlots, maxGridSections = maxGridSections,
+                    is24HourMode = is24HourMode, onTimeSlotClicked = { actions.onTimeSlotClicked() },
                     modifier = Modifier.height(totalGridHeight), lineColor = gridLineColor,
-                    currentSectionIndex = currentSectionIndex, textColor = pageTextColor,
+                    currentSectionIndex = viewState.currentSectionIndex, textColor = pageTextColor,
                     subTextColor = pageSubTextColor, strokeWidthPx = strokeWidthPx,
                     activeDragHour = activeDragHour,
                     activeDragMinuteStr = activeDragMinuteStr
@@ -227,7 +190,7 @@ fun ScheduleGrid(
                 Layout(
                     content = {
                         singleSchedulables.forEach { item ->
-                            val isExpanded = expandedItem != null && expandedItem?.parentBlock === item.parentBlock
+                            val isExpanded = state.expandedItem != null && state.expandedItem?.parentBlock === item.parentBlock
 
                             Box(
                                 modifier = Modifier
@@ -237,16 +200,16 @@ fun ScheduleGrid(
                                         if (!isExpanded) {
                                             Modifier.pointerInput(item) {
                                                 detectTapGestures(
-                                                    onTap = { onCourseBlockClicked(item.parentBlock) },
+                                                    onTap = { actions.onCourseBlockClicked(item.parentBlock) },
                                                     onLongPress = {
-                                                        expandedItem = item
-                                                        onHoldStateChanged(true)
+                                                        state.expandedItem = item
+                                                        actions.onHoldStateChanged(true)
                                                     }
                                                 )
                                             }
                                         } else {
                                             Modifier.pointerInput(item) {
-                                                detectTapGestures(onTap = { expandedItem = null; onHoldStateChanged(false) })
+                                                detectTapGestures(onTap = { state.expandedItem = null; actions.onHoldStateChanged(false) })
                                             }
                                         }
                                     )
@@ -255,61 +218,60 @@ fun ScheduleGrid(
                                     courseWrapper = item.courseWrapper,
                                     isVisualDemoted = item.parentBlock.isVisualDemoted,
                                     style = style,
-                                    timeSlots = timeSlots,
+                                    timeSlots = viewState.timeSlots,
                                     isFloating = isExpanded,
                                     modifier = if (isExpanded) {
                                         if (!item.parentBlock.isVisualDemoted) {
-                                            Modifier.pointerInput(item, gridWidthPx) {
+                                            Modifier.pointerInput(item, state.gridWidthPx) {
                                                 detectDragGestures(
                                                     onDragStart = {
-                                                        activeMoveIntent = CourseMoveIntent(item.parentBlock, item.parentBlock.day, item.startSection, item.endSection - item.startSection)
-                                                        bodyDragOffsetX = 0f; bodyDragOffsetY = 0f
+                                                        state.activeMoveIntent = CourseMoveIntent(item.parentBlock, item.parentBlock.day, item.startSection, item.endSection - item.startSection)
+                                                        state.bodyDragOffsetX = 0f; state.bodyDragOffsetY = 0f
                                                     },
                                                     onDragEnd = {
-                                                        val intent = activeMoveIntent
-                                                        if (intent != null && gridWidthPx > 0f) {
-                                                            val cellWidth = gridWidthPx / displayDaysCount
+                                                        val intent = state.activeMoveIntent
+                                                        if (intent != null && state.gridWidthPx > 0f) {
+                                                            val cellWidth = state.gridWidthPx / displayDaysCount
 
                                                             val initialX = item.columnIndex * cellWidth + (item.subColumnIndex * (cellWidth / item.subColumnCount))
 
-                                                            val currentAbsoluteX = initialX + bodyDragOffsetX
+                                                            val currentAbsoluteX = initialX + state.bodyDragOffsetX
                                                             val blockWidth = cellWidth / item.subColumnCount
 
                                                             val strictThresholdPx = with(density) { (-6.18).dp.toPx() }
 
                                                             val touchLeftEdge = currentAbsoluteX <= strictThresholdPx
-                                                            val touchRightEdge = (currentAbsoluteX + blockWidth) >= (gridWidthPx - strictThresholdPx)
+                                                            val touchRightEdge = (currentAbsoluteX + blockWidth) >= (state.gridWidthPx - strictThresholdPx)
 
                                                             if (touchLeftEdge || touchRightEdge) {
-                                                                onInitiateFloatingMode(intent.parentBlock)
-                                                                expandedItem = null
-                                                                activeMoveIntent = null
-                                                                onHoldStateChanged(false)
+                                                                actions.onInitiateFloatingMode(intent.parentBlock)
+                                                                state.resetAllStates()
+                                                                actions.onHoldStateChanged(false)
                                                             } else {
-                                                                // 否则，正常走原本同周调课换算
-                                                                val deltaCols = (bodyDragOffsetX / cellWidth).roundToInt()
+                                                                val deltaCols = (state.bodyDragOffsetX / cellWidth).roundToInt()
                                                                 val targetDisplayIdx = (item.columnIndex + deltaCols).coerceIn(0, displayDaysCount - 1)
-                                                                val targetDay = mapDisplayIndexToDay(targetDisplayIdx, firstDayOfWeek)
-                                                                var targetStart = intent.initialStartSection + (bodyDragOffsetY / sectionHeightPx)
+                                                                val targetDay = mapDisplayIndexToDay(targetDisplayIdx, viewState.firstDayOfWeek)
+                                                                var targetStart = intent.initialStartSection + (state.bodyDragOffsetY / sectionHeightPx)
                                                                 targetStart = if (is24HourMode) (targetStart / 0.25f).roundToInt() * 0.25f else targetStart.roundToInt().toFloat()
                                                                 targetStart = targetStart.coerceIn(0f, maxGridSections - intent.duration)
                                                                 val targetEnd = targetStart + intent.duration
 
                                                                 val targetX = targetDisplayIdx * cellWidth
-                                                                bodyDragOffsetX = targetX - initialX
-                                                                bodyDragOffsetY = (targetStart - intent.initialStartSection) * sectionHeightPx
+                                                                state.bodyDragOffsetX = targetX - initialX
+                                                                state.bodyDragOffsetY = (targetStart - intent.initialStartSection) * sectionHeightPx
 
-                                                                onCourseMovedWithinGrid(intent.parentBlock, targetDay, targetStart, targetEnd)
+                                                                actions.onCourseMovedWithinGrid(intent.parentBlock, targetDay, targetStart, targetEnd)
                                                             }
                                                         }
                                                     },
                                                     onDragCancel = {
-                                                        activeMoveIntent = null; expandedItem = null; onHoldStateChanged(false)
+                                                        state.resetAllStates()
+                                                        actions.onHoldStateChanged(false)
                                                     },
                                                     onDrag = { change, dragAmount ->
                                                         change.consume()
-                                                        bodyDragOffsetX += dragAmount.x
-                                                        bodyDragOffsetY += dragAmount.y
+                                                        state.bodyDragOffsetX += dragAmount.x
+                                                        state.bodyDragOffsetY += dragAmount.y
                                                     }
                                                 )
                                             }
@@ -319,74 +281,74 @@ fun ScheduleGrid(
                                     } else Modifier
                                 )
 
-                                if (isExpanded && activeMoveIntent == null && !item.parentBlock.isVisualDemoted) {
+                                if (isExpanded && state.activeMoveIntent == null && !item.parentBlock.isVisualDemoted) {
                                     CourseEditHandles(
                                         onDragStart = { isTop ->
                                             if (isTop) {
-                                                isTopHandleDragging = true
-                                                isBottomHandleDragging = false
-                                                topHandleDragOffsetY = 0f
+                                                state.isTopHandleDragging = true
+                                                state.isBottomHandleDragging = false
+                                                state.topHandleDragOffsetY = 0f
                                             } else {
-                                                isTopHandleDragging = false
-                                                isBottomHandleDragging = true
-                                                bottomHandleDragOffsetY = 0f
+                                                state.isTopHandleDragging = false
+                                                state.isBottomHandleDragging = true
+                                                state.bottomHandleDragOffsetY = 0f
                                             }
                                         },
                                         onDragging = { deltaY ->
-                                            if (isTopHandleDragging) {
+                                            if (state.isTopHandleDragging) {
                                                 val minGap = if (is24HourMode) 0.25f else 1f
                                                 val maxAllowedDragY = ((item.endSection - item.startSection) - minGap) * sectionHeightPx
 
-                                                val tentativeOffsetY = topHandleDragOffsetY + deltaY
+                                                val tentativeOffsetY = state.topHandleDragOffsetY + deltaY
                                                 if (is24HourMode) {
                                                     val proposedStart = item.startSection + (tentativeOffsetY / sectionHeightPx)
-                                                    topHandleDragOffsetY = if (proposedStart > item.endSection - minGap) {
+                                                    state.topHandleDragOffsetY = if (proposedStart > item.endSection - minGap) {
                                                         maxAllowedDragY
                                                     } else {
                                                         tentativeOffsetY
                                                     }
                                                 } else {
-                                                    topHandleDragOffsetY = tentativeOffsetY.coerceAtMost(maxAllowedDragY)
+                                                    state.topHandleDragOffsetY = tentativeOffsetY.coerceAtMost(maxAllowedDragY)
                                                 }
-                                            } else if (isBottomHandleDragging) {
+                                            } else if (state.isBottomHandleDragging) {
                                                 val minGap = if (is24HourMode) 0.25f else 1f
                                                 val maxAllowedDragUpY = -(((item.endSection - item.startSection) - minGap) * sectionHeightPx)
 
-                                                val tentativeOffsetY = bottomHandleDragOffsetY + deltaY
+                                                val tentativeOffsetY = state.bottomHandleDragOffsetY + deltaY
                                                 if (is24HourMode) {
                                                     val proposedEnd = item.endSection + (tentativeOffsetY / sectionHeightPx)
-                                                    bottomHandleDragOffsetY = if (proposedEnd < item.startSection + minGap) {
+                                                    state.bottomHandleDragOffsetY = if (proposedEnd < item.startSection + minGap) {
                                                         maxAllowedDragUpY
                                                     } else {
                                                         tentativeOffsetY
                                                     }
                                                 } else {
-                                                    bottomHandleDragOffsetY = tentativeOffsetY.coerceAtLeast(maxAllowedDragUpY)
+                                                    state.bottomHandleDragOffsetY = tentativeOffsetY.coerceAtLeast(maxAllowedDragUpY)
                                                 }
                                             }
                                         },
                                         onDragEnd = {
-                                            val currentItem = expandedItem
+                                            val currentItem = state.expandedItem
                                             if (currentItem != null) {
                                                 val minGap = if (is24HourMode) 0.25f else 1f
                                                 var finalStart = currentItem.startSection
                                                 var finalEnd = currentItem.endSection
 
-                                                if (isTopHandleDragging) {
-                                                    val deltaSection = topHandleDragOffsetY / sectionHeightPx
+                                                if (state.isTopHandleDragging) {
+                                                    val deltaSection = state.topHandleDragOffsetY / sectionHeightPx
                                                     var proposedStart = currentItem.startSection + deltaSection
                                                     proposedStart = if (is24HourMode) (proposedStart / 0.25f).roundToInt() * 0.25f else proposedStart.roundToInt().toFloat()
                                                     finalStart = proposedStart.coerceIn(0f, finalEnd - minGap)
-                                                    topHandleDragOffsetY = (finalStart - currentItem.startSection) * sectionHeightPx
-                                                } else if (isBottomHandleDragging) {
-                                                    val deltaSection = bottomHandleDragOffsetY / sectionHeightPx
+                                                    state.topHandleDragOffsetY = (finalStart - currentItem.startSection) * sectionHeightPx
+                                                } else if (state.isBottomHandleDragging) {
+                                                    val deltaSection = state.bottomHandleDragOffsetY / sectionHeightPx
                                                     var proposedEnd = currentItem.endSection + deltaSection
                                                     proposedEnd = if (is24HourMode) (proposedEnd / 0.25f).roundToInt() * 0.25f else proposedEnd.roundToInt().toFloat()
                                                     finalEnd = proposedEnd.coerceIn(finalStart + minGap, maxGridSections.toFloat())
-                                                    bottomHandleDragOffsetY = (finalEnd - currentItem.endSection) * sectionHeightPx
+                                                    state.bottomHandleDragOffsetY = (finalEnd - currentItem.endSection) * sectionHeightPx
                                                 }
                                                 if (finalStart != currentItem.startSection || finalEnd != currentItem.endSection) {
-                                                    onCourseTimeAdjusted(currentItem.parentBlock, finalStart, finalEnd)
+                                                    actions.onCourseTimeAdjusted(currentItem.parentBlock, finalStart, finalEnd)
                                                 }
                                             }
                                         }
@@ -397,7 +359,7 @@ fun ScheduleGrid(
                     },
                     modifier = Modifier
                         .height(totalGridHeight).weight(1f)
-                        .onSizeChanged { gridWidthPx = it.width.toFloat() }
+                        .onSizeChanged { state.gridWidthPx = it.width.toFloat() }
                         .drawBehind {
                             if (style.hideGridLines) return@drawBehind
                             val cellWidth = size.width / displayDaysCount
@@ -410,15 +372,16 @@ fun ScheduleGrid(
                                 drawLine(gridLineColor, Offset(0f, y), Offset(size.width, y), strokeWidth = strokeWidthPx)
                             }
                         }
-                        .pointerInput(displayDaysCount, sectionHeightPx, firstDayOfWeek, maxGridSections, is24HourMode, expandedItem) {
+                        .pointerInput(displayDaysCount, sectionHeightPx, viewState.firstDayOfWeek, maxGridSections, is24HourMode, state.expandedItem) {
                             detectTapGestures { offset ->
-                                if (expandedItem != null) {
-                                    expandedItem = null; onHoldStateChanged(false)
+                                if (state.expandedItem != null) {
+                                    state.expandedItem = null
+                                    actions.onHoldStateChanged(false)
                                     return@detectTapGestures
                                 }
                                 val dayIdx = (offset.x / (size.width / displayDaysCount)).toInt().coerceIn(0, displayDaysCount - 1)
                                 val secIdx = (offset.y / sectionHeightPx).toInt().coerceIn(0, maxGridSections - 1)
-                                onGridCellClicked(mapDisplayIndexToDay(dayIdx, firstDayOfWeek), if (is24HourMode) secIdx else (secIdx + 1))
+                                actions.onGridCellClicked(mapDisplayIndexToDay(dayIdx, viewState.firstDayOfWeek), if (is24HourMode) secIdx else (secIdx + 1))
                             }
                         }
                 ) { measurables, constraints ->
@@ -427,16 +390,16 @@ fun ScheduleGrid(
 
                     val placeables = measurables.mapIndexed { index, measurable ->
                         val item = singleSchedulables[index]
-                        val isExpanded = expandedItem != null && expandedItem?.parentBlock === item.parentBlock
+                        val isExpanded = state.expandedItem != null && state.expandedItem?.parentBlock === item.parentBlock
 
                         val originalHeightPx = ((item.endSection - item.startSection) * sectionHeightPx).toInt()
 
                         var calculatedHeightPx = originalHeightPx
                         if (isExpanded) {
-                            if (isTopHandleDragging || topHandleDragOffsetY != 0f) {
-                                calculatedHeightPx = (originalHeightPx - topHandleDragOffsetY.roundToInt()).coerceAtLeast(minGapPx.toInt())
-                            } else if (isBottomHandleDragging || bottomHandleDragOffsetY != 0f) {
-                                calculatedHeightPx = (originalHeightPx + bottomHandleDragOffsetY.roundToInt()).coerceAtLeast(minGapPx.toInt())
+                            if (state.isTopHandleDragging || state.topHandleDragOffsetY != 0f) {
+                                calculatedHeightPx = (originalHeightPx - state.topHandleDragOffsetY.roundToInt()).coerceAtLeast(minGapPx.toInt())
+                            } else if (state.isBottomHandleDragging || state.bottomHandleDragOffsetY != 0f) {
+                                calculatedHeightPx = (originalHeightPx + state.bottomHandleDragOffsetY.roundToInt()).coerceAtLeast(minGapPx.toInt())
                             }
                         }
 
@@ -451,8 +414,8 @@ fun ScheduleGrid(
                     layout(constraints.maxWidth, constraints.maxHeight) {
                         placeables.forEachIndexed { index, placeable ->
                             val item = singleSchedulables[index]
-                            val isExpanded = expandedItem != null && expandedItem?.parentBlock === item.parentBlock
-                            val isMoving = activeMoveIntent != null && activeMoveIntent?.parentBlock === item.parentBlock
+                            val isExpanded = state.expandedItem != null && state.expandedItem?.parentBlock === item.parentBlock
+                            val isMoving = state.activeMoveIntent != null && state.activeMoveIntent?.parentBlock === item.parentBlock
 
                             val originalX = item.columnIndex * cellWidth + (if (isExpanded) 0 else item.subColumnIndex * (cellWidth / item.subColumnCount))
                             val originalY = (item.startSection * sectionHeightPx).toInt()
@@ -461,18 +424,18 @@ fun ScheduleGrid(
                             var yPosition = originalY
 
                             if (isMoving) {
-                                val intent = activeMoveIntent
+                                val intent = state.activeMoveIntent
                                 if (intent != null) {
                                     val intentOriginalX = item.columnIndex * cellWidth
                                     val intentOriginalY = (intent.initialStartSection * sectionHeightPx).toInt()
-                                    xPosition = (intentOriginalX + bodyDragOffsetX).toInt()
-                                    yPosition = (intentOriginalY + bodyDragOffsetY).toInt()
+                                    xPosition = (intentOriginalX + state.bodyDragOffsetX).toInt()
+                                    yPosition = (intentOriginalY + state.bodyDragOffsetY).toInt()
                                 }
                             } else if (isExpanded) {
-                                if (isTopHandleDragging || topHandleDragOffsetY != 0f) {
+                                if (state.isTopHandleDragging || state.topHandleDragOffsetY != 0f) {
                                     val originalHeightPx = ((item.endSection - item.startSection) * sectionHeightPx).toInt()
-                                    yPosition = if (originalHeightPx - topHandleDragOffsetY >= minGapPx) {
-                                        (originalY + topHandleDragOffsetY).toInt()
+                                    yPosition = if (originalHeightPx - state.topHandleDragOffsetY >= minGapPx) {
+                                        (originalY + state.topHandleDragOffsetY).toInt()
                                     } else {
                                         (originalY + (originalHeightPx - minGapPx)).toInt()
                                     }

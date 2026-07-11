@@ -56,10 +56,14 @@ import com.xingheyuzhuan.shiguangschedule.navigation.AddEditCourseChannel
 import com.xingheyuzhuan.shiguangschedule.navigation.PresetCourseData
 import com.xingheyuzhuan.shiguangschedule.ui.components.BottomNavigationBar
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.CourseDetailBottomSheet
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.FloatingCourseBar
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGrid
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridActions
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridViewState
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.WeekSelectorBottomSheet
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.rememberScheduleGridState
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -88,7 +92,7 @@ fun WeeklyScheduleScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val snackbarMsg = stringResource(id = R.string.snackbar_add_course_after_start)
+    val snackbarMsg = stringResource(id = R.string.snackbar_add_course_within_semester)
 
     val pagerState = rememberPagerState(
         initialPage = INFINITE_PAGER_CENTER,
@@ -111,6 +115,7 @@ fun WeeklyScheduleScreen(
     var showWeekSelector by remember { mutableStateOf(false) }
     var showTableSwitcher by remember { mutableStateOf(false) }
     var isGridHolding by remember { mutableStateOf(false) }
+    var selectedBlockForDetail by remember { mutableStateOf<MergedCourseBlock?>(null) }
 
     val composedStyle by remember(uiState.style) {
         derivedStateOf { with(ScheduleGridStyleComposed) { uiState.style.toComposedStyle() } }
@@ -286,69 +291,126 @@ fun WeeklyScheduleScreen(
 
                 val pageCourses = uiState.courseCache[pageMondayDate.toString()] ?: emptyList()
 
-                ScheduleGrid(
-                    gridScrollState = gridScrollState,
-                    style = composedStyle,
-                    dates = pageDateStrings,
-                    currentYear = pageYearString,
-                    timeSlots = uiState.timeSlots,
-                    mergedCourses = pageCourses,
-                    showWeekends = uiState.showWeekends,
-                    todayIndex = pageTodayIndex,
-                    firstDayOfWeek = uiState.firstDayOfWeek,
-                    currentSectionIndex = if (pageTodayIndex >= 0) uiState.currentSectionIndex else -1,
-                    onCourseBlockClicked = { mergedBlock ->
-                        mergedBlock.courses.firstOrNull()?.course?.id?.let {
-                            onNavigate(Destination.AddEditCourse(courseId = it))
+                val gridState = rememberScheduleGridState(gridScrollState = gridScrollState)
+
+                val weekIndex = uiState.weekIndexInPager
+                val totalWeeks = uiState.totalWeeks
+                val weekStr = if (weekIndex != null && weekIndex in 1..totalWeeks) {
+                    stringResource(id = R.string.format_week_display, weekIndex)
+                } else {
+                    null
+                }
+
+                val gridViewState = remember(pageDateStrings, pageYearString, uiState, pageCourses, pageTodayIndex, weekStr) {
+                    ScheduleGridViewState(
+                        dates = pageDateStrings,
+                        currentYear = pageYearString,
+                        currentWeek = weekStr,
+                        timeSlots = uiState.timeSlots,
+                        mergedCourses = pageCourses,
+                        showWeekends = uiState.showWeekends,
+                        todayIndex = pageTodayIndex,
+                        firstDayOfWeek = uiState.firstDayOfWeek,
+                        currentSectionIndex = if (pageTodayIndex >= 0) uiState.currentSectionIndex else -1
+                    )
+                }
+
+                val gridActions = remember(uiState, floatingDuration, snackbarMsg) {
+                    object : ScheduleGridActions {
+                        override fun onCourseBlockClicked(block: MergedCourseBlock) {
+                            selectedBlockForDetail = block
                         }
-                    },
-                    onGridCellClicked = { day, sectionOrHour ->
-                        if (floatingCourse != null) {
-                            val targetWeek = uiState.weekIndexInPager ?: uiState.currentWeekNumber ?: return@ScheduleGrid
-                            val startSec = sectionOrHour.toFloat()
-                            val endSec = if (composedStyle.scheduleMode == ScheduleModeProto.TIME_24H_MODE) {
-                                startSec + floatingDuration
-                            } else {
-                                startSec + floatingDuration - 1f
-                            }
 
-                            coroutineScope.launch {
-                                viewModel.updateCourseTimeByFloatingGesture(
-                                    targetWeek = targetWeek,
-                                    targetDay = day,
-                                    startSection = startSec,
-                                    endSection = endSec
-                                )
-                            }
-                        } else {
-                            if (uiState.semesterStartDate != null && !today.isBefore(uiState.semesterStartDate)) {
+                        override fun onGridCellClicked(day: Int, section: Int) {
+                            if (floatingCourse != null) {
+                                val targetWeek = uiState.weekIndexInPager ?: uiState.currentWeekNumber ?: return
+                                val startSec = section.toFloat()
+                                val endSec = if (composedStyle.scheduleMode == ScheduleModeProto.TIME_24H_MODE) {
+                                    startSec + floatingDuration
+                                } else {
+                                    startSec + floatingDuration - 1f
+                                }
+
                                 coroutineScope.launch {
-                                    val presetData = if (composedStyle.scheduleMode == ScheduleModeProto.TIME_24H_MODE) {
-                                        val startHour = sectionOrHour.coerceIn(0, 23)
-                                        val endHour = (startHour + 1) % 24
+                                    viewModel.updateCourseTimeByFloatingGesture(
+                                        targetWeek = targetWeek,
+                                        targetDay = day,
+                                        startSection = startSec,
+                                        endSection = endSec
+                                    )
+                                }
+                            } else {
+                                val currentWeek = uiState.weekIndexInPager ?: 0
+                                val isCurrentPageValid = currentWeek in 1..uiState.totalWeeks
 
-                                        val startTimeStr = String.format(Locale.US, "%02d:00", startHour)
-                                        val endTimeStr = String.format(Locale.US, "%02d:00", endHour)
+                                if (isCurrentPageValid) {
+                                    coroutineScope.launch {
+                                        val currentWeekSet = setOf(currentWeek)
 
-                                        PresetCourseData(
-                                            day = day,
-                                            startSection = 1,
-                                            endSection = 1,
-                                            isCustomTime = true,
-                                            customStartTime = startTimeStr,
-                                            customEndTime = endTimeStr
-                                        )
-                                    } else {
-                                        PresetCourseData(
-                                            day = day,
-                                            startSection = sectionOrHour,
-                                            endSection = sectionOrHour,
-                                            isCustomTime = false
+                                        val presetData = if (composedStyle.scheduleMode == ScheduleModeProto.TIME_24H_MODE) {
+                                            val startHour = section.coerceIn(0, 23)
+                                            val endHour = (startHour + 1) % 24
+
+                                            val startTimeStr = String.format(Locale.US, "%02d:00", startHour)
+                                            val endTimeStr = String.format(Locale.US, "%02d:00", endHour)
+
+                                            PresetCourseData(
+                                                day = day,
+                                                isCustomTime = true,
+                                                customStartTime = startTimeStr,
+                                                customEndTime = endTimeStr,
+                                                presetWeeks = currentWeekSet
+                                            )
+                                        } else {
+                                            PresetCourseData(
+                                                day = day,
+                                                startSection = section,
+                                                endSection = section,
+                                                isCustomTime = false,
+                                                presetWeeks = currentWeekSet
+                                            )
+                                        }
+
+                                        AddEditCourseChannel.sendEvent(presetData)
+                                        onNavigate(Destination.AddEditCourse())
+                                    }
+                                } else {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(snackbarMsg)
+                                    }
+                                }
+                            }
+                        }
+
+                        override fun onTimeSlotClicked() {
+                            onNavigate(Destination.TimeSlotSettings)
+                        }
+
+                        override fun onHoldStateChanged(isHolding: Boolean) {
+                            isGridHolding = isHolding
+                        }
+
+                        // 修改对应回调参数为 Float
+                        override fun onCourseMovedWithinGrid(
+                            block: MergedCourseBlock,
+                            newDay: Int,
+                            newStartSection: Float,
+                            newEndSection: Float
+                        ) {
+                            val currentWeek = uiState.weekIndexInPager ?: 0
+                            val isCurrentPageValid = currentWeek in 1..uiState.totalWeeks
+
+                            if (isCurrentPageValid) {
+                                val courseId = block.courses.firstOrNull()?.course?.id
+                                if (courseId != null) {
+                                    coroutineScope.launch {
+                                        viewModel.updateCourseTimeByGesture(
+                                            courseId = courseId,
+                                            targetDay = newDay,
+                                            startSection = newStartSection,
+                                            endSection = newEndSection
                                         )
                                     }
-
-                                    AddEditCourseChannel.sendEvent(presetData)
-                                    onNavigate(Destination.AddEditCourse())
                                 }
                             } else {
                                 coroutineScope.launch {
@@ -356,61 +418,53 @@ fun WeeklyScheduleScreen(
                                 }
                             }
                         }
-                    },
-                    onTimeSlotClicked = {
-                        onNavigate(Destination.TimeSlotSettings)
-                    },
-                    onHoldStateChanged = { isHolding ->
-                        isGridHolding = isHolding
-                    },
-                    onCourseMovedWithinGrid = { clickedBlock, newDay, newStartSection, newEndSection ->
-                        if (uiState.semesterStartDate != null && !today.isBefore(uiState.semesterStartDate)) {
-                            val courseId = clickedBlock.courses.firstOrNull()?.course?.id
-                            if (courseId != null) {
+
+                        override fun onCourseTimeAdjusted(
+                            block: MergedCourseBlock,
+                            newStart: Float,
+                            newEnd: Float
+                        ) {
+                            val currentWeek = uiState.weekIndexInPager ?: 0
+                            val isCurrentPageValid = currentWeek in 1..uiState.totalWeeks
+
+                            if (isCurrentPageValid) {
+                                val courseId = block.courses.firstOrNull()?.course?.id
+                                if (courseId != null) {
+                                    coroutineScope.launch {
+                                        viewModel.updateCourseTimeByGesture(
+                                            courseId = courseId,
+                                            targetDay = block.day,
+                                            startSection = newStart,
+                                            endSection = newEnd
+                                        )
+                                    }
+                                }
+                            } else {
                                 coroutineScope.launch {
-                                    viewModel.updateCourseTimeByGesture(
-                                        courseId = courseId,
-                                        targetDay = newDay,
-                                        startSection = newStartSection,
-                                        endSection = newEndSection
-                                    )
+                                    snackbarHostState.showSnackbar(snackbarMsg)
                                 }
                             }
-                        } else {
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar(snackbarMsg)
-                            }
                         }
-                    },
-                    onCourseTimeAdjusted = { clickedBlock, newStart, newEnd ->
-                        if (uiState.semesterStartDate != null && !today.isBefore(uiState.semesterStartDate)) {
-                            val courseId = clickedBlock.courses.firstOrNull()?.course?.id
-                            if (courseId != null) {
-                                coroutineScope.launch {
-                                    viewModel.updateCourseTimeByGesture(
-                                        courseId = courseId,
-                                        targetDay = clickedBlock.day,
-                                        startSection = newStart,
-                                        endSection = newEnd
-                                    )
-                                }
+
+                        override fun onInitiateFloatingMode(block: MergedCourseBlock) {
+                            val targetCourseWrapper = block.courses.firstOrNull()
+                            val currentWeek = uiState.weekIndexInPager ?: uiState.currentWeekNumber
+                            if (targetCourseWrapper != null && currentWeek != null) {
+                                viewModel.enterFloatingMode(
+                                    course = targetCourseWrapper,
+                                    sourceWeek = currentWeek
+                                )
                             }
-                        } else {
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar(snackbarMsg)
-                            }
-                        }
-                    },
-                    onInitiateFloatingMode = { block ->
-                        val targetCourseWrapper = block.courses.firstOrNull()
-                        val currentWeek = uiState.weekIndexInPager ?: uiState.currentWeekNumber
-                        if (targetCourseWrapper != null && currentWeek != null) {
-                            viewModel.enterFloatingMode(
-                                course = targetCourseWrapper,
-                                sourceWeek = currentWeek
-                            )
                         }
                     }
+                }
+
+                ScheduleGrid(
+                    state = gridState,
+                    viewState = gridViewState,
+                    actions = gridActions,
+                    style = composedStyle,
+                    modifier = Modifier
                 )
             }
         }
@@ -449,6 +503,18 @@ fun WeeklyScheduleScreen(
             onTableSelected = { table: CourseTable ->
                 viewModel.switchCourseTable(table.id)
                 showTableSwitcher = false
+            }
+        )
+    }
+
+    // 课程详情弹窗
+    if (selectedBlockForDetail != null) {
+        CourseDetailBottomSheet(
+            block = selectedBlockForDetail!!,
+            onDismissRequest = { selectedBlockForDetail = null },
+            onEditClick = { courseId ->
+                selectedBlockForDetail = null
+                onNavigate(Destination.AddEditCourse(courseId = courseId))
             }
         )
     }
