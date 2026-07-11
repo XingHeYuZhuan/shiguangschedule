@@ -6,10 +6,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -40,6 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -54,7 +56,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +66,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -73,10 +75,17 @@ import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypePr
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdvancedColorPicker
 import com.xingheyuzhuan.shiguangschedule.ui.components.ColorPickerConfig
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleUiState
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGrid
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridActions
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed
-import kotlinx.coroutines.launch
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridViewState
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.rememberScheduleGridState
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
 import kotlin.math.roundToInt
 
 @Composable
@@ -280,21 +289,42 @@ fun ScheduleGridContent(
     style: ScheduleGridStyleComposed,
     demoUiState: WeeklyScheduleUiState
 ) {
-    val today = remember { java.time.LocalDate.now() }
+    val today = remember { LocalDate.now() }
     val localDates = remember(demoUiState.firstDayOfWeek) {
-        val dayOfWeekStart = java.time.DayOfWeek.of(demoUiState.firstDayOfWeek)
-        val startOfWeek = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(dayOfWeekStart))
+        val dayOfWeekStart = DayOfWeek.of(demoUiState.firstDayOfWeek)
+        val startOfWeek = today.with(TemporalAdjusters.previousOrSame(dayOfWeekStart))
         (0..6).map { startOfWeek.plusDays(it.toLong()) }
     }
     val currentYearString = remember(today) { today.year.toString() }
     val dummyDates = remember(localDates) {
-        val formatter = java.time.format.DateTimeFormatter.ofPattern("MM/dd")
+        val formatter = DateTimeFormatter.ofPattern("MM/dd")
         localDates.map { it.format(formatter) }
     }
     val dynamicTodayIndex = remember(localDates) { localDates.indexOf(today) }
-
+    val previewWeekStr = stringResource(id = R.string.format_week_display, 1)
     val previewScrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope()
+    val gridState = rememberScheduleGridState(gridScrollState = previewScrollState)
+    val gridViewState = remember(dummyDates, currentYearString, demoUiState, dynamicTodayIndex, previewWeekStr) {
+        ScheduleGridViewState(
+            dates = dummyDates,
+            currentYear = currentYearString,
+            currentWeek = previewWeekStr,
+            timeSlots = demoUiState.timeSlots,
+            mergedCourses = demoUiState.currentMergedCourses,
+            showWeekends = demoUiState.showWeekends,
+            todayIndex = dynamicTodayIndex,
+            firstDayOfWeek = demoUiState.firstDayOfWeek,
+            currentSectionIndex = -1
+        )
+    }
+
+    val gridActions = remember {
+        object : ScheduleGridActions {
+            override fun onCourseBlockClicked(block: MergedCourseBlock) {}
+            override fun onGridCellClicked(day: Int, section: Int) {}
+            override fun onTimeSlotClicked() {}
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (style.backgroundImagePath.isNotEmpty()) {
@@ -306,35 +336,25 @@ fun ScheduleGridContent(
                 alignment = Alignment.TopCenter
             )
         }
+
         ScheduleGrid(
-            gridScrollState = previewScrollState,
+            state = gridState,
+            viewState = gridViewState,
+            actions = gridActions,
             style = style,
-            dates = dummyDates,
-            currentYear = currentYearString,
-            timeSlots = demoUiState.timeSlots,
-            mergedCourses = demoUiState.currentMergedCourses,
-            showWeekends = demoUiState.showWeekends,
-            todayIndex = dynamicTodayIndex,
-            firstDayOfWeek = demoUiState.firstDayOfWeek,
-            currentSectionIndex = -1,
-            onCourseBlockClicked = { _ ->},
-            onGridCellClicked = { _, _ ->},
-            onTimeSlotClicked = {},
-            onHoldStateChanged = { _ -> },
-            onCourseMovedWithinGrid = { _, _, _, _ ->},
-            onCourseTimeAdjusted = { _, _, _ ->}
+            modifier = Modifier
         )
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .draggable(
+                .scrollable(
                     orientation = Orientation.Vertical,
-                    state = rememberDraggableState { delta ->
-                        coroutineScope.launch {
-                            previewScrollState.scrollBy(-delta)
-                        }
-                    }
+                    state = ScrollableState { delta ->
+                        previewScrollState.dispatchRawDelta(-delta)
+                        delta
+                    },
+                    flingBehavior = ScrollableDefaults.flingBehavior()
                 )
                 .pointerInput(Unit) {
                     detectTapGestures(
@@ -379,7 +399,7 @@ fun StyleSliderItem(
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    androidx.compose.material3.OutlinedTextField(
+                    OutlinedTextField(
                         value = textFieldValue,
                         onValueChange = { input ->
                             if (isIntegerStep) {
@@ -390,9 +410,9 @@ fun StyleSliderItem(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = if (isIntegerStep) androidx.compose.ui.text.input.KeyboardType.Number
-                            else androidx.compose.ui.text.input.KeyboardType.Decimal
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = if (isIntegerStep) KeyboardType.Number
+                            else KeyboardType.Decimal
                         ),
                         placeholder = { Text(stringResource(R.string.placeholder_input_value)) }
                     )

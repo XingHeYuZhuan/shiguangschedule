@@ -1,5 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule.ui.schedule.components
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -18,10 +19,17 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -65,6 +73,84 @@ data class CourseMoveIntent(
 )
 
 /**
+ * 1. 数据收拢：外部向课表传递的纯展示数据与基础配置
+ */
+@Immutable
+data class ScheduleGridViewState(
+    val dates: List<String>,
+    val currentYear: String,
+    val currentWeek: String? = null,
+    val timeSlots: List<TimeSlot>,
+    val mergedCourses: List<MergedCourseBlock>,
+    val showWeekends: Boolean,
+    val todayIndex: Int,
+    val firstDayOfWeek: Int,
+    val currentSectionIndex: Int = -1
+)
+
+/**
+ * 2. 动作收拢：外部业务逻辑响应的交互回调接口
+ */
+interface ScheduleGridActions {
+    fun onCourseBlockClicked(block: MergedCourseBlock)
+    fun onGridCellClicked(day: Int, section: Int)
+    fun onTimeSlotClicked()
+    fun onHoldStateChanged(isHolding: Boolean) {}
+    fun onCourseMovedWithinGrid(block: MergedCourseBlock, newDay: Int, newStartSection: Float, newEndSection: Float) {}
+    fun onCourseTimeAdjusted(block: MergedCourseBlock, newStart: Float, newEnd: Float) {}
+    fun onInitiateFloatingMode(block: MergedCourseBlock) {}
+}
+
+/**
+ * 3. 运行状态收拢：课表内部手势运行时的临时状态管理类
+ */
+@Stable
+class ScheduleGridState(
+    val gridScrollState: ScrollState
+) {
+    var expandedItem by mutableStateOf<ISingleSchedulable?>(null)
+
+    var activeMoveIntent by mutableStateOf<CourseMoveIntent?>(null)
+    var bodyDragOffsetX by mutableStateOf(0f)
+    var bodyDragOffsetY by mutableStateOf(0f)
+
+    var isTopHandleDragging by mutableStateOf(false)
+    var isBottomHandleDragging by mutableStateOf(false)
+
+    var topHandleDragOffsetY by mutableStateOf(0f)
+    var bottomHandleDragOffsetY by mutableStateOf(0f)
+
+    var gridWidthPx by mutableStateOf(0f)
+    var viewportHeightPx by mutableStateOf(0f)
+
+    val isEditingActive: Boolean
+        get() = expandedItem != null && (activeMoveIntent != null || isTopHandleDragging || isBottomHandleDragging)
+
+    fun resetAllStates() {
+        expandedItem = null
+        activeMoveIntent = null
+        isTopHandleDragging = false
+        isBottomHandleDragging = false
+        topHandleDragOffsetY = 0f
+        bottomHandleDragOffsetY = 0f
+        bodyDragOffsetX = 0f
+        bodyDragOffsetY = 0f
+    }
+}
+
+/**
+ * 方便在 Composable 中创建并记住 ScheduleGridState 实例的快捷函数
+ */
+@Composable
+fun rememberScheduleGridState(
+    gridScrollState: ScrollState = rememberScrollState()
+): ScheduleGridState {
+    return remember(gridScrollState) {
+        ScheduleGridState(gridScrollState)
+    }
+}
+
+/**
  * 课表顶部日期/星期标头组件
  */
 @Composable
@@ -73,6 +159,7 @@ fun DayHeader(
     displayDays: List<String>,
     dates: List<String>,
     currentYear: String,
+    currentWeek: String?,
     todayIndex: Int,
     lineColor: Color,
     textColor: Color,
@@ -95,13 +182,29 @@ fun DayHeader(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = currentYear,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = subTextColor,
-                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = currentYear,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = subTextColor,
+                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                    )
+
+                    if (!currentWeek.isNullOrEmpty()) {
+                        Spacer(modifier = Modifier.height(1.dp))
+                        Text(
+                            text = currentWeek,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = subTextColor,
+                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        )
+                    }
+                }
             }
 
             val displayDaysCount = displayDays.size

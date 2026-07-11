@@ -104,6 +104,7 @@
         <item>周六</item>
         <item>周日</item>
     </string-array>
+    <string name="format_week_display">%1$d周</string>
 
     <!-- 通知与闹钟 -->
     <string name="notification_channel_desc_course_alert">上课提醒通知</string>
