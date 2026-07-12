@@ -47,6 +47,7 @@ fun CourseTableConversionScreen(
     val snackbarCalendarPermissionDenied = stringResource(R.string.error_sync_calendar_failed)
 
     var pendingImportTableId by remember { mutableStateOf<String?>(null) }
+    var pendingImportExcelTableId by remember { mutableStateOf<String?>(null) }
     var pendingExportJsonContent by remember { mutableStateOf<String?>(null) }
     var pendingExportIcsTableId by remember { mutableStateOf<String?>(null) }
     var pendingAlarmMinutes by remember { mutableStateOf<Int?>(null) }
@@ -62,6 +63,18 @@ fun CourseTableConversionScreen(
             coroutineScope.launch { snackbarHostState.showSnackbar(snackbarFileSelectionCanceled) }
         }
         pendingImportTableId = null
+    }
+
+    val importExcelLauncher = rememberLauncherForActivityResult(OpenExcelDocumentContract()) { uri ->
+        val tableId = pendingImportExcelTableId
+        if (uri != null && tableId != null) {
+            val inputStream: InputStream? = try { context.contentResolver.openInputStream(uri) } catch (e: Exception) { null }
+            if (inputStream != null) viewModel.handleExcelImport(tableId, inputStream)
+            else coroutineScope.launch { snackbarHostState.showSnackbar(snackbarCannotOpenFile) }
+        } else if (uri == null) {
+            coroutineScope.launch { snackbarHostState.showSnackbar(snackbarFileSelectionCanceled) }
+        }
+        pendingImportExcelTableId = null
     }
 
     val exportLauncher = rememberLauncherForActivityResult(CreateJsonDocumentContract()) { uri ->
@@ -113,6 +126,10 @@ fun CourseTableConversionScreen(
                 is ConversionEvent.LaunchImportFilePicker -> {
                     pendingImportTableId = event.tableId
                     importLauncher.launch(Unit)
+                }
+                is ConversionEvent.LaunchImportExcelFilePicker -> {
+                    pendingImportExcelTableId = event.tableId
+                    importExcelLauncher.launch(Unit)
                 }
                 is ConversionEvent.LaunchExportFileCreator -> {
                     pendingExportJsonContent = event.jsonContent
@@ -178,6 +195,12 @@ fun CourseTableConversionScreen(
                         title = stringResource(R.string.item_import_course_file),
                         desc = stringResource(R.string.desc_import_json),
                         onClick = { viewModel.onImportClick() }
+                    )
+                    HorizontalDivider()
+                    ConversionRow(
+                        title = stringResource(R.string.item_import_excel_file),
+                        desc = stringResource(R.string.desc_import_excel),
+                        onClick = { viewModel.onImportExcelClick() }
                     )
                     HorizontalDivider()
                     ConversionRow(
@@ -254,6 +277,7 @@ fun CourseTableConversionScreen(
         uiState = uiState,
         onDismiss = { viewModel.dismissDialog() },
         onConfirmImport = { viewModel.onImportTableSelected(it) },
+        onConfirmImportExcel = { viewModel.onImportExcelTableSelected(it) },
         onConfirmExport = { id, mins -> viewModel.onExportTableSelected(id, mins) }
     )
 

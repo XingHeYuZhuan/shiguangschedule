@@ -28,6 +28,16 @@ class OpenJsonDocumentContract : ActivityResultContract<Unit, Uri?>() {
         if (resultCode == Activity.RESULT_OK) intent?.data else null
 }
 
+class OpenExcelDocumentContract : ActivityResultContract<Unit, Uri?>() {
+    override fun createIntent(context: Context, input: Unit): Intent =
+        Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        }
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? =
+        if (resultCode == Activity.RESULT_OK) intent?.data else null
+}
+
 class CreateJsonDocumentContract : ActivityResultContract<String, Uri?>() {
     override fun createIntent(context: Context, input: String): Intent =
         Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
@@ -143,14 +153,27 @@ fun ConversionDialogOverlay(
     uiState: ConversionUiState,
     onDismiss: () -> Unit,
     onConfirmImport: (String) -> Unit,
+    onConfirmImportExcel: (String) -> Unit,
     onConfirmExport: (String, Int?) -> Unit
 ) {
     if (uiState.showImportTableDialog) {
-        CourseTablePickerDialog(
-            title = stringResource(R.string.dialog_title_select_import_table),
-            onDismissRequest = onDismiss,
-            onTableSelected = { onConfirmImport(it.id) }
-        )
+        when (uiState.importType) {
+            ImportType.JSON -> {
+                CourseTablePickerDialog(
+                    title = stringResource(R.string.dialog_title_select_import_table),
+                    onDismissRequest = onDismiss,
+                    onTableSelected = { onConfirmImport(it.id) }
+                )
+            }
+            ImportType.EXCEL -> {
+                CourseTablePickerDialog(
+                    title = stringResource(R.string.dialog_title_select_import_table),
+                    onDismissRequest = onDismiss,
+                    onTableSelected = { onConfirmImportExcel(it.id) }
+                )
+            }
+            else -> {}
+        }
     }
 
     if (uiState.showExportTableDialog) {

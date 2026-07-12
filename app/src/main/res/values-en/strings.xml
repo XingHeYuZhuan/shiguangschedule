@@ -284,6 +284,8 @@
     <string name="section_file_conversion">File import/export</string>
     <string name="item_import_course_file">Import course file</string>
     <string name="desc_import_json">Import JSON file</string>
+    <string name="item_import_excel_file">Import Excel file</string>
+    <string name="desc_import_excel">Import Excel format schedule file</string>
     <string name="item_export_course_file">Export course file</string>
     <string name="desc_export_json_with_config">Export JSON course file with time period configuration</string>
     <string name="item_export_ics_file">Export calendar file</string>

@@ -9,6 +9,7 @@ import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseConversionRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
+import com.xingheyuzhuan.shiguangschedule.tool.ExcelToJsonConverter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +44,11 @@ class CourseTableConversionViewModel @Inject constructor(
     private val context = getApplication<Application>()
 
     fun onImportClick() {
-        _uiState.value = _uiState.value.copy(showImportTableDialog = true)
+        _uiState.value = _uiState.value.copy(showImportTableDialog = true, importType = ImportType.JSON)
+    }
+
+    fun onImportExcelClick() {
+        _uiState.value = _uiState.value.copy(showImportTableDialog = true, importType = ImportType.EXCEL)
     }
 
     fun onExportClick() {
@@ -63,13 +68,22 @@ class CourseTableConversionViewModel @Inject constructor(
     fun dismissDialog() {
         _uiState.value = _uiState.value.copy(
             showImportTableDialog = false,
-            showExportTableDialog = false
+            showExportTableDialog = false,
+            importType = ImportType.NONE,
+            exportType = ExportType.NONE
         )
     }
 
     fun onImportTableSelected(tableId: String) {
         viewModelScope.launch {
             _events.send(ConversionEvent.LaunchImportFilePicker(tableId))
+            dismissDialog()
+        }
+    }
+
+    fun onImportExcelTableSelected(tableId: String) {
+        viewModelScope.launch {
+            _events.send(ConversionEvent.LaunchImportExcelFilePicker(tableId))
             dismissDialog()
         }
     }
@@ -113,6 +127,26 @@ class CourseTableConversionViewModel @Inject constructor(
                 _events.send(ConversionEvent.ShowMessage(message))
             } catch (e: Exception) {
                 Log.e("CourseTableConversionViewModel", "导入失败：${e.message}", e)
+                val message = context.getString(R.string.error_import_failed, e.message)
+                _events.send(ConversionEvent.ShowMessage(message))
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    fun handleExcelImport(tableId: String, inputStream: InputStream) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val excelConverter = ExcelToJsonConverter()
+                val importModel = excelConverter.convert(inputStream)
+                courseConversionRepository.importCourseTableFromJson(tableId, importModel)
+
+                val message = context.getString(R.string.toast_import_success)
+                _events.send(ConversionEvent.ShowMessage(message))
+            } catch (e: Exception) {
+                Log.e("CourseTableConversionViewModel", "Excel导入失败：${e.message}", e)
                 val message = context.getString(R.string.error_import_failed, e.message)
                 _events.send(ConversionEvent.ShowMessage(message))
             } finally {
@@ -171,8 +205,15 @@ data class ConversionUiState(
     val isLoading: Boolean = false,
     val showImportTableDialog: Boolean = false,
     val showExportTableDialog: Boolean = false,
+    val importType: ImportType = ImportType.NONE,
     val exportType: ExportType = ExportType.NONE
 )
+
+enum class ImportType {
+    NONE,
+    JSON,
+    EXCEL
+}
 
 enum class ExportType {
     NONE,
@@ -182,6 +223,7 @@ enum class ExportType {
 
 sealed class ConversionEvent {
     data class LaunchImportFilePicker(val tableId: String) : ConversionEvent()
+    data class LaunchImportExcelFilePicker(val tableId: String) : ConversionEvent()
     data class LaunchExportFileCreator(val jsonContent: String) : ConversionEvent()
     data class LaunchExportIcsFileCreator(val tableId: String, val alarmMinutes: Int?) : ConversionEvent()
     data class ShowMessage(val message: String) : ConversionEvent()
