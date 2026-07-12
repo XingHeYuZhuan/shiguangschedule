@@ -20,9 +20,19 @@ message WidgetCourseProto {
   string date = 9;
 }
 
+message WidgetTimeSlotProto {
+  int32 number = 1;
+  string start_time = 2;
+  string end_time = 3;
+}
+
 message WidgetSnapshot {
   repeated WidgetCourseProto courses = 1;
   int32 current_week = 2;
 
   .com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyleProto style = 3;
+  repeated WidgetTimeSlotProto time_slots = 4;
+  string course_table_name = 5;
+  bool show_weekends = 6;
+  int32 first_day_of_week = 7;
 }

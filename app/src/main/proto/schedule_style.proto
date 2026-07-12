@@ -62,6 +62,7 @@ message ScheduleGridStyleProto {
 
   // 字体配置
   optional float course_block_font_scale = 15; // 文字缩放比例 (默认 1.0)
+  optional float widget_course_font_scale = 28; // Desktop widget course text scale (default 1.0)
   optional bool hide_location = 16;       // 是否隐藏上课地点
   optional bool hide_teacher = 17;        // 是否隐藏授课老师
   optional bool remove_location_at = 18;  // 是否移除地点前的 @ 符号

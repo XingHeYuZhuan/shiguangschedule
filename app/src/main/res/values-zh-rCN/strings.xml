@@ -122,6 +122,7 @@
     <string name="widget_name_tiny">超小课程2x1</string>
     <string name="widget_name_compact">紧凑课程2x2</string>
     <string name="widget_name_double_days">近日课程4x2</string>
+    <string name="widget_name_week_timeline">周视图课表4x6</string>
     <string name="widget_name_list_vertical">垂直列表课表4xN</string>
     <string name="widget_tomorrow_course_preview">明日预告</string>
     <string name="widget_no_courses_tomorrow">明天没有课程</string>

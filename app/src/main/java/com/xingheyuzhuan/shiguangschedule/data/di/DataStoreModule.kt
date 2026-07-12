@@ -15,7 +15,7 @@ import javax.inject.Named
 import javax.inject.Singleton
 
 // 定义 AppSettings Preferences DataStore 委托
-private val Context.appSettingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "app_settings")
+val Context.appSettingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "app_settings")
 // 定义 SchoolHistory Preferences DataStore 委托
 private val Context.schoolHistoryDataStore: DataStore<Preferences> by preferencesDataStore(name = "school_history")
 

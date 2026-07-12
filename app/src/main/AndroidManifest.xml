@@ -99,6 +99,23 @@
                 android:resource="@xml/shiguangschedule_list_vertical_widget" />
         </receiver>
 
+        <receiver
+            android:name=".widget.week_timeline.WeekTimelineNativeProvider"
+            android:exported="false"
+            android:label="@string/widget_name_week_timeline">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/shiguangschedule_week_timeline_widget" />
+        </receiver>
+
+        <service
+            android:name=".widget.week_timeline.WeekTimelineRemoteViewsService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
 
 
         <provider
