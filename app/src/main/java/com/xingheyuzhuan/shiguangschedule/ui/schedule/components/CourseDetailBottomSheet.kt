@@ -26,10 +26,7 @@ fun CourseDetailBottomSheet(
     val courseWrapper = block.courses.firstOrNull() ?: return
     val course = courseWrapper.course
 
-    val weeksDisplayStr = remember(courseWrapper.weeks) {
-        val sortedWeeks = courseWrapper.weeks.map { it.weekNumber }.sorted()
-        if (sortedWeeks.isEmpty()) "" else sortedWeeks.joinToString(", ")
-    }
+    val weeksDisplayStr = formatWeeks(courseWrapper.weeks.map { it.weekNumber })
 
     val weekDaysFullNames = stringArrayResource(id = R.array.week_days_full_names)
     val dayStr = remember(course.day, weekDaysFullNames) {
@@ -119,8 +116,58 @@ private fun DetailItem(icon: ImageVector, text: String) {
 @Composable
 private fun DetailItem(icon: ImageVector, content: @Composable () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.padding(top = 2.dp).size(20.dp))
-        Spacer(modifier = Modifier.width(16.dp))
+        Box(
+            modifier = Modifier.size(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
         content()
     }
+}
+
+@Composable
+private fun formatWeeks(weeks: List<Int>): String {
+    if (weeks.isEmpty()) return ""
+    val sorted = weeks.distinct().sorted()
+    val result = mutableListOf<String>()
+
+    val singleLabel = stringResource(id = R.string.action_single_week)
+    val doubleLabel = stringResource(id = R.string.action_double_week)
+
+    var i = 0
+    while (i < sorted.size) {
+        // 识别等差序列（单双周）
+        if (i + 1 < sorted.size && sorted[i + 1] - sorted[i] == 2) {
+            var k = i
+            while (k + 1 < sorted.size && sorted[k + 1] - sorted[k] == 2) {
+                k++
+            }
+            val suffix = if (sorted[i] % 2 != 0) singleLabel else doubleLabel
+            result.add("${sorted[i]}-${sorted[k]}($suffix)")
+            i = k + 1
+        }
+        // 识别连续区间
+        else if (i + 1 < sorted.size && sorted[i + 1] == sorted[i] + 1) {
+            val start = sorted[i]
+            var k = i
+            while (k + 1 < sorted.size && sorted[k + 1] == sorted[k] + 1) {
+                k++
+            }
+            result.add("${start}-${sorted[k]}")
+            i = k + 1
+        }
+        // 孤立的周次
+        else {
+            result.add("${sorted[i]}")
+            i++
+        }
+    }
+    return result.joinToString(", ")
 }
