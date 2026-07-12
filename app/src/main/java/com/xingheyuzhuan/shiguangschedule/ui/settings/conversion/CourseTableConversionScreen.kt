@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.R
+import com.xingheyuzhuan.shiguangschedule.ui.settings.conversion.CourseTableConversionViewModel
 import kotlinx.coroutines.launch
 import java.io.InputStream
 import java.io.OutputStream
@@ -47,6 +48,7 @@ fun CourseTableConversionScreen(
     val snackbarCalendarPermissionDenied = stringResource(R.string.error_sync_calendar_failed)
 
     var pendingImportTableId by remember { mutableStateOf<String?>(null) }
+    var pendingImportType by remember { mutableStateOf<ImportType>(ImportType.NONE) }
     var pendingExportJsonContent by remember { mutableStateOf<String?>(null) }
     var pendingExportIcsTableId by remember { mutableStateOf<String?>(null) }
     var pendingAlarmMinutes by remember { mutableStateOf<Int?>(null) }
@@ -57,6 +59,18 @@ fun CourseTableConversionScreen(
         if (uri != null && tableId != null) {
             val inputStream: InputStream? = try { context.contentResolver.openInputStream(uri) } catch (e: Exception) { null }
             if (inputStream != null) viewModel.handleFileImport(tableId, inputStream)
+            else coroutineScope.launch { snackbarHostState.showSnackbar(snackbarCannotOpenFile) }
+        } else if (uri == null) {
+            coroutineScope.launch { snackbarHostState.showSnackbar(snackbarFileSelectionCanceled) }
+        }
+        pendingImportTableId = null
+    }
+
+    val excelImportLauncher = rememberLauncherForActivityResult(OpenExcelDocumentContract()) { uri ->
+        val tableId = pendingImportTableId
+        if (uri != null && tableId != null) {
+            val inputStream: InputStream? = try { context.contentResolver.openInputStream(uri) } catch (e: Exception) { null }
+            if (inputStream != null) viewModel.handleExcelImport(tableId, inputStream)
             else coroutineScope.launch { snackbarHostState.showSnackbar(snackbarCannotOpenFile) }
         } else if (uri == null) {
             coroutineScope.launch { snackbarHostState.showSnackbar(snackbarFileSelectionCanceled) }
@@ -112,7 +126,11 @@ fun CourseTableConversionScreen(
             when (event) {
                 is ConversionEvent.LaunchImportFilePicker -> {
                     pendingImportTableId = event.tableId
-                    importLauncher.launch(Unit)
+                    if (event.importType == ImportType.EXCEL) {
+                        excelImportLauncher.launch(Unit)
+                    } else {
+                        importLauncher.launch(Unit)
+                    }
                 }
                 is ConversionEvent.LaunchExportFileCreator -> {
                     pendingExportJsonContent = event.jsonContent
@@ -178,6 +196,12 @@ fun CourseTableConversionScreen(
                         title = stringResource(R.string.item_import_course_file),
                         desc = stringResource(R.string.desc_import_json),
                         onClick = { viewModel.onImportClick() }
+                    )
+                    HorizontalDivider()
+                    ConversionRow(
+                        title = stringResource(R.string.item_import_excel_file),
+                        desc = stringResource(R.string.desc_import_excel),
+                        onClick = { viewModel.onImportExcelClick() }
                     )
                     HorizontalDivider()
                     ConversionRow(

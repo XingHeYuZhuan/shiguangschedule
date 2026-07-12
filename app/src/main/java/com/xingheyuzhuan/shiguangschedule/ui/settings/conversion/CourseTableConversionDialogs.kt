@@ -50,6 +50,17 @@ class CreateIcsDocumentContract : ActivityResultContract<String, Uri?>() {
         if (resultCode == Activity.RESULT_OK) intent?.data else null
 }
 
+class OpenExcelDocumentContract : ActivityResultContract<Unit, Uri?>() {
+    override fun createIntent(context: Context, input: Unit): Intent =
+        Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"))
+        }
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? =
+        if (resultCode == Activity.RESULT_OK) intent?.data else null
+}
+
 // --- 内部数据模型 ---
 private data class LocalizedAlarmOption(val value: Int?, private val displayString: String) {
     override fun toString(): String = displayString

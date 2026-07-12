@@ -153,6 +153,7 @@ dependencies {
     implementation(libs.ktor.client.logging)
     implementation(libs.ktor.client.auth)
     implementation(libs.wire.runtime)
+    implementation(libs.poi.ooxml)
 
     debugImplementation(libs.okhttp.logging.interceptor)
 

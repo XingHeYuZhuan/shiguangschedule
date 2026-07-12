@@ -285,6 +285,8 @@
     <string name="section_file_conversion">文件导入/导出</string>
     <string name="item_import_course_file">课程文件导入</string>
     <string name="desc_import_json">导入json文件</string>
+    <string name="item_import_excel_file">Excel文件导入</string>
+    <string name="desc_import_excel">导入xlsx/xls文件</string>
     <string name="item_export_course_file">课程文件导出</string>
     <string name="desc_export_json_with_config">导出携带时间段配置的json课程文件</string>
     <string name="item_export_ics_file">日历文件导出</string>
