@@ -11,8 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -93,6 +94,28 @@ fun TodayContent(
     gridStyle: ScheduleGridStyle,
     isDark: Boolean
 ) {
+    val currentTime = LocalTime.now()
+
+    val targetScrollIndex = remember(state.courses, currentTime) {
+        val firstActiveIndex = state.courses.indexOfFirst { model ->
+            try {
+                !LocalTime.parse(model.endTime ?: "00:00").isBefore(currentTime)
+            } catch (e: Exception) {
+                true
+            }
+        }
+
+        if (firstActiveIndex == -1) {
+            (state.courses.size - 1).coerceAtLeast(0)
+        } else {
+            firstActiveIndex
+        }
+    }
+
+    val scrollState = rememberLazyListState(
+        initialFirstVisibleItemIndex = targetScrollIndex
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -136,16 +159,17 @@ fun TodayContent(
         if (state.courses.isEmpty()) {
             EmptyStateView()
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
+            LazyColumn(
+                state = scrollState,
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                state.courses.forEach { model ->
+                itemsIndexed(state.courses) { _, model ->
                     CourseTimelineItem(model, gridStyle, isDark)
                 }
-                Spacer(modifier = Modifier.height(32.dp))
+                item {
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
             }
         }
     }

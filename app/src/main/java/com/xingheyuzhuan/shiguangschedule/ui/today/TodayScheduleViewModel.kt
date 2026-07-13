@@ -104,7 +104,10 @@ class TodayScheduleViewModel @Inject constructor(
                 startTime = item.course.customStartTime ?: startSlot?.startTime,
                 endTime = item.course.customEndTime ?: endSlot?.endTime
             )
-        }.sortedBy { it.startTime ?: "99:99" }
+        }.sortedWith(
+            compareBy<CourseDisplayModel> { it.startTime ?: "99:99" }
+                .thenBy { it.endTime ?: "99:99" }
+        )
 
         return TodayUiState.Success(
             courses = displayModels,
