@@ -48,12 +48,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.model.SchoolHistoryModel
 import com.xingheyuzhuan.shiguangschedule.ui.components.AlphabetIndexerList
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 import school_index.AdapterCategory
 import school_index.School
 
@@ -65,7 +65,7 @@ import school_index.School
 fun SchoolSelectionListScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    viewModel: SchoolSelectionViewModel = hiltViewModel()
+    viewModel: SchoolSelectionViewModel = koinViewModel()
 ) {
     // 观察 ViewModel 状态
     val searchQuery by viewModel.searchQuery.collectAsState()

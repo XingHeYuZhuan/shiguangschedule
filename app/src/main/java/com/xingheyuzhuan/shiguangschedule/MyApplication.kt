@@ -1,10 +1,10 @@
 package com.xingheyuzhuan.shiguangschedule
 
 import android.app.Application
-import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.xingheyuzhuan.shiguangschedule.data.di.DatabaseModule
+import com.xingheyuzhuan.shiguangschedule.data.di.DataStoreModule
 import com.xingheyuzhuan.shiguangschedule.data.sync.SyncManager
-import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -12,28 +12,45 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import javax.inject.Inject
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.androidx.workmanager.koin.workManagerFactory
+import org.koin.core.annotation.KoinApplication
+import org.koin.core.annotation.ComponentScan
+import org.koin.core.annotation.Module
+import org.koin.plugin.module.dsl.startKoin
 
-@HiltAndroidApp
-class MyApplication : Application(), Configuration.Provider {
-    @Inject lateinit var workerFactory: HiltWorkerFactory
-    @Inject lateinit var syncManager: SyncManager
+@Module(includes = [
+    DatabaseModule::class,
+    DataStoreModule::class
+])
+@ComponentScan("com.xingheyuzhuan.shiguangschedule")
+class AppModule
+
+@KoinApplication(modules = [AppModule::class])
+class ScheduleAppConfig
+
+class MyApplication : Application(), Configuration.Provider, KoinComponent {
+
+    private val syncManager: SyncManager by inject()
 
     override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
-            .build()
+        get() = Configuration.Builder().build()
 
     override fun onCreate() {
         super.onCreate()
 
-        // 清理临时文件
-        clearShareTempFiles()
+        startKoin<ScheduleAppConfig> {
+            androidLogger()
+            androidContext(this@MyApplication)
+            workManagerFactory()
+        }
 
-        //启动同步管理器（由 Hilt 注入后直接使用）
+        clearShareTempFiles()
         syncManager.startAllSynchronizers()
 
-        // 初始化离线仓库
         CoroutineScope(Dispatchers.IO).launch {
             initOfflineRepo()
         }

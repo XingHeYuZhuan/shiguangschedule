@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.data.api.date.ApiDateImporter
 import com.xingheyuzhuan.shiguangschedule.data.model.AutoControlMode
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
+import org.koin.core.annotation.KoinViewModel
 
 /**
  * 定义弹窗类型枚举/密封类
@@ -43,8 +42,8 @@ data class NotificationSettingsUiState(
     val compatWearableSync: Boolean = false
 )
 
-@HiltViewModel
-class NotificationSettingsViewModel @Inject constructor(
+@KoinViewModel
+class NotificationSettingsViewModel(
     private val appSettingsRepository: AppSettingsRepository
 ) : ViewModel() {
 

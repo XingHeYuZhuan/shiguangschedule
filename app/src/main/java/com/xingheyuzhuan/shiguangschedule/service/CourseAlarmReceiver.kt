@@ -20,14 +20,16 @@ import com.xingheyuzhuan.shiguangschedule.widget.updateAllWidgets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-@AndroidEntryPoint
-class CourseAlarmReceiver : BroadcastReceiver() {
+/**
+ * 课程闹钟与模式切换广播接收器。
+ */
+class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
 
-    @Inject lateinit var appSettingsRepository: AppSettingsRepository
+    private val appSettingsRepository: AppSettingsRepository by inject()
 
     companion object {
         const val NOTIFICATION_CHANNEL_ID = "course_notification_channel"

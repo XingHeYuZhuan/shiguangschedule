@@ -17,7 +17,6 @@ import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleUiState
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed.Companion.toComposedStyle
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,13 +26,13 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.KoinViewModel
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
-import javax.inject.Inject
 
-@HiltViewModel
-class StyleSettingsViewModel @Inject constructor(
+@KoinViewModel
+class StyleSettingsViewModel(
     private val styleRepository: StyleSettingsRepository,
     private val appSettingsRepository: AppSettingsRepository
 ) : ViewModel() {

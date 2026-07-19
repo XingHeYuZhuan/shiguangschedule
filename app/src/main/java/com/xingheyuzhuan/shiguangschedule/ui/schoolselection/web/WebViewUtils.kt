@@ -7,7 +7,7 @@ const val DESKTOP_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleW
 /**
  * 注入网页端交互所需的所有业务 JavaScript 代码。
  */
-fun WebView.injectAllJavaScript(isDesktopMode: Boolean) {
+fun WebView.injectAllJavaScript() {
     evaluateJavascript("""
         window._androidPromiseResolvers = {};
         window._androidPromiseRejectors = {};

@@ -41,9 +41,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.R
+import org.koin.compose.viewmodel.koinViewModel
 import school_index.Adapter
 import school_index.AdapterCategory
 
@@ -59,7 +59,7 @@ fun AdapterSelectionScreen(
     schoolName: String,
     categoryNumber: Int,
     resourceFolder: String,
-    viewModel: SchoolSelectionViewModel = hiltViewModel()
+    viewModel: SchoolSelectionViewModel = koinViewModel()
 ) {
     // 异步加载状态
     var adapters by remember { mutableStateOf<List<Adapter>>(emptyList()) }

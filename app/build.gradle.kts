@@ -4,8 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.aboutLibraries)
-    alias(libs.plugins.hilt.android)
     alias(libs.plugins.wire)
+    alias(libs.plugins.koin.compiler)
 }
 
 android {
@@ -104,11 +104,19 @@ android {
         localeFilters += listOf("zh", "zh-rCN", "zh-rTW", "en")
     }
 }
+
+// Koin 编译器
+koinCompiler {
+    userLogs = true
+    unsafeDslChecks = true
+}
+
 aboutLibraries {
     collect {
         includePlatform = true
     }
 }
+
 dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.serialization.cbor)
@@ -142,9 +150,16 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.javax.inject)
     implementation(libs.androidx.appcompat)
-    implementation(libs.hilt.android)
-    implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.androidx.hilt.work)
+
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.workmanager)
+    implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
+    implementation(libs.koin.compose.navigation3)
+    implementation(libs.koin.annotations)
+
     implementation(libs.aboutlibraries.compose)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
@@ -156,9 +171,7 @@ dependencies {
 
     debugImplementation(libs.okhttp.logging.interceptor)
 
-    ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
-    ksp(libs.androidx.hilt.compiler)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

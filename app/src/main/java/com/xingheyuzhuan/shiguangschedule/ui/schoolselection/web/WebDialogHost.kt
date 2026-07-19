@@ -1,7 +1,6 @@
 // com/xingheyuzhuan/shiguangschedule.ui.schoolselection.web/WebDialogHost.kt
 package com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web
 
-import android.webkit.WebView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -31,7 +31,6 @@ import kotlinx.coroutines.flow.Flow
  */
 @Composable
 fun WebDialogHost(
-    webView: WebView, // 仍需传入 WebView，但对话框逻辑已解耦。
     uiEvents: Flow<WebUiEvent> // 从 AndroidBridge 接收的 UI 事件流
 ) {
     var currentEvent by remember { mutableStateOf<WebUiEvent?>(null) }
@@ -158,7 +157,7 @@ private fun PromptHost(
 /** 显示单选列表弹窗。 */
 @Composable
 private fun SingleSelectionHost(data: SingleSelectionDialogData, onResult: (Int?) -> Unit) {
-    var selectedIndex by rememberSaveable { mutableStateOf(data.defaultSelectedIndex) }
+    var selectedIndex by rememberSaveable { mutableIntStateOf(data.defaultSelectedIndex) }
 
     AlertDialog(
         onDismissRequest = { onResult(null) },

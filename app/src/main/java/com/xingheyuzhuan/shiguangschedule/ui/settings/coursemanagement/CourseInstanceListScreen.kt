@@ -3,7 +3,6 @@ package com.xingheyuzhuan.shiguangschedule.ui.settings.coursemanagement
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -41,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.R
@@ -51,6 +49,7 @@ import com.xingheyuzhuan.shiguangschedule.navigation.AddEditCourseChannel
 import com.xingheyuzhuan.shiguangschedule.navigation.PresetCourseData
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 
 
 /**
@@ -65,7 +64,7 @@ fun CourseInstanceListScreen(
     courseName: String,
     onNavigateBack: () -> Unit,
     onNavigate: (Destination) -> Unit,
-    viewModel: CourseInstanceListViewModel = hiltViewModel()
+    viewModel: CourseInstanceListViewModel = koinViewModel()
 ) {
     LaunchedEffect(courseName) {
         viewModel.initCourseName(courseName)

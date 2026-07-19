@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -28,19 +27,23 @@ import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.model.AutoControlMode
 import com.xingheyuzhuan.shiguangschedule.service.CourseNotificationWorker
 import com.xingheyuzhuan.shiguangschedule.service.DndSchedulerWorker
+import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationSettingsScreen(
     onBack: () -> Unit,
-    viewModel: NotificationSettingsViewModel = hiltViewModel()
+    viewModel: NotificationSettingsViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    val permissionDeniedMessage = stringResource(R.string.toast_notification_permission_denied)
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-        if (!isGranted) Toast.makeText(context, context.getString(R.string.toast_notification_permission_denied), Toast.LENGTH_LONG).show()
+        if (!isGranted) {
+            Toast.makeText(context.applicationContext, permissionDeniedMessage, Toast.LENGTH_LONG).show()
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -83,8 +86,12 @@ fun NotificationSettingsScreen(
                 GeneralSettingsCard(
                     uiState = uiState,
                     currentModeText = currentModeText,
-                    onReminderToggle = { viewModel.onReminderEnabledChange(it, { triggerNotificationWorker(it) }, context) },
-                    onCompatWearableToggle = { viewModel.onCompatWearableSyncChange(it, { triggerNotificationWorker(it) }, context) },
+                    onReminderToggle = { isEnabled ->
+                        viewModel.onReminderEnabledChange(isEnabled, { triggerNotificationWorker(context) }, context)
+                    },
+                    onCompatWearableToggle = { isEnabled ->
+                        viewModel.onCompatWearableSyncChange(isEnabled, { triggerNotificationWorker(context) }, context)
+                    },
                     onAutoModeClick = {
                         if (uiState.reminderEnabled) viewModel.showDialog(NotificationDialogType.AutoModeSelection)
                         else Toast.makeText(context, R.string.toast_enable_reminder_first, Toast.LENGTH_SHORT).show()
@@ -101,8 +108,12 @@ fun NotificationSettingsScreen(
                     uiState = uiState,
                     onUpdateHolidays = {
                         viewModel.onUpdateHolidays(
-                            onSuccess = { Toast.makeText(it, R.string.toast_holidays_update_success, Toast.LENGTH_SHORT).show() },
-                            onFailure = { it, msg -> Toast.makeText(it, it.getString(R.string.toast_update_failed, msg), Toast.LENGTH_LONG).show() },
+                            onSuccess = { ctx ->
+                                Toast.makeText(ctx, R.string.toast_holidays_update_success, Toast.LENGTH_SHORT).show()
+                            },
+                            onFailure = { ctx, msg ->
+                                Toast.makeText(ctx, ctx.getString(R.string.toast_update_failed, msg), Toast.LENGTH_LONG).show()
+                            },
                             context = context
                         )
                     },

@@ -14,15 +14,13 @@ import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleMode
 import com.xingheyuzhuan.shiguangschedule.data.model.toCompose
 import com.xingheyuzhuan.shiguangschedule.data.model.toProto
 import com.xingheyuzhuan.shiguangschedule.widget.updateAllWidgets
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import java.io.InputStream
 import java.io.OutputStream
-import javax.inject.Inject
-import javax.inject.Singleton
+import org.koin.core.annotation.Single
 
 /** DataStore 文件名常量 */
 const val SCHEDULE_STYLE_DATASTORE_FILE_NAME = "schedule_style_settings.pb"
@@ -94,11 +92,12 @@ data class StyleBackupEnvelope(
 /**
  * 样式设置的数据仓库，负责与 Proto DataStore (Wire) 进行交互。
  * * 注意：由于 Wire 生成的是不可变类，所有更新操作均通过 .copy() 及其生成的下划线字段完成。
+ *
  */
-@Singleton
-class StyleSettingsRepository @Inject constructor(
+@Single
+class StyleSettingsRepository(
     private val dataStore: DataStore<ScheduleGridStyleProto>,
-    @param:ApplicationContext private val context: Context
+    private val context: Context
 ) {
 
     companion object {

@@ -6,9 +6,6 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.xingheyuzhuan.shiguangschedule.data.db.main.MainAppDatabase
-import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
-import com.xingheyuzhuan.shiguangschedule.data.repository.TimeSlotRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.WidgetRepository
 import com.xingheyuzhuan.shiguangschedule.service.CourseNotificationWorker
 import com.xingheyuzhuan.shiguangschedule.service.DndSchedulerWorker
@@ -21,20 +18,16 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlin.time.Duration.Companion.milliseconds
-import javax.inject.Inject
-import javax.inject.Singleton
-import dagger.hilt.android.qualifiers.ApplicationContext
+import org.koin.core.annotation.Single
 
 /**
  * 中心化的同步管理器，负责在数据库数据初始化后启动同步任务。
  */
-@Singleton
-class SyncManager @Inject constructor(
-    @ApplicationContext private val appContext: Context,
-    private val appSettingsRepository: AppSettingsRepository,
-    private val courseTableRepository: CourseTableRepository,
-    private val timeSlotRepository: TimeSlotRepository,
-    private val widgetRepository: WidgetRepository
+@Single
+class SyncManager(
+    private val appContext: Context,
+    private val widgetRepository: WidgetRepository,
+    private val widgetDataSynchronizer: WidgetDataSynchronizer
 ) {
 
     // 使用 SupervisorJob 以便子协程失败不影响其他任务
@@ -56,17 +49,8 @@ class SyncManager @Inject constructor(
         MainAppDatabase.isInitialized
             .filter { it } // 仅在数据库数据初始化完成后触发
             .onEach {
-                // 数据库已就绪，现在安全地创建同步器实例并启动它
-                val widgetSynchronizer = WidgetDataSynchronizer(
-                    appContext = appContext,
-                    appSettingsRepository = appSettingsRepository,
-                    courseTableRepository = courseTableRepository,
-                    timeSlotRepository = timeSlotRepository,
-                    widgetRepository = widgetRepository
-                )
-
                 // 启动同步器的监听任务，以应对主数据库数据变化
-                widgetSynchronizer.syncFlow.launchIn(scope)
+                widgetDataSynchronizer.syncFlow.launchIn(scope)
 
                 // 监听 Widget 数据库更新事件，使用 debounce 避免频繁调度 Worker
                 widgetRepository.dataUpdatedFlow

@@ -9,7 +9,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.xingheyuzhuan.shiguangschedule.data.api.webdav.WebDavClient
 import com.xingheyuzhuan.shiguangschedule.data.api.webdav.WebDavConfig
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
@@ -18,16 +17,15 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-import javax.inject.Inject
-import javax.inject.Named
-import javax.inject.Singleton
+import org.koin.core.annotation.Single
+import org.koin.core.annotation.Named
 
 /**
  * 全局 API 配置持久化中心仓库
  */
-@Singleton
-class ApiConfigRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+@Single
+class ApiConfigRepository(
+    private val context: Context,
     @Named("ApiConfig") private val dataStore: DataStore<Preferences>
 ) {
 

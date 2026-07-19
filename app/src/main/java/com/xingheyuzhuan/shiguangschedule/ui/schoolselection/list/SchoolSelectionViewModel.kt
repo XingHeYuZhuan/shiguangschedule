@@ -1,26 +1,23 @@
 package com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.data.model.SchoolHistoryModel
 import com.xingheyuzhuan.shiguangschedule.data.repository.SchoolHistoryRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.SchoolRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import school_index.AdapterCategory
 import school_index.School
-import javax.inject.Inject
+import org.koin.core.annotation.KoinViewModel
 
 /**
  * 负责一级学校选择页面的数据管理、状态维护和过滤逻辑。
- * 使用 Hilt 注入 Context 和 Repository。
+ * 使用 Koin 注解注入所需的 Repository 实例。
  */
-@HiltViewModel
-class SchoolSelectionViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+@KoinViewModel
+class SchoolSelectionViewModel(
+    private val schoolRepository: SchoolRepository,
     private val historyRepository: SchoolHistoryRepository
 ) : ViewModel() {
 
@@ -76,19 +73,10 @@ class SchoolSelectionViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
-    // 索引字母
-    val initials: StateFlow<List<String>> = filteredSchools.map { schools ->
-        schools.map { it.initial.uppercase() }.distinct().sorted()
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
-
     private fun loadSchools() {
         viewModelScope.launch {
             _isLoading.value = true
-            val schools = SchoolRepository.getSchools(context)
+            val schools = schoolRepository.getSchools()
             _allSchools.value = schools
             _isLoading.value = false
         }
@@ -118,7 +106,7 @@ class SchoolSelectionViewModel @Inject constructor(
      * 获取当前选中的适配器列表
      */
     suspend fun getAdaptersForSchoolAndCategory(schoolId: String): List<school_index.Adapter> {
-        val allAdapters = SchoolRepository.getAdaptersForSchool(context, schoolId)
+        val allAdapters = schoolRepository.getAdaptersForSchool(schoolId)
         val currentCategory = _selectedCategory.value
         return allAdapters.filter { adapter ->
             adapter.category == currentCategory

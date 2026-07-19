@@ -49,12 +49,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.navigation.AddEditCourseChannel
 import com.xingheyuzhuan.shiguangschedule.navigation.PresetCourseData
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 
 
 /**
@@ -66,7 +66,7 @@ import kotlinx.coroutines.launch
 fun CourseNameListScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    viewModel: CourseNameListViewModel = hiltViewModel()
+    viewModel: CourseNameListViewModel = koinViewModel()
 ) {
     val uniqueCourseNames by viewModel.uniqueCourseNames.collectAsState()
     val coroutineScope = rememberCoroutineScope()

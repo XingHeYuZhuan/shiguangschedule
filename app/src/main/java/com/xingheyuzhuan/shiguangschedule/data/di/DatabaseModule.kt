@@ -10,54 +10,50 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetAppSettingsDao
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetCourseDao
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetDatabase
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+import org.koin.core.annotation.Module
+import org.koin.core.annotation.Single
+import org.koin.core.annotation.Factory
+import org.koin.core.annotation.Configuration
 
 @Module
-@InstallIn(SingletonComponent::class)
+@Configuration
 @Suppress("unused")
-object DatabaseModule {
+class DatabaseModule {
 
-    // --- 1. 提供数据库实例 ---
+    // --- 1. 提供数据库全局单例 ---
 
-    @Provides
-    @Singleton
-    fun provideMainDatabase(@ApplicationContext context: Context): MainAppDatabase {
+    @Single
+    fun provideMainDatabase(context: Context): MainAppDatabase {
         return MainAppDatabase.getDatabase(context)
     }
 
-    @Provides
-    @Singleton
-    fun provideWidgetDatabase(@ApplicationContext context: Context): WidgetDatabase {
+    @Single
+    fun provideWidgetDatabase(context: Context): WidgetDatabase {
         return WidgetDatabase.getDatabase(context)
     }
 
     // --- 2. 提供主数据库 (MainAppDatabase) 的 DAO ---
 
-    @Provides
+    @Factory
     fun provideCourseTableConfigDao(db: MainAppDatabase): CourseTableConfigDao = db.courseTableConfigDao()
 
-    @Provides
+    @Factory
     fun provideTimeSlotDao(db: MainAppDatabase): TimeSlotDao = db.timeSlotDao()
 
-    @Provides
+    @Factory
     fun provideCourseDao(db: MainAppDatabase): CourseDao = db.courseDao()
 
-    @Provides
+    @Factory
     fun provideCourseTableDao(db: MainAppDatabase): CourseTableDao = db.courseTableDao()
 
-    @Provides
+    @Factory
     fun provideCourseWeekDao(db: MainAppDatabase): CourseWeekDao = db.courseWeekDao()
 
     // --- 3. 提供小组件数据库 (WidgetDatabase) 的 DAO ---
 
-    @Provides
+    @Factory
     fun provideWidgetCourseDao(db: WidgetDatabase): WidgetCourseDao = db.widgetCourseDao()
 
-    @Provides
+    @Factory
     fun provideWidgetAppSettingsDao(db: WidgetDatabase): WidgetAppSettingsDao = db.widgetAppSettingsDao()
 }

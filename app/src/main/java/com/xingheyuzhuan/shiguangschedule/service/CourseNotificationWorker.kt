@@ -16,18 +16,16 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import androidx.hilt.work.HiltWorker
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
+import org.koin.android.annotation.KoinWorker
 
 /**
- * 课程提醒同步服务：采用固定槽位管理，确保切换课表时闹钟同步清理
- * 号段与 DndSchedulerWorker 物理隔离，起始位 50010
+ * 课程提醒同步服务
+ *
  */
-@HiltWorker
-class CourseNotificationWorker @AssistedInject constructor(
-    @Assisted appContext: Context,
-    @Assisted workerParams: WorkerParameters,
+@KoinWorker
+class CourseNotificationWorker(
+    appContext: Context,
+    workerParams: WorkerParameters,
     private val appSettingsRepository: AppSettingsRepository,
     private val widgetRepository: WidgetRepository
 ) : CoroutineWorker(appContext, workerParams) {

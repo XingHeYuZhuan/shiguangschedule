@@ -45,7 +45,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.xingheyuzhuan.shiguangschedule.Destination
@@ -66,6 +65,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.WeekSelectorBot
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.rememberScheduleGridState
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -85,7 +85,7 @@ private const val INFINITE_PAGER_CENTER = Int.MAX_VALUE / 2
 fun WeeklyScheduleScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    viewModel: WeeklyScheduleViewModel = hiltViewModel()
+    viewModel: WeeklyScheduleViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val today = LocalDate.now()

@@ -3,7 +3,6 @@ package com.xingheyuzhuan.shiguangschedule
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -54,18 +53,16 @@ import com.xingheyuzhuan.shiguangschedule.ui.settings.time.TimeSlotManagementScr
 import com.xingheyuzhuan.shiguangschedule.ui.settings.update.UpdateRepoScreen
 import com.xingheyuzhuan.shiguangschedule.ui.theme.ShiguangScheduleTheme
 import com.xingheyuzhuan.shiguangschedule.ui.today.TodayScheduleScreen
-import dagger.hilt.android.AndroidEntryPoint
+import org.koin.compose.viewmodel.koinViewModel
 
-@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
-
-    private val viewModel: SettingsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         setContent {
+            val viewModel: SettingsViewModel = koinViewModel()
             val state by viewModel.uiState.collectAsState()
 
             if (state.isReady) {
@@ -78,7 +75,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     AppNavigation(startDestination = startDest)
                 }
-            }else {
+            } else {
                 Surface(modifier = Modifier.fillMaxSize()) {}
             }
         }

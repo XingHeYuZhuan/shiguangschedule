@@ -18,23 +18,21 @@ import androidx.core.content.getSystemService
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.WidgetRepository
 import kotlinx.coroutines.flow.first
+import org.koin.android.annotation.KoinWorker
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import androidx.hilt.work.HiltWorker
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
 
 /**
  * WorkManager 用于调度上课时行为模式（勿扰/静音）开启/关闭闹钟的 Worker。
  */
-@HiltWorker
-class DndSchedulerWorker @AssistedInject constructor(
-    @Assisted appContext: Context,
-    @Assisted workerParams: WorkerParameters,
+@KoinWorker
+class DndSchedulerWorker(
+    appContext: Context,
+    workerParams: WorkerParameters,
     private val appSettingsRepository: AppSettingsRepository,
     private val widgetRepository: WidgetRepository
 ) : CoroutineWorker(appContext, workerParams) {

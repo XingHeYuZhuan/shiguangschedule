@@ -65,13 +65,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.xingheyuzhuan.shiguangschedule.BuildConfig
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
+import org.koin.compose.viewmodel.koinViewModel
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,7 +81,7 @@ fun WebViewScreen(
     onBack: () -> Unit,
     initialUrl: String?,
     assetJsPath: String?,
-    viewModel: WebViewModel = hiltViewModel()
+    viewModel: WebViewModel = koinViewModel()
 ) {
     val courseConversionRepository = viewModel.courseConversionRepository
 
@@ -444,7 +444,6 @@ fun WebViewScreen(
             }
 
             WebDialogHost(
-                webView = webView,
                 uiEvents = uiEventChannel.receiveAsFlow()
             )
 

@@ -13,7 +13,6 @@ import com.xingheyuzhuan.shiguangschedule.data.repository.StyleSettingsRepositor
 import com.xingheyuzhuan.shiguangschedule.data.repository.TimeSlotRepository
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed.Companion.toComposedStyle
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +24,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.KoinViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -32,7 +32,6 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import java.util.UUID
-import javax.inject.Inject
 
 /**
  * 课表展示块：封装单次或冲突课程
@@ -76,9 +75,9 @@ private data class NormalizedCourse(
     val end: Float
 )
 
-@HiltViewModel
+@KoinViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
-class WeeklyScheduleViewModel @Inject constructor(
+class WeeklyScheduleViewModel (
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository,
     private val timeSlotRepository: TimeSlotRepository,

@@ -3,20 +3,19 @@ package com.xingheyuzhuan.shiguangschedule.ui.settings.update
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.xingheyuzhuan.shiguangschedule.data.model.RepositoryInfo
 import com.xingheyuzhuan.shiguangschedule.data.model.RepoType
+import com.xingheyuzhuan.shiguangschedule.data.model.RepositoryInfo
 import com.xingheyuzhuan.shiguangschedule.data.repository.GitRepositoryImpl
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import org.koin.core.annotation.KoinViewModel
 
-@HiltViewModel
-open class UpdateRepoViewModel @Inject constructor(
+@KoinViewModel
+open class UpdateRepoViewModel(
     private val gitRepository: GitRepositoryImpl,
     private val application: Application
 ) : ViewModel() {

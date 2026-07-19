@@ -38,25 +38,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
+import org.koin.compose.viewmodel.koinViewModel
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.KoinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import javax.inject.Inject
 
 /**
- * 专门为弹窗提供 Hilt 注入的仓库
+ * 专门为弹窗提供 Koin 注入的仓库 ViewModel
  */
-@HiltViewModel
-class CourseTablePickerDeps @Inject constructor(
+@KoinViewModel
+class CourseTablePickerDeps(
     val courseTableRepository: CourseTableRepository,
     val appSettingsRepository: AppSettingsRepository
 ) : ViewModel() {
@@ -73,7 +72,7 @@ fun CourseTablePickerDialog(
     title: String,
     onDismissRequest: () -> Unit,
     onTableSelected: (CourseTable) -> Unit,
-    deps: CourseTablePickerDeps = hiltViewModel()
+    deps: CourseTablePickerDeps = koinViewModel()
 ) {
     val context = LocalContext.current
     val courseTables by deps.courseTableRepository.getAllCourseTables().collectAsState(initial = emptyList())

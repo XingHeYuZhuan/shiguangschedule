@@ -5,10 +5,20 @@
 # --- 1. 基础全局设置 ---
 -keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,AnnotationDefault
 
-# --- 2. 依赖注入 (Hilt/Jakarta) ---
+# --- 2. 依赖注入 (Koin) ---
+# 保留 Koin 核心类及 DSL 相关
+-keep class org.koin.** { *; }
+
+# 保留 Koin Annotations 及其生成的模块 (KSP 路径)
+-keep class org.koin.ksp.generated.** { *; }
+-keep @org.koin.core.annotation.Module class * { *; }
+
+# 确保 Koin 能够调用被注解类的构造函数进行依赖注入
 -keepclassmembers class * {
-    @jakarta.inject.Inject <init>(...);
-    @javax.inject.Inject <init>(...);
+    @org.koin.core.annotation.Single <init>(...);
+    @org.koin.core.annotation.Factory <init>(...);
+    @org.koin.core.annotation.KoinViewModel <init>(...);
+    @org.koin.core.annotation.Named <init>(...);
 }
 
 # --- 3. 原生组件与 WorkManager ---

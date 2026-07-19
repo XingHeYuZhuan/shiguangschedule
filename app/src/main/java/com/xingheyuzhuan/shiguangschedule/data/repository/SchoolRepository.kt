@@ -14,11 +14,17 @@ import school_index.Adapter
 import school_index.AdapterCategory
 import school_index.School
 import school_index.SchoolIndex
-import javax.inject.Inject
-import javax.inject.Named
-import javax.inject.Singleton
+import org.koin.core.annotation.Named
+import org.koin.core.annotation.Single
 
-object SchoolRepository {
+/**
+ * 学校数据仓库。
+ * 职责：处理内部存储中 Protobuf 学校索引文件的读取与解析。
+ */
+@Single
+class SchoolRepository(
+    private val context: Context
+) {
 
     // 定义需要在一级菜单中显示的教务类别
     private val RELEVANT_MENU_CATEGORIES = setOf(
@@ -30,7 +36,7 @@ object SchoolRepository {
     /**
      * 核心加载函数：仅从内部存储文件读取 Protobuf 索引。
      */
-    private suspend fun loadIndex(context: Context): SchoolIndex? {
+    private suspend fun loadIndex(): SchoolIndex? {
         return withContext(Dispatchers.IO) {
             val internalFile = File(context.filesDir, "repo/index/school_index.pb")
 
@@ -50,12 +56,11 @@ object SchoolRepository {
         }
     }
 
-
     /**
      * 【一级页面数据】获取经过类别过滤的学校列表。
      */
-    suspend fun getSchools(context: Context): List<School> {
-        val index = loadIndex(context) ?: return emptyList()
+    suspend fun getSchools(): List<School> {
+        val index = loadIndex() ?: return emptyList()
 
         // 1. 过滤：使用 Wire 生成的直接列表属性名
         val filteredSchools = index.schools.filter { school ->
@@ -71,9 +76,9 @@ object SchoolRepository {
     /**
      * 【二级页面数据】根据学校 ID 获取其所有的适配器列表。
      */
-    suspend fun getAdaptersForSchool(context: Context, schoolId: String): List<Adapter> {
+    suspend fun getAdaptersForSchool(schoolId: String): List<Adapter> {
         return withContext(Dispatchers.IO) {
-            val index = loadIndex(context)
+            val index = loadIndex()
             val school = index?.schools?.find { it.id == schoolId }
             return@withContext school?.adapters ?: emptyList()
         }
@@ -82,9 +87,9 @@ object SchoolRepository {
     /**
      * 辅助方法：通过 ID 获取单个学校对象
      */
-    suspend fun getSchoolById(context: Context, id: String): School? {
+    suspend fun getSchoolById(id: String): School? {
         return withContext(Dispatchers.IO) {
-            val index = loadIndex(context)
+            val index = loadIndex()
             return@withContext index?.schools?.find { it.id == id }
         }
     }
@@ -93,9 +98,10 @@ object SchoolRepository {
 
 /**
  * 用户记录仓库
+ *
  */
-@Singleton
-class SchoolHistoryRepository @Inject constructor(
+@Single
+class SchoolHistoryRepository(
     @Named("SchoolHistory") private val dataStore: DataStore<Preferences>
 ) {
     val historyFlow: Flow<SchoolHistoryModel> = dataStore.data.map { prefs ->

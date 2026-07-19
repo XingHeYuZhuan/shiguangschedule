@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.R
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * 颜色选择器功能配置
@@ -140,7 +141,7 @@ fun AdvancedColorPicker(
             }
             LaunchedEffect(isUserInteracting) {
                 if (isUserInteracting) {
-                    delay(500)
+                    delay(500.milliseconds)
                     isUserInteracting = false
                 }
             }

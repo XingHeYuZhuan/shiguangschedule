@@ -4,7 +4,6 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
-import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetDatabase
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.data.model.toProto
 import com.xingheyuzhuan.shiguangschedule.data.repository.WidgetRepository
@@ -17,44 +16,45 @@ import com.xingheyuzhuan.shiguangschedule.widget.list_vertical.ListVerticalNativ
 import com.xingheyuzhuan.shiguangschedule.widget.list_vertical.ListVerticalNativeRenderer
 import com.xingheyuzhuan.shiguangschedule.widget.tiny.TinyNativeProvider
 import com.xingheyuzhuan.shiguangschedule.widget.tiny.TinyNativeRenderer
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.time.LocalDate
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+
+// 创建一个局部的注入代理中心，用于在全局顶层方法中安全提取注入实例
+private object WidgetDependencyContainer : KoinComponent {
+    val repository: WidgetRepository by inject()
+}
 
 /**
  * 小组件统一分发中心
- * 负责从 Repository 提取数据并分发给所有 5 种规格的原生 Renderer
+ * 负责从 Repository 提取数据并分发给所有 4 种规格的原生 Renderer
  */
 suspend fun updateAllWidgets(context: Context) {
     try {
-        // 1. 初始化数据库和仓库
-        val widgetDb = WidgetDatabase.getDatabase(context)
-        val repository = WidgetRepository(
-            widgetCourseDao = widgetDb.widgetCourseDao(),
-            widgetAppSettingsDao = widgetDb.widgetAppSettingsDao(),
-            context = context
-        )
+        // 1. 从 Koin 容器中动态获取单例化的仓库，避免就地重复实例化
+        val repository = WidgetDependencyContainer.repository
 
         // 2. 准备基础数据
         val today = LocalDate.now()
         val tomorrow = today.plusDays(1)
 
-        // 获取今日和明日的所有课程快照 (超时时间 3秒)
-        val dbCourses = withTimeoutOrNull(3000L) {
+        val dbCourses = withTimeoutOrNull(3.seconds) {
             repository.getWidgetCoursesByDateRange(today.toString(), tomorrow.toString()).first()
-        } ?: emptyList() // 超时则返回空列表
+        } ?: emptyList()
 
-        // 获取当前周 (超时时间 2秒)
-        val currentWeek = withTimeoutOrNull(2000L) {
+        val currentWeek = withTimeoutOrNull(2.seconds) {
             repository.getCurrentWeekFlow().first()
         } ?: 0
 
-        // 获取样式 (超时时间 2秒)
-        val currentStyle = withTimeoutOrNull(2000L) {
+        val currentStyle = withTimeoutOrNull(2.seconds) {
             context.scheduleGridStyleDataStore.data.first()
         }
 
-        // 样式保底逻辑
         val finalStyleToSync = if (currentStyle == null || currentStyle.course_color_maps.isEmpty()) {
             ScheduleGridStyle.DEFAULT.toProto()
         } else {
@@ -62,8 +62,6 @@ suspend fun updateAllWidgets(context: Context) {
         }
 
         // 3. 构造数据快照 (Protobuf)
-
-        // 先将数据库实体转为 Wire 的 WidgetCourseProto 对象
         val courseProtoList = dbCourses.map { course ->
             WidgetCourseProto(
                 id = course.id,
@@ -78,7 +76,6 @@ suspend fun updateAllWidgets(context: Context) {
             )
         }
 
-        // 直接通过构造函数创建快照对象
         val snapshot = WidgetSnapshot(
             current_week = currentWeek,
             style = finalStyleToSync,
@@ -101,7 +98,7 @@ suspend fun updateAllWidgets(context: Context) {
 
             if (ids.isNotEmpty()) {
                 if (index > 0) {
-                    kotlinx.coroutines.delay(300L)
+                    delay(300.milliseconds)
                 }
 
                 try {

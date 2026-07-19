@@ -10,14 +10,12 @@ import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.Cou
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.ImportCourseJsonModel
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.SingleTablePack
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.TotalAppBackupEnvelope
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
-import javax.inject.Inject
-import javax.inject.Singleton
+import org.koin.core.annotation.Single
 
 /**
  * 模块化备份定义
@@ -53,9 +51,9 @@ data class ModuleInfo(
  * 备份与恢复的中央总仓库
  * 职责：调度各业务模块的原子化备份与恢复，确保全软件数据的一致性与扩展性。
  */
-@Singleton
-class BackupRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+@Single
+class BackupRepository(
+    private val context: Context,
     private val courseTableDao: CourseTableDao,
     private val courseTableRepository: CourseTableRepository,
     private val courseConversionRepository: CourseConversionRepository,

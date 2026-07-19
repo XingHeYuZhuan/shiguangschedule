@@ -48,18 +48,18 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdvancedColorPicker
 import com.xingheyuzhuan.shiguangschedule.ui.components.ColorPickerConfig
 import com.xingheyuzhuan.shiguangschedule.ui.components.ImageCropper
+import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StyleSettingsScreen(
     onBack: () -> Unit,
-    viewModel: StyleSettingsViewModel = hiltViewModel()
+    viewModel: StyleSettingsViewModel = koinViewModel()
 ) {
     val styleState by viewModel.styleState.collectAsStateWithLifecycle()
     val demoUiState by viewModel.demoUiState.collectAsStateWithLifecycle()

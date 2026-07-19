@@ -1,13 +1,15 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings.backup
 
-import android.content.Context
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.api.webdav.WebDavConfig
-import com.xingheyuzhuan.shiguangschedule.data.repository.*
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.xingheyuzhuan.shiguangschedule.data.repository.ApiConfigRepository
+import com.xingheyuzhuan.shiguangschedule.data.repository.AppBackupPackage
+import com.xingheyuzhuan.shiguangschedule.data.repository.BackupMeta
+import com.xingheyuzhuan.shiguangschedule.data.repository.BackupModule
+import com.xingheyuzhuan.shiguangschedule.data.repository.BackupRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,13 +19,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import org.koin.core.annotation.KoinViewModel
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
-import javax.inject.Inject
 
 data class BackupUiState(
     val baseUrl: String = "",
@@ -41,9 +43,9 @@ sealed interface TestResult {
     data class Error(val message: String) : TestResult
 }
 
-@HiltViewModel
-class BackupViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+@KoinViewModel
+class BackupViewModel(
+    private val context: Application,
     private val apiConfigRepository: ApiConfigRepository,
     private val backupRepository: BackupRepository
 ) : ViewModel() {

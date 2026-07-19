@@ -11,19 +11,16 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import school_index.SchoolIndex
 import java.io.File
 import com.xingheyuzhuan.shiguangschedule.BuildConfig
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
+import org.koin.core.annotation.Single
 
 /**
  * GitUpdater
  * 延迟写入、协议版本校验和时间戳版本去重。
- * @param context 应用上下文，用于获取文件路径。
  */
-@Singleton // 建议设为单例，避免重复创建
-class GitUpdater @Inject constructor(
-    @ApplicationContext private val context: Context
-){
+@Single
+class GitUpdater(
+    private val context: Context
+) {
 
     // --- 客户端的协议版本定义 ---
     private val CLIENT_PROTOCOL_VERSION: Int = 1
@@ -130,7 +127,6 @@ class GitUpdater @Inject constructor(
             return false
         }
     }
-    // 假设 LogProgressMonitor 已经定义在其他地方
 
     // --- 核心更新逻辑 ---
 
@@ -159,7 +155,6 @@ class GitUpdater @Inject constructor(
                 onLog("临时资源仓库已存在，将执行更新...")
                 val openedGit = Git.open(tempSchoolsRepoDir)
 
-                // --- FETCH 命令 (使用显式命令对象) ---
                 onLog("正在拉取远程变更...")
                 val fetchCommand = openedGit.fetch()
                     .setProgressMonitor(progressMonitor)
@@ -173,7 +168,6 @@ class GitUpdater @Inject constructor(
                     return false
                 }
 
-                // --- RESET 命令 ---
                 onLog("正在强制重置本地分支...")
                 openedGit.reset()
                     .setMode(ResetCommand.ResetType.HARD)
@@ -181,12 +175,11 @@ class GitUpdater @Inject constructor(
                     .call()
                 onLog("本地分支已重置。")
 
-                openedGit // 返回 Git 对象
+                openedGit
             } else {
                 if (tempSchoolsRepoDir.exists()) tempSchoolsRepoDir.deleteRecursively()
                 onLog("正在克隆资源仓库...")
 
-                // --- CLONE 命令
                 val cloneCommand = Git.cloneRepository()
                     .setURI(repoInfo.url)
                     .setDirectory(tempSchoolsRepoDir)
@@ -199,7 +192,6 @@ class GitUpdater @Inject constructor(
             }
 
             git.use {
-                // --- 文件暂存逻辑（代替立即写入） ---
                 val sourceResourcesDir = File(tempSchoolsRepoDir, RESOURCES_PATH)
 
                 if (!sourceResourcesDir.exists() || !sourceResourcesDir.isDirectory) {
@@ -207,18 +199,15 @@ class GitUpdater @Inject constructor(
                     return false
                 }
 
-                // 递归遍历并暂存所有文件
                 val tempFiles = mutableListOf<Pair<File, File>>()
                 sourceResourcesDir.walkTopDown().forEach { sourceFile ->
                     if (sourceFile.isFile) {
                         if (sourceFile.name.equals("adapters.yaml", ignoreCase = true)) {
                             return@forEach
                         }
-                        // 目标路径：filesDir/repo/schools/resources/...
                         val relativePath = sourceFile.relativeTo(sourceResourcesDir)
                         val targetFile = File(File(schoolsFileTargetDir, RESOURCES_PATH), relativePath.path)
 
-                        // 暂存 Pair<临时文件, 目标文件>
                         tempFiles.add(Pair(sourceFile, targetFile))
                     }
                 }
@@ -231,7 +220,7 @@ class GitUpdater @Inject constructor(
                 onLog("资源文件已成功暂存（共 ${tempFiles.size} 个文件）。")
             }
 
-            return true // 资源文件拉取和暂存成功
+            return true
 
         } catch (e: Exception) {
             onLog("错误：资源文件更新失败。")
@@ -239,8 +228,6 @@ class GitUpdater @Inject constructor(
             onLog("错误信息：${e.message}")
             onLog("详细堆栈跟踪：\n${e.stackTraceToString()}")
             return false
-        } finally {
-            // 临时仓库清理交给外部统一处理
         }
     }
 
@@ -266,35 +253,31 @@ class GitUpdater @Inject constructor(
 
             onLog("正在执行克隆并检出索引分支...")
 
-            // --- CLONE 命令
             val cloneCommand = Git.cloneRepository()
                 .setURI(repoInfo.url)
                 .setDirectory(tempIndexRepoDir)
                 .setBranch(INDEX_BRANCH)
                 .setTimeout(30)
 
-            // 使用显式 if 语句设置凭证，以确保稳定性
             if (credentialsProvider != null) {
                 cloneCommand.setCredentialsProvider(credentialsProvider)
             }
 
-            cloneCommand.call().use {} // 执行克隆
+            cloneCommand.call().use {}
 
             val sourceFile = File(tempIndexRepoDir, INDEX_FILE_NAME)
             if (!sourceFile.exists()) {
                 onLog("警告：临时仓库中未找到文件 '$INDEX_FILE_NAME'。请确认分支和文件路径正确。")
                 onLog("流程：无索引文件，使用本地索引（若存在）。继续主流程。")
-                return // 找不到文件，按无分支处理（容错）
+                return
             }
 
-            // --- 校验逻辑 ---
             val remoteIndex = readSchoolIndex(sourceFile)
             if (remoteIndex == null) {
                 onLog("错误：无法解析远程索引文件。可能文件损坏。")
                 return
             }
 
-            // A. 校验协议版本：远程 > 客户端视为致命错误
             val remoteProtocol = remoteIndex.protocol_version
             if (remoteProtocol > CLIENT_PROTOCOL_VERSION) {
                 onLog("致命错误：远程索引协议版本 (${remoteProtocol}) 高于客户端支持版本 ($CLIENT_PROTOCOL_VERSION)。")
@@ -303,7 +286,6 @@ class GitUpdater @Inject constructor(
                 return
             }
 
-            // B. 校验数据版本 (时间戳)
             val localIndex = readSchoolIndex(File(indexFileTargetDir, INDEX_FILE_NAME))
             val localVersionId = localIndex?.version_id
 
@@ -312,7 +294,6 @@ class GitUpdater @Inject constructor(
 
             if (isNewerVersionId(remoteIndex.version_id, localVersionId)) {
                 onLog("结果：远程版本更新，将执行索引文件写入。")
-                // 暂存文件内容和版本ID
                 result.indexFileContent = sourceFile.readBytes()
                 result.indexRemoteVersionId = remoteIndex.version_id
             } else if (remoteIndex.version_id == localVersionId) {
@@ -320,13 +301,12 @@ class GitUpdater @Inject constructor(
             } else {
                 onLog("致命错误：远程仓库索引时间戳 (${remoteIndex.version_id}) 更旧。检查远程仓库是否正确。")
                 onLog("操作：为保证数据一致性，终止全部文件写入。")
-                result.isFatalIndexError = true // 标记致命错误
+                result.isFatalIndexError = true
                 return
             }
 
         } catch (e: Exception) {
             val errorMessage = e.message ?: ""
-            // 容错处理：找不到分支或认证失败
             val INDEX_BRANCH_REF = "refs/heads/$INDEX_BRANCH"
             val isBranchNotFound = errorMessage.contains(INDEX_BRANCH) ||
                     errorMessage.contains(INDEX_BRANCH_REF) ||
@@ -341,8 +321,6 @@ class GitUpdater @Inject constructor(
                 onLog("错误信息：${e.message}")
                 onLog("详细堆栈跟踪：\n${e.stackTraceToString()}")
             }
-        } finally {
-            // 临时仓库清理交给外部统一处理
         }
     }
 
@@ -372,13 +350,11 @@ class GitUpdater @Inject constructor(
             baseLocalDir.deleteRecursively()
         }
 
-        // 重新创建所需的基准目录
         if (!baseLocalDir.mkdirs()) {
             onLog("致命错误：无法创建基准目录。")
             return false
         }
 
-        // --- 3. 写入资源文件 ---
         if (result.resourceFiles.isNotEmpty()) {
             onLog("正在写入 ${result.resourceFiles.size} 个资源文件...")
             try {
@@ -398,11 +374,9 @@ class GitUpdater @Inject constructor(
             onLog("资源文件暂存列表为空，跳过写入。")
         }
 
-        // --- 4. 写入索引文件 (如果有新版本，则写入；如果版本相同，则恢复备份) ---
         val indexContent = result.indexFileContent
 
         if (indexContent != null) {
-            // A. 有新版本 (indexContent != null)，写入新索引
             try {
                 indexFileTargetDir.mkdirs()
                 val targetFile = File(indexFileTargetDir, INDEX_FILE_NAME)
@@ -412,7 +386,6 @@ class GitUpdater @Inject constructor(
                 onLog("错误：写入新索引文件失败。")
             }
         } else {
-            // B. 版本相同或更旧 (indexContent == null)，恢复备份
             if (localIndexContent != null) {
                 try {
                     indexFileTargetDir.mkdirs()
@@ -438,7 +411,6 @@ class GitUpdater @Inject constructor(
         val credentialsProvider = createCredentialsProvider(repoInfo)
         val result = GitUpdateResult()
 
-        // 临时仓库目录列表，用于最终清理
         val tempDirsToClean = listOf(
             File(context.cacheDir, "temp_schools_repo"),
             File(context.cacheDir, "temp_index_repo")
@@ -463,8 +435,6 @@ class GitUpdater @Inject constructor(
                 }
             }
 
-
-            // 2. 资源文件更新 (核心业务，失败则全部失败)
             val resourceUpdateSuccess = updateResourceFiles(repoInfo, credentialsProvider, onLog, result)
 
             if (!resourceUpdateSuccess) {
@@ -472,16 +442,13 @@ class GitUpdater @Inject constructor(
                 return
             }
 
-            // 3. 索引文件下载 (可容错/版本校验)
             downloadIndexFile(repoInfo, credentialsProvider, onLog, result)
 
-            // !!! 关键检查：索引校验是否触发了致命错误 !!!
             if (result.isFatalIndexError) {
                 onLog("\n!!! 致命错误：索引校验失败 (协议不兼容或远程版本过旧)，终止全部更新流程（不写入磁盘）。")
                 return
             }
 
-            // 4. 统一写入本地存储
             val commitSuccess = commitUpdates(result, onLog)
 
             if (!commitSuccess) {
@@ -492,7 +459,6 @@ class GitUpdater @Inject constructor(
             onLog("\n--- 全部更新流程完成。---")
 
         } finally {
-            // 统一清理临时目录
             tempDirsToClean.forEach { dir ->
                 if (dir.exists()) {
                     dir.deleteRecursively()

@@ -34,12 +34,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.ui.components.BottomNavigationBar
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
+import org.koin.compose.viewmodel.koinViewModel
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -51,7 +51,7 @@ import java.util.Locale
 fun TodayScheduleScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    viewModel: TodayScheduleViewModel = hiltViewModel()
+    viewModel: TodayScheduleViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val gridStyle by viewModel.gridStyle.collectAsState()

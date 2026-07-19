@@ -24,15 +24,15 @@ import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import javax.inject.Inject
-import dagger.hilt.android.qualifiers.ApplicationContext
+import org.koin.core.annotation.Single
 
 /**
  * 负责主数据库和 Widget 数据库之间的数据同步。
  * 它持续监听数据变化，并自动将数据处理后存入为 Widget 优化的数据库。
  */
-class WidgetDataSynchronizer @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+@Single
+class WidgetDataSynchronizer(
+    private val appContext: Context,
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository,
     private val timeSlotRepository: TimeSlotRepository,

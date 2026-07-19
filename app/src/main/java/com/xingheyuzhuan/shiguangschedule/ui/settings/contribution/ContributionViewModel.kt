@@ -1,17 +1,15 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings.contribution
 
-import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.data.model.ContributionList
 import com.xingheyuzhuan.shiguangschedule.data.repository.ContributionRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.KoinViewModel
 import java.io.IOException
-import javax.inject.Inject
 
 /**
  * UI 状态的密封类
@@ -22,9 +20,9 @@ sealed interface ContributionUiState {
     data class Error(val message: String) : ContributionUiState
 }
 
-@HiltViewModel
-class ContributionViewModel @Inject constructor(
-    private val application: Application
+@KoinViewModel
+class ContributionViewModel(
+    private val contributionRepository: ContributionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ContributionUiState>(ContributionUiState.Loading)
@@ -41,8 +39,7 @@ class ContributionViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = ContributionUiState.Loading
             try {
-                // 直接使用注入的 application 成员变量
-                val data = ContributionRepository.getContributions(application)
+                val data = contributionRepository.getContributions()
                 _uiState.value = ContributionUiState.Success(data)
             } catch (e: IOException) {
                 _uiState.value = ContributionUiState.Error("数据加载失败: ${e.localizedMessage}")

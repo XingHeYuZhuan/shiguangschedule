@@ -63,9 +63,9 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
+import org.koin.compose.viewmodel.koinViewModel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -77,7 +77,7 @@ import java.time.ZoneId
 @Composable
 fun QuickDeleteScreen(
     onBack: () -> Unit,
-    viewModel: QuickDeleteViewModel = hiltViewModel()
+    viewModel: QuickDeleteViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -349,7 +349,6 @@ fun FilterBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(stringResource(R.string.label_day_of_week), style = MaterialTheme.typography.titleMedium)
-                @Suppress("ControlFlowWithEmptyBody")
                 TextButton(onClick = {
                     if (uiState.selectedDays.size == 7) viewModel.clearAllDays() else viewModel.selectAllDays()
                 }) {
@@ -396,7 +395,6 @@ fun DateRangePickerModal(
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            @Suppress("ControlFlowWithEmptyBody")
             TextButton(
                 onClick = {
                     val start = state.selectedStartDateMillis?.toLocalDate()

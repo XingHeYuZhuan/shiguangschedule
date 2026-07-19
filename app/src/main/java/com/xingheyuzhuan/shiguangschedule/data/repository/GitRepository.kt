@@ -2,9 +2,9 @@ package com.xingheyuzhuan.shiguangschedule.data.repository
 
 import com.xingheyuzhuan.shiguangschedule.data.model.RepositoryInfo
 import com.xingheyuzhuan.shiguangschedule.tool.GitUpdater
-import jakarta.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.koin.core.annotation.Single
 
 /**
  * 仓库服务接口，定义了与 Git 仓库交互的契约。
@@ -23,7 +23,8 @@ interface GitRepository {
  * GitRepository 的具体实现类。
  * 负责将 ViewModel 的调用映射到底层 GitUpdater 的操作。
  */
-class GitRepositoryImpl @Inject constructor(
+@Single
+class GitRepositoryImpl(
     private val gitUpdater: GitUpdater
 ) : GitRepository {
 

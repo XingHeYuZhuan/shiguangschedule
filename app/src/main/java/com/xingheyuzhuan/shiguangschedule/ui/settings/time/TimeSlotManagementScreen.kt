@@ -43,6 +43,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,12 +57,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -79,7 +80,7 @@ import java.util.Locale
 fun TimeSlotManagementScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    timeSlotViewModel: TimeSlotViewModel = hiltViewModel()
+    timeSlotViewModel: TimeSlotViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -88,8 +89,8 @@ fun TimeSlotManagementScreen(
     val localTimeSlots = remember {
         mutableStateListOf<TimeSlot>().apply { addAll(uiState.timeSlots.sortedBy { it.number }) }
     }
-    var localDefaultClassDuration by remember { mutableStateOf(uiState.defaultClassDuration) }
-    var localDefaultBreakDuration by remember { mutableStateOf(uiState.defaultBreakDuration) }
+    var localDefaultClassDuration by remember { mutableIntStateOf(uiState.defaultClassDuration) }
+    var localDefaultBreakDuration by remember { mutableIntStateOf(uiState.defaultBreakDuration) }
 
     var showExitConfirmDialog by remember { mutableStateOf(false) }
 
@@ -155,7 +156,7 @@ fun TimeSlotManagementScreen(
                     IconButton(onClick = {
                         coroutineScope.launch {
                             val sortedAndNumberedSlots = localTimeSlots
-                                .sortedBy { it.startTime.let { timeStr -> try { LocalTime.parse(timeStr) } catch (e: DateTimeParseException) { LocalTime.MAX } } }
+                                .sortedBy { it.startTime.let { timeStr -> try { LocalTime.parse(timeStr) } catch (_: DateTimeParseException) { LocalTime.MAX } } }
                                 .mapIndexed { index, slot -> slot.copy(number = index + 1) }
 
                             timeSlotViewModel.onSaveAllSettings(
@@ -209,7 +210,7 @@ fun TimeSlotManagementScreen(
                     onDeleteClick = {
                         localTimeSlots.removeIf { it.number == timeSlot.number }
                         val renumberedList = localTimeSlots
-                            .sortedBy { it.startTime.let { timeStr -> try { LocalTime.parse(timeStr) } catch (e: DateTimeParseException) { LocalTime.MAX } } }
+                            .sortedBy { it.startTime.let { timeStr -> try { LocalTime.parse(timeStr) } catch (_: DateTimeParseException) { LocalTime.MAX } } }
                             .mapIndexed { i, slot -> slot.copy(number = i + 1) }
                         localTimeSlots.clear()
                         localTimeSlots.addAll(renumberedList)
@@ -258,7 +259,7 @@ fun TimeSlotManagementScreen(
                         }
 
                         val finalSorted = updatedList
-                            .sortedBy { it.startTime.let { t -> try { LocalTime.parse(t) } catch (e: Exception) { LocalTime.MAX } } }
+                            .sortedBy { it.startTime.let { t -> try { LocalTime.parse(t) } catch (_: Exception) { LocalTime.MAX } } }
                             .mapIndexed { i, slot -> slot.copy(number = i + 1) }
 
                         localTimeSlots.clear()
@@ -306,7 +307,7 @@ private fun calculateInitialTimes(
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
     return if (localTimeSlots.isNotEmpty()) {
         val lastEndTime = localTimeSlots.maxOf { it.endTime }.let {
-            try { LocalTime.parse(it, formatter) } catch (e: Exception) { LocalTime.of(8,0) }
+            try { LocalTime.parse(it, formatter) } catch (_: Exception) { LocalTime.of(8,0) }
         }
         val start = lastEndTime.plusMinutes(breakDur.toLong())
         val end = start.plusMinutes(classDur.toLong())
@@ -439,30 +440,29 @@ fun TimeSlotEditContent(
     onDismiss: () -> Unit,
     onConfirm: (number: Int, startTime: String, endTime: String, alias: String?) -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
     val (initialStartHour, initialStartMinute) = parseTimeString(initialStartTime)
     val (initialEndHour, initialEndMinute) = parseTimeString(initialEndTime)
 
-    var startHourState by remember { mutableStateOf(initialStartHour) }
-    var startMinuteState by remember { mutableStateOf(initialStartMinute) }
-    var endHourState by remember { mutableStateOf(initialEndHour) }
-    var endMinuteState by remember { mutableStateOf(initialEndMinute) }
+    var startHourState by remember { mutableIntStateOf(initialStartHour) }
+    var startMinuteState by remember { mutableIntStateOf(initialStartMinute) }
+    var endHourState by remember { mutableIntStateOf(initialEndHour) }
+    var endMinuteState by remember { mutableIntStateOf(initialEndMinute) }
     var aliasState by remember { mutableStateOf(initialAlias ?: "") }
 
     val minAllowedTime by remember(existingTimeSlots, initialNumber, isEditing) {
         derivedStateOf {
             val targetNumber = if (isEditing) initialNumber - 1 else existingTimeSlots.maxOfOrNull { it.number } ?: 0
             val prevSlot = existingTimeSlots.find { it.number == targetNumber }
-            prevSlot?.endTime?.let { try { LocalTime.parse(it) } catch (e: Exception) { null } } ?: LocalTime.MIN
+            prevSlot?.endTime?.let { try { LocalTime.parse(it) } catch (_: Exception) { null } } ?: LocalTime.MIN
         }
     }
 
     val maxAllowedTime by remember(existingTimeSlots, initialNumber, isEditing) {
         derivedStateOf {
             val nextSlot = if (isEditing) existingTimeSlots.find { it.number == initialNumber + 1 } else null
-            nextSlot?.startTime?.let { try { LocalTime.parse(it) } catch (e: Exception) { null } } ?: LocalTime.MAX
+            nextSlot?.startTime?.let { try { LocalTime.parse(it) } catch (_: Exception) { null } } ?: LocalTime.MAX
         }
     }
 
@@ -640,7 +640,7 @@ fun parseTimeString(timeString: String): Pair<Int, Int> {
         val formatter = DateTimeFormatter.ofPattern("HH:mm")
         val localTime = LocalTime.parse(timeString, formatter)
         Pair(localTime.hour, localTime.minute)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         Pair(0, 0)
     }
 }

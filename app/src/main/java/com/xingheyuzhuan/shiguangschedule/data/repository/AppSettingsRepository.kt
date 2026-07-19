@@ -16,9 +16,8 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
-import javax.inject.Inject
-import javax.inject.Named
-import javax.inject.Singleton
+import org.koin.core.annotation.Single
+import org.koin.core.annotation.Named
 
 /**
  * 应用配置领域仓库
@@ -28,8 +27,8 @@ import javax.inject.Singleton
  * 2. 协调全局偏好设置 (DataStore) 与课表物理配置 (Room) 之间的数据流。
  * 3. 提供时间维度计算算法（周次偏移、日期回溯）。
  */
-@Singleton
-class AppSettingsRepository @Inject constructor(
+@Single
+class AppSettingsRepository(
     @Named("AppSettings") private val dataStore: DataStore<Preferences>,
     private val courseTableDao: CourseTableDao,
     private val courseTableConfigDao: CourseTableConfigDao

@@ -72,7 +72,7 @@ class WebCompatDelegate(private val webView: WebView) {
                     if (isDesktopMode) {
                         injectDesktopCompatLayer(wv)
                     }
-                    wv.injectAllJavaScript(isDesktopMode)
+                    wv.injectAllJavaScript()
                 }
             }
 

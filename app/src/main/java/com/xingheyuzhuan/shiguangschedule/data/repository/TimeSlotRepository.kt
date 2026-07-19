@@ -5,11 +5,13 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
-import javax.inject.Singleton
+import org.koin.core.annotation.Single
 
-@Singleton
-class TimeSlotRepository @Inject constructor(
+/**
+ * 时间段数据仓库。
+ */
+@Single
+class TimeSlotRepository(
     private val timeSlotDao: TimeSlotDao
 ) {
     /**

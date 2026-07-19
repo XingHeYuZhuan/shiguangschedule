@@ -25,15 +25,14 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.random.Random
+import org.koin.core.annotation.Single
 
 /**
  * 课表转换仓库，负责处理课程数据的导入、导出以及 ICS 生成等逻辑。
  */
-@Singleton
-class CourseConversionRepository @Inject constructor(
+@Single
+class CourseConversionRepository(
     private val courseDao: CourseDao,
     private val courseWeekDao: CourseWeekDao,
     private val timeSlotDao: TimeSlotDao,
@@ -404,7 +403,7 @@ class CourseConversionRepository @Inject constructor(
     /**
      * 将指定课表下的所有课程数据导出为 ICS 日历文件的内容字符串。
      */
-    suspend fun exportToIcsString(context: Context,tableId: String, alarmMinutes: Int?): String? {
+    suspend fun exportToIcsString(context: Context, tableId: String, alarmMinutes: Int?): String? {
         val courses = courseDao.getCoursesWithWeeksByTableId(tableId).first()
         val timeSlots = timeSlotDao.getTimeSlotsByCourseTableId(tableId).first()
 

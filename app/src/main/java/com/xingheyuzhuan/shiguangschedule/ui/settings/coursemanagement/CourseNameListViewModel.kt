@@ -4,17 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.first
-import javax.inject.Inject
+import org.koin.core.annotation.KoinViewModel
 
 /**
  * 用于 UI 展示的课程名称和实例数量的组合。
@@ -28,8 +27,8 @@ data class CourseNameCount(
  * 【一级页面】课程名称列表 ViewModel (Master View)
  * 负责提取当前课表下的唯一课程名称列表及其对应的实例数量。
  */
-@HiltViewModel
-class CourseNameListViewModel @Inject constructor(
+@KoinViewModel
+class CourseNameListViewModel(
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository
 ) : ViewModel() {

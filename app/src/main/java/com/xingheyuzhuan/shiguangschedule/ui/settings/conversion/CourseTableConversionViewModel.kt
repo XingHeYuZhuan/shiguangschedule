@@ -5,31 +5,26 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.R
-import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseConversionRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.KoinViewModel
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.charset.Charset
-import javax.inject.Inject
 
 /**
  * 课表导入/导出界面的 ViewModel。
  * 处理所有业务逻辑和状态，并通过事件通道与 UI 沟通。
  */
-@HiltViewModel
-class CourseTableConversionViewModel @Inject constructor(
+@KoinViewModel
+class CourseTableConversionViewModel(
     application: Application,
-    private val courseConversionRepository: CourseConversionRepository,
-    private val courseTableRepository: CourseTableRepository,
-    private val appSettingsRepository: AppSettingsRepository
+    private val courseConversionRepository: CourseConversionRepository
 ) : AndroidViewModel(application) {
 
     // UI 状态流，仅包含 UI 显示相关的状态（如对话框可见性、加载状态）

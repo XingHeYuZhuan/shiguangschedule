@@ -1,6 +1,5 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings.course
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
@@ -12,13 +11,21 @@ import com.xingheyuzhuan.shiguangschedule.data.repository.StyleSettingsRepositor
 import com.xingheyuzhuan.shiguangschedule.data.repository.TimeSlotRepository
 import com.xingheyuzhuan.shiguangschedule.navigation.AddEditCourseChannel
 import com.xingheyuzhuan.shiguangschedule.navigation.PresetCourseData
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.KoinViewModel
 import java.util.UUID
-import javax.inject.Inject
 
 data class CourseScheme(
     val id: String = UUID.randomUUID().toString(),
@@ -37,14 +44,12 @@ data class CourseScheme(
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@HiltViewModel
-class AddEditCourseViewModel @Inject constructor(
+@KoinViewModel
+class AddEditCourseViewModel(
     private val courseTableRepository: CourseTableRepository,
     private val timeSlotRepository: TimeSlotRepository,
     private val appSettingsRepository: AppSettingsRepository,
-    private val styleSettingsRepository: StyleSettingsRepository,
-    // 保留注入，用于未来可能的状态保存，但不再从中读取 courseId
-    private val savedStateHandle: SavedStateHandle
+    private val styleSettingsRepository: StyleSettingsRepository
 ) : ViewModel() {
 
     private var _courseId: String? = null
