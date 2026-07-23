@@ -210,7 +210,7 @@
     <string name="desc_schedule_tweak">一鍵將指定日期的所有課程調整到新日期</string>
     <string name="section_title_advanced_features">進階功能</string>
     <string name="item_course_conversion">課表匯入/匯出</string>
-    <string name="desc_course_conversion">支援多種匯入匯出方式</string>
+    <string name="desc_course_conversion">支援檔案、教務導入及同步功能</string>
     <string name="desc_notification_settings">管理您的課程提醒通知</string>
     <string name="desc_manage_course_tables">管理多份課程表，可切換、刪除</string>
     <string name="item_time_slot_customization">自訂時間段</string>

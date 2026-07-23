@@ -14,9 +14,7 @@ work-runtime = "2.11.2"
 okhttp = "5.4.0"
 room = "2.8.4"
 ksp = "2.3.10"
-jgit = "5.13.5.202508271544-r"
 slf4j = "2.0.18"
-slf4j_android = "1.7.36"
 compose-animation = "1.11.4"
 coil = "3.5.0"
 javax-inject = "1"
@@ -30,6 +28,8 @@ wire = "6.4.5"
 koin-plugin = "1.0.2"
 koin-bom = "4.2.2"
 koin-annotations = "4.2.2"
+okio = "3.17.0"
+kgit = "1.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -58,9 +58,7 @@ okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-i
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
-jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "jgit" }
 slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
-slf4j-android = { group = "org.slf4j", name = "slf4j-android", version.ref = "slf4j_android" }
 androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "compose-animation" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javax-inject" }
@@ -84,6 +82,8 @@ koin-compose = { module = "io.insert-koin:koin-compose" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
 koin-compose-navigation3 = { module = "io.insert-koin:koin-compose-navigation3" }
 koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin-annotations" }
+okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
+kgit = { module = "io.github.xingheyuzhuan:kgit", version.ref = "kgit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

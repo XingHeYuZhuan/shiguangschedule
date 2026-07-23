@@ -3,30 +3,61 @@ package com.xingheyuzhuan.shiguangschedule.tool
 import android.content.Context
 import com.xingheyuzhuan.shiguangschedule.data.model.RepoType
 import com.xingheyuzhuan.shiguangschedule.data.model.RepositoryInfo
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.api.ResetCommand
-import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.transport.CredentialsProvider
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
+import com.xingheyuzhuan.kgit.Ext
+import com.xingheyuzhuan.kgit.logging.ProgressMonitor
+import okio.FileSystem
+import okio.Path.Companion.toPath
+import org.koin.core.annotation.Single
 import school_index.SchoolIndex
 import java.io.File
-import com.xingheyuzhuan.shiguangschedule.BuildConfig
-import org.koin.core.annotation.Single
+
+/**
+ * 精简的单行对齐进度监听器
+ */
+private class LogProgressMonitor(
+    private val stepPrefix: String,
+    private val onLog: (String) -> Unit
+) : ProgressMonitor {
+
+    private var totalWork = ProgressMonitor.UNKNOWN
+    private var currentWork = 0
+
+    override fun beginTask(title: String, totalWork: Int) {
+        this.totalWork = totalWork
+        this.currentWork = 0
+        renderProgress()
+    }
+
+    override fun update(completedWork: Int) {
+        currentWork += completedWork
+        renderProgress()
+    }
+
+    override fun endTask() {
+        // 子任务结束时不发送换行，保持同一行刷新的连贯性
+    }
+
+    private fun renderProgress() {
+        val logLine = if (totalWork > 0) {
+            val percent = (currentWork * 100 / totalWork).coerceIn(0, 100)
+            "\r$stepPrefix ➜ 同步中 $percent%"
+        } else {
+            "\r$stepPrefix ➜ 处理中..."
+        }
+        onLog(logLine.padEnd(50, ' '))
+    }
+}
 
 /**
  * GitUpdater
- * 延迟写入、协议版本校验和时间戳版本去重。
+ * 轻量工作区源码下载、协议版本校验和时间戳版本去重。
  */
 @Single
 class GitUpdater(
     private val context: Context
 ) {
 
-    // --- 客户端的协议版本定义 ---
     private val CLIENT_PROTOCOL_VERSION: Int = 1
-
-    private val OFFICIAL_BASE_TAG_NAME = "lighthouse"
-    private val OFFICIAL_BASE_TAG_SHA = "eb49b7c18272c624d12198b03aabf7fc114a7106"
 
     private val baseLocalDir: File
         get() = File(context.filesDir, "repo")
@@ -35,19 +66,13 @@ class GitUpdater(
     private val schoolsFileTargetDir: File
         get() = File(baseLocalDir, "schools")
 
-    // --- 内部数据结构：用于延迟写入 ---
     private data class GitUpdateResult(
         var indexFileContent: ByteArray? = null,
         var indexRemoteVersionId: String? = null,
-        var resourceFiles: List<Pair<File, File>> = emptyList(), // Pair<临时文件, 目标文件路径>
-        var isFatalIndexError: Boolean = false // 用于标记索引校验是否遇到致命错误（阻止写入）
+        var resourceFiles: List<Pair<File, File>> = emptyList(),
+        var isFatalIndexError: Boolean = false
     )
 
-    // --- 辅助方法：读取 Protobuf 索引并获取版本信息 ---
-
-    /**
-     * 从给定的文件路径读取 Protobuf 索引。
-     */
     private fun readSchoolIndex(file: File): SchoolIndex? {
         if (!file.exists()) return null
         return try {
@@ -59,229 +84,151 @@ class GitUpdater(
         }
     }
 
-    /**
-     * 辅助方法：比较两个 version_id 字符串（TIME_YYYYMMDDHHMMSS_XXX 格式）。
-     * 返回 true 如果 newVersionId 比 localVersionId 新。
-     */
     private fun isNewerVersionId(newVersionId: String?, localVersionId: String?): Boolean {
         if (newVersionId.isNullOrBlank()) return false
         if (localVersionId.isNullOrBlank()) return true
-
         return newVersionId > localVersionId
     }
 
-    // --- Git 辅助逻辑 ---
-
-    private class MyCredentialsProvider(username: String, password: String) :
-        UsernamePasswordCredentialsProvider(username, password.toCharArray())
-
-    /**
-     * 创建凭证提供者。
-     */
-    private fun createCredentialsProvider(repoInfo: RepositoryInfo): CredentialsProvider? {
-        // 只有私有仓库或明确提供了凭证的公开仓库需要凭证
+    private fun extractToken(repoInfo: RepositoryInfo): String? {
         if (repoInfo.repoType != RepoType.PRIVATE_REPO && repoInfo.credentials.isNullOrEmpty()) {
             return null
         }
-        var username = repoInfo.credentials?.get("username") ?: ""
-        val password = repoInfo.credentials?.get("password") ?: ""
-
-        // 修复 JGit Bug：如果提供了 Token 但没有用户名，使用 x-token-auth
-        if (password.isNotBlank() && username.isBlank()) {
-            username = "x-token-auth"
-        }
-
-        return if (username.isBlank() && password.isBlank()) null else MyCredentialsProvider(username, password)
+        val password = repoInfo.credentials?.get("password")
+        val username = repoInfo.credentials?.get("username")
+        return password?.takeIf { it.isNotBlank() } ?: username?.takeIf { it.isNotBlank() }
     }
 
     /**
-     * 验证仓库的可访问性和历史合法性（基准灯塔标签检查）。
+     * 异常解析：非配置异常统一归为连接中断
      */
-    private fun isLegitimateFork(userForkUrl: String, credentialsProvider: CredentialsProvider?): Boolean {
-        try {
-            val lsRemoteCommand = Git.lsRemoteRepository()
-                .setRemote(userForkUrl)
-            lsRemoteCommand.setTimeout(30)
+    private fun parseNetworkErrorMessage(e: Exception): String {
+        val fullErr = ((e.message ?: "") + " " + (e.cause?.message ?: "")).lowercase()
 
-            // 配置凭证和传输回调
-            credentialsProvider?.let {
-                lsRemoteCommand.setCredentialsProvider(it)
-                lsRemoteCommand.setTransportConfigCallback { transport ->
-                    transport.credentialsProvider = it
-                }
-            }
+        return when {
+            // 1. 权限与凭证配置问题
+            fullErr.contains("401") || fullErr.contains("403") || fullErr.contains("not authorized") || fullErr.contains("authentication") ->
+                "身份验证失败，请检查凭证配置"
 
-            lsRemoteCommand.setTags(true).setHeads(false) // 只查标签
-            val lsRemote = lsRemoteCommand.call()
-            if (lsRemote.isEmpty()) return false
+            // 2. 仓库或分支不存在 (URL/Branch 配置问题)
+            fullErr.contains("404") || fullErr.contains("not found") ->
+                "仓库或分支不存在，请检查配置"
 
-            val expectedTagRefName = "refs/tags/$OFFICIAL_BASE_TAG_NAME"
-            val expectedTagSha = ObjectId.fromString(OFFICIAL_BASE_TAG_SHA)
-
-            // 检查远程仓库是否包含名称和 SHA-1 都匹配的标签
-            return lsRemote.any {
-                it.name == expectedTagRefName && it.objectId == expectedTagSha
-            }
-        } catch (e: Exception) {
-            // 认证失败或连接失败，均视为验证失败
-            return false
+            // 3. 其他所有网络、超时、断连等非配置异常，统一提示更换仓库
+            else -> "连接中断，请更换仓库"
         }
     }
 
-    // --- 核心更新逻辑 ---
-
     /**
-     * 【步骤一】更新资源文件：克隆/拉取资源，并暂存文件列表。
-     * 失败时返回 false。
+     * 【步骤一】下载资源工作区文件
      */
-    private fun updateResourceFiles(
+    private suspend fun updateResourceFiles(
         repoInfo: RepositoryInfo,
-        credentialsProvider: CredentialsProvider?,
+        token: String?,
         onLog: (String) -> Unit,
         result: GitUpdateResult
     ): Boolean {
         val RESOURCES_PATH = "resources"
         val tempSchoolsRepoDir = File(context.cacheDir, "temp_schools_repo")
-        val progressMonitor = LogProgressMonitor(onLog)
+        val progressMonitor = LogProgressMonitor("[1/3]", onLog)
 
-        onLog("\n--- 开始资源文件更新（第一阶段：拉取） ---")
-        onLog("目标分支: ${repoInfo.branch}")
+        onLog("[1/3] ➜ 开始拉取资源库 (${repoInfo.branch})\n")
 
         try {
-            val gitDir = File(tempSchoolsRepoDir, ".git")
-            val isLocalRepoExist = tempSchoolsRepoDir.exists() && gitDir.exists()
-
-            val git: Git = if (isLocalRepoExist) {
-                onLog("临时资源仓库已存在，将执行更新...")
-                val openedGit = Git.open(tempSchoolsRepoDir)
-
-                onLog("正在拉取远程变更...")
-                val fetchCommand = openedGit.fetch()
-                    .setProgressMonitor(progressMonitor)
-                    .setTimeout(60)
-                    .apply { credentialsProvider?.let { setCredentialsProvider(it) } }
-                fetchCommand.call()
-
-                val remoteRef = "refs/remotes/origin/${repoInfo.branch}"
-                if (openedGit.repository.findRef(remoteRef) == null) {
-                    onLog("错误：资源仓库中不存在分支 '${repoInfo.branch}'。")
-                    return false
-                }
-
-                onLog("正在强制重置本地分支...")
-                openedGit.reset()
-                    .setMode(ResetCommand.ResetType.HARD)
-                    .setRef(remoteRef)
-                    .call()
-                onLog("本地分支已重置。")
-
-                openedGit
-            } else {
-                if (tempSchoolsRepoDir.exists()) tempSchoolsRepoDir.deleteRecursively()
-                onLog("正在克隆资源仓库...")
-
-                val cloneCommand = Git.cloneRepository()
-                    .setURI(repoInfo.url)
-                    .setDirectory(tempSchoolsRepoDir)
-                    .setBranch(repoInfo.branch)
-                    .setProgressMonitor(progressMonitor)
-                    .setTimeout(120)
-                    .apply { credentialsProvider?.let { setCredentialsProvider(it) } }
-
-                cloneCommand.call()
+            if (tempSchoolsRepoDir.exists()) {
+                tempSchoolsRepoDir.deleteRecursively()
             }
 
-            git.use {
-                val sourceResourcesDir = File(tempSchoolsRepoDir, RESOURCES_PATH)
+            val downloadCmd = Ext.downloadRepository()
+                .setUri(repoInfo.url)
+                .setDirectory(tempSchoolsRepoDir.absolutePath.toPath())
+                .setBranch(repoInfo.branch)
+                .setProgressMonitor(progressMonitor)
 
-                if (!sourceResourcesDir.exists() || !sourceResourcesDir.isDirectory) {
-                    onLog("错误：在仓库中未找到 '${RESOURCES_PATH}' 文件夹。")
-                    return false
-                }
-
-                val tempFiles = mutableListOf<Pair<File, File>>()
-                sourceResourcesDir.walkTopDown().forEach { sourceFile ->
-                    if (sourceFile.isFile) {
-                        if (sourceFile.name.equals("adapters.yaml", ignoreCase = true)) {
-                            return@forEach
-                        }
-                        val relativePath = sourceFile.relativeTo(sourceResourcesDir)
-                        val targetFile = File(File(schoolsFileTargetDir, RESOURCES_PATH), relativePath.path)
-
-                        tempFiles.add(Pair(sourceFile, targetFile))
-                    }
-                }
-
-                if (tempFiles.isEmpty()) {
-                    onLog("警告：资源文件夹为空，没有文件需要暂存。")
-                }
-
-                result.resourceFiles = tempFiles
-                onLog("资源文件已成功暂存（共 ${tempFiles.size} 个文件）。")
+            if (!token.isNullOrEmpty()) {
+                downloadCmd.setToken(token)
             }
 
+            downloadCmd.call(FileSystem.SYSTEM)
+
+            val sourceResourcesDir = File(tempSchoolsRepoDir, RESOURCES_PATH)
+            if (!sourceResourcesDir.exists() || !sourceResourcesDir.isDirectory) {
+                onLog("\r[1/3] ✖ 错误：未找到 '${RESOURCES_PATH}' 目录\n")
+                return false
+            }
+
+            val tempFiles = mutableListOf<Pair<File, File>>()
+            sourceResourcesDir.walkTopDown().forEach { sourceFile ->
+                if (sourceFile.isFile) {
+                    if (sourceFile.name.equals("adapters.yaml", ignoreCase = true)) return@forEach
+                    val relativePath = sourceFile.relativeTo(sourceResourcesDir)
+                    val targetFile = File(File(schoolsFileTargetDir, RESOURCES_PATH), relativePath.path)
+                    tempFiles.add(Pair(sourceFile, targetFile))
+                }
+            }
+
+            result.resourceFiles = tempFiles
+            val successMsg = "\r[1/3] ✔ 资源库同步完成 (${tempFiles.size}个文件)\n"
+            onLog(successMsg.padEnd(50, ' '))
             return true
 
         } catch (e: Exception) {
-            onLog("错误：资源文件更新失败。")
-            onLog("异常类型：${e::class.java.simpleName}")
-            onLog("错误信息：${e.message}")
-            onLog("详细堆栈跟踪：\n${e.stackTraceToString()}")
+            val friendlyError = parseNetworkErrorMessage(e)
+            val errorMsg = "\r[1/3] ✖ 失败：$friendlyError\n"
+            onLog(errorMsg.padEnd(50, ' '))
             return false
         }
     }
 
-
     /**
-     * 【步骤二】下载索引文件：克隆/拉取索引，校验版本，并暂存内容。
+     * 【步骤二】下载并校验索引文件
      */
-    private fun downloadIndexFile(
+    private suspend fun downloadIndexFile(
         repoInfo: RepositoryInfo,
-        credentialsProvider: CredentialsProvider?,
+        token: String?,
         onLog: (String) -> Unit,
         result: GitUpdateResult
     ) {
         val INDEX_BRANCH = "index-pb-release"
         val INDEX_FILE_NAME = "school_index.pb"
         val tempIndexRepoDir = File(context.cacheDir, "temp_index_repo")
+        val progressMonitor = LogProgressMonitor("[2/3]", onLog)
 
-        onLog("\n--- 开始索引文件下载（第二阶段：拉取与校验） ---")
-        onLog("目标分支: $INDEX_BRANCH")
+        onLog("[2/3] ➜ 开始校验数据索引...\n")
 
         try {
             if (tempIndexRepoDir.exists()) tempIndexRepoDir.deleteRecursively()
 
-            onLog("正在执行克隆并检出索引分支...")
-
-            val cloneCommand = Git.cloneRepository()
-                .setURI(repoInfo.url)
-                .setDirectory(tempIndexRepoDir)
+            val downloadCmd = Ext.downloadRepository()
+                .setUri(repoInfo.url)
+                .setDirectory(tempIndexRepoDir.absolutePath.toPath())
                 .setBranch(INDEX_BRANCH)
-                .setTimeout(30)
+                .setProgressMonitor(progressMonitor)
 
-            if (credentialsProvider != null) {
-                cloneCommand.setCredentialsProvider(credentialsProvider)
+            if (!token.isNullOrEmpty()) {
+                downloadCmd.setToken(token)
             }
 
-            cloneCommand.call().use {}
+            downloadCmd.call(FileSystem.SYSTEM)
 
             val sourceFile = File(tempIndexRepoDir, INDEX_FILE_NAME)
             if (!sourceFile.exists()) {
-                onLog("警告：临时仓库中未找到文件 '$INDEX_FILE_NAME'。请确认分支和文件路径正确。")
-                onLog("流程：无索引文件，使用本地索引（若存在）。继续主流程。")
+                val warnMsg = "\r[2/3] ⚠ 未找到远程索引，维持本地索引\n"
+                onLog(warnMsg.padEnd(50, ' '))
                 return
             }
 
             val remoteIndex = readSchoolIndex(sourceFile)
             if (remoteIndex == null) {
-                onLog("错误：无法解析远程索引文件。可能文件损坏。")
+                val errorMsg = "\r[2/3] ✖ 远程索引解析失败\n"
+                onLog(errorMsg.padEnd(50, ' '))
                 return
             }
 
             val remoteProtocol = remoteIndex.protocol_version
             if (remoteProtocol > CLIENT_PROTOCOL_VERSION) {
-                onLog("致命错误：远程索引协议版本 (${remoteProtocol}) 高于客户端支持版本 ($CLIENT_PROTOCOL_VERSION)。")
-                onLog("操作：更新被中止。请提示用户更新软件版本以兼容新协议。")
+                val fatalMsg = "\r[2/3] ✖ 协议不兼容，请升级 App\n"
+                onLog(fatalMsg.padEnd(50, ' '))
                 result.isFatalIndexError = true
                 return
             }
@@ -289,126 +236,79 @@ class GitUpdater(
             val localIndex = readSchoolIndex(File(indexFileTargetDir, INDEX_FILE_NAME))
             val localVersionId = localIndex?.version_id
 
-            onLog("远程数据版本ID: ${remoteIndex.version_id}")
-            onLog("本地数据版本ID: ${localVersionId ?: "N/A"}")
-
             if (isNewerVersionId(remoteIndex.version_id, localVersionId)) {
-                onLog("结果：远程版本更新，将执行索引文件写入。")
+                val okMsg = "\r[2/3] ✔ 发现新版本索引 (${remoteIndex.version_id})\n"
+                onLog(okMsg.padEnd(50, ' '))
                 result.indexFileContent = sourceFile.readBytes()
                 result.indexRemoteVersionId = remoteIndex.version_id
             } else if (remoteIndex.version_id == localVersionId) {
-                onLog("结果：当前索引已经是最新版本。跳过索引文件写入。")
+                val okMsg = "\r[2/3] ✔ 索引已是最新 ($localVersionId)\n"
+                onLog(okMsg.padEnd(50, ' '))
             } else {
-                onLog("致命错误：远程仓库索引时间戳 (${remoteIndex.version_id}) 更旧。检查远程仓库是否正确。")
-                onLog("操作：为保证数据一致性，终止全部文件写入。")
+                val errorMsg = "\r[2/3] ✖ 远程索引版本异常，终止更新\n"
+                onLog(errorMsg.padEnd(50, ' '))
                 result.isFatalIndexError = true
                 return
             }
 
         } catch (e: Exception) {
-            val errorMessage = e.message ?: ""
-            val INDEX_BRANCH_REF = "refs/heads/$INDEX_BRANCH"
-            val isBranchNotFound = errorMessage.contains(INDEX_BRANCH) ||
-                    errorMessage.contains(INDEX_BRANCH_REF) ||
-                    e::class.java.simpleName.contains("RefNotAdvertisedException")
-
-            if (isBranchNotFound) {
-                onLog("警告：仓库中未找到索引分支 '$INDEX_BRANCH'。")
-                onLog("流程：无索引分支，使用本地索引（若存在）。继续主流程。")
-            } else {
-                onLog("错误：索引文件下载失败。")
-                onLog("异常类型：${e::class.java.simpleName}")
-                onLog("错误信息：${e.message}")
-                onLog("详细堆栈跟踪：\n${e.stackTraceToString()}")
-            }
+            val friendlyError = parseNetworkErrorMessage(e)
+            val warnMsg = "\r[2/3] ⚠ 跳过索引更新：$friendlyError\n"
+            onLog(warnMsg.padEnd(50, ' '))
         }
     }
 
-
     /**
-     * 【步骤三】执行所有暂存文件的统一写入。
+     * 【步骤三】统一写入
      */
     private fun commitUpdates(result: GitUpdateResult, onLog: (String) -> Unit): Boolean {
-        onLog("\n--- 阶段三：统一写入本地存储 ---")
-        var success = true
+        onLog("[3/3] ➜ 正在写入本地存储...\n")
 
         val INDEX_FILE_NAME = "school_index.pb"
-
         val localIndexFile = File(indexFileTargetDir, INDEX_FILE_NAME)
         var localIndexContent: ByteArray? = null
         if (localIndexFile.exists()) {
-            try {
-                localIndexContent = localIndexFile.readBytes()
-                onLog("本地索引文件内容已备份到内存。")
-            } catch (e: Exception) {
-                onLog("警告：读取本地索引文件失败，若版本未更新，索引可能丢失。")
-            }
+            localIndexContent = try { localIndexFile.readBytes() } catch (e: Exception) { null }
         }
 
-        onLog("正在执行彻底清理：删除整个本地仓库目录: ${baseLocalDir.name}")
         if (baseLocalDir.exists()) {
             baseLocalDir.deleteRecursively()
         }
 
         if (!baseLocalDir.mkdirs()) {
-            onLog("致命错误：无法创建基准目录。")
+            onLog("[3/3] ✖ 无法创建存储目录\n")
             return false
         }
 
         if (result.resourceFiles.isNotEmpty()) {
-            onLog("正在写入 ${result.resourceFiles.size} 个资源文件...")
             try {
                 schoolsFileTargetDir.mkdirs()
-
                 result.resourceFiles.forEach { (sourceFile, targetFile) ->
                     targetFile.parentFile?.mkdirs()
                     sourceFile.copyTo(targetFile, overwrite = true)
                 }
-                onLog("成功：资源文件已写入到 /${baseLocalDir.name}/${schoolsFileTargetDir.name}")
             } catch (e: Exception) {
-                onLog("致命错误：写入资源文件失败。")
-                onLog("错误信息：${e.message}")
-                success = false
+                onLog("[3/3] ✖ 写入资源文件失败: ${e.message}\n")
+                return false
             }
-        } else {
-            onLog("资源文件暂存列表为空，跳过写入。")
         }
 
-        val indexContent = result.indexFileContent
-
+        val indexContent = result.indexFileContent ?: localIndexContent
         if (indexContent != null) {
             try {
                 indexFileTargetDir.mkdirs()
-                val targetFile = File(indexFileTargetDir, INDEX_FILE_NAME)
-                targetFile.writeBytes(indexContent)
-                onLog("成功：索引文件 (版本 ${result.indexRemoteVersionId}) 已写入到 /${baseLocalDir.name}/${indexFileTargetDir.name}/$INDEX_FILE_NAME")
+                File(indexFileTargetDir, INDEX_FILE_NAME).writeBytes(indexContent)
             } catch (e: Exception) {
-                onLog("错误：写入新索引文件失败。")
-            }
-        } else {
-            if (localIndexContent != null) {
-                try {
-                    indexFileTargetDir.mkdirs()
-                    val targetFile = File(indexFileTargetDir, INDEX_FILE_NAME)
-                    targetFile.writeBytes(localIndexContent)
-                    onLog("索引版本未更新，已恢复备份的旧索引文件。")
-                } catch (e: Exception) {
-                    onLog("错误：恢复旧索引文件失败。")
-                }
-            } else {
-                onLog("索引文件内容为空且无旧索引备份，跳过索引写入。")
+                onLog("[3/3] ✖ 写入索引文件失败\n")
             }
         }
 
-        return success
+        onLog("[3/3] ✔ 本地存储写入完成\n")
+        return true
     }
 
-
-    /**
-     * 更新或克隆仓库并提供详细日志。
-     */
-    fun updateRepository(repoInfo: RepositoryInfo, onLog: (String) -> Unit) {
-        val credentialsProvider = createCredentialsProvider(repoInfo)
+    suspend fun updateRepository(repoInfo: RepositoryInfo, onLog: (String) -> Unit) {
+        val token = extractToken(repoInfo)
         val result = GitUpdateResult()
 
         val tempDirsToClean = listOf(
@@ -417,53 +317,20 @@ class GitUpdater(
         )
 
         try {
-            if (repoInfo.repoType != RepoType.OFFICIAL) {
+            onLog("▶ 同步仓库: ${repoInfo.name}\n")
 
-                if (BuildConfig.ENABLE_LIGHTHOUSE_VERIFICATION) {
-                    onLog("正在执行安全验证（基准灯塔标签检查）...")
+            if (!updateResourceFiles(repoInfo, token, onLog, result)) return
+            downloadIndexFile(repoInfo, token, onLog, result)
 
-                    if (!isLegitimateFork(repoInfo.url, credentialsProvider)) {
-                        onLog("!!! 致命错误：仓库未通过合法性验证或认证失败。")
-                        if (repoInfo.repoType == RepoType.PRIVATE_REPO) {
-                            onLog("提示：请检查 PAT 权限和 Token 字符串是否正确。")
-                        }
-                        return
-                    }
-                    onLog("安全验证通过：找到官方基准灯塔标签。")
-                } else {
-                    onLog("安全提示：已根据构建配置跳过基准灯塔标签验证（非官方仓库）。")
-                }
+            if (result.isFatalIndexError) return
+
+            if (commitUpdates(result, onLog)) {
+                onLog("✔ 仓库更新完成！\n")
             }
-
-            val resourceUpdateSuccess = updateResourceFiles(repoInfo, credentialsProvider, onLog, result)
-
-            if (!resourceUpdateSuccess) {
-                onLog("\n!!! 致命错误：资源文件更新失败，终止全部更新流程。")
-                return
-            }
-
-            downloadIndexFile(repoInfo, credentialsProvider, onLog, result)
-
-            if (result.isFatalIndexError) {
-                onLog("\n!!! 致命错误：索引校验失败 (协议不兼容或远程版本过旧)，终止全部更新流程（不写入磁盘）。")
-                return
-            }
-
-            val commitSuccess = commitUpdates(result, onLog)
-
-            if (!commitSuccess) {
-                onLog("\n!!! 致命错误：统一写入操作失败，资源文件未正确写入。")
-                return
-            }
-
-            onLog("\n--- 全部更新流程完成。---")
 
         } finally {
             tempDirsToClean.forEach { dir ->
-                if (dir.exists()) {
-                    dir.deleteRecursively()
-                    onLog("已清理临时目录: ${dir.name}")
-                }
+                if (dir.exists()) dir.deleteRecursively()
             }
         }
     }

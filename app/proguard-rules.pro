@@ -2,10 +2,10 @@
 # R8/ProGuard 混淆配置文件
 # -------------------------------------------------------------------------
 
-# --- 1. 基础全局设置 ---
+# 基础全局设置 ---
 -keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,AnnotationDefault
 
-# --- 2. 依赖注入 (Koin) ---
+# 依赖注入 (Koin) ---
 # 保留 Koin 核心类及 DSL 相关
 -keep class org.koin.** { *; }
 
@@ -21,7 +21,7 @@
     @org.koin.core.annotation.Named <init>(...);
 }
 
-# --- 3. 原生组件与 WorkManager ---
+# 原生组件与 WorkManager
 -keep public class * extends android.appwidget.AppWidgetProvider {
     public void *(android.content.Context, android.content.Intent);
     <init>();
@@ -31,26 +31,12 @@
     public <init>(android.content.Context, androidx.work.WorkerParameters);
 }
 
-# --- 4. 网络库 (Ktor/OkHttp) ---
+# 网络库 (Ktor/OkHttp)
 -dontwarn okhttp3.**
 -dontwarn okio.**
 -keep class okhttp3.** { *; }
 -dontwarn io.ktor.**
 
-# --- 5. JGit 深度瘦身与安全 ---
--dontwarn com.googlecode.javaewah.**
--dontwarn org.apache.http.**
--dontwarn org.slf4j.**
--dontwarn java.lang.management.**
--dontwarn javax.management.**
--dontwarn org.ietf.jgss.**
--dontwarn org.apache.commons.compress.**
--dontwarn org.eclipse.jgit.internal.storage.dfs.**
-
-# 允许混淆 JGit 类名以减小体积，但保留核心配置
--keepnames class org.eclipse.jgit.**
--keep class org.eclipse.jgit.lib.CoreConfig { <methods>; }
--keep class org.eclipse.jgit.internal.JGitText { *; }
 
 # 保护 GitUpdater 核心 API 及协议/凭证逻辑
 -keepclassmembers class org.eclipse.jgit.api.Git {
@@ -65,7 +51,7 @@
 -keep class org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider { *; }
 -keep class org.eclipse.jgit.transport.CredentialItem** { *; }
 
-# --- 6. 日志与极致优化 ---
+# 日志与极致优化
 -keep class org.slf4j.impl.** { *; }
 # 移除 JGit 内部海量字符串计算
 -assumenosideeffects class org.eclipse.jgit.internal.JGitText {
@@ -79,7 +65,7 @@
     public static int w(...);
 }
 
-# --- 7. 数据解析 (Wire Protobuf/Serialization) ---
+# 数据解析 (Wire Protobuf/Serialization)
 -keep class * implements com.squareup.wire.Message {
     <fields>;
     <methods>;
@@ -97,13 +83,13 @@
 -keepclassmembers class * { *** write$Self(...); <init>(int, ...); }
 -keep class **$$serializer { *; }
 
-# --- 8. WebView & JS 交互 ---
+#  WebView & JS 交互
 -keep class com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web.AndroidBridge { *; }
 -keepclassmembers class com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web.AndroidBridge {
     @android.webkit.JavascriptInterface <methods>;
 }
 
-# --- 9. 数据模型与数据库 (Room) ---
+# 数据模型与数据库 (Room)
 -keep class com.xingheyuzhuan.shiguangschedule.data.db.** { *; }
 -keep class com.xingheyuzhuan.shiguangschedule.data.model.** { *; }
 -keep @androidx.room.Entity class * { *; }

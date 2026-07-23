@@ -107,7 +107,7 @@ android {
 
 // Koin 编译器
 koinCompiler {
-    userLogs = true
+    userLogs = false
     unsafeDslChecks = true
 }
 
@@ -139,13 +139,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    implementation(libs.jgit) {
-        exclude(group = "org.apache.httpcomponents", module = "httpclient")
-        exclude(group = "com.googlecode.javaewah", module = "JavaEWAH")
-        exclude(group = "org.slf4j", module = "slf4j-api")
-    }
     implementation(libs.slf4j.api)
-    implementation(libs.slf4j.android)
     implementation(libs.androidx.compose.animation)
     implementation(libs.coil.compose)
     implementation(libs.javax.inject)
@@ -168,6 +162,8 @@ dependencies {
     implementation(libs.ktor.client.logging)
     implementation(libs.ktor.client.auth)
     implementation(libs.wire.runtime)
+    implementation(libs.kgit)
+    implementation(libs.okio)
 
     debugImplementation(libs.okhttp.logging.interceptor)
 

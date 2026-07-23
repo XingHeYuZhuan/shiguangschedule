@@ -211,7 +211,7 @@
     <string name="desc_schedule_tweak">一键将指定日期的所有课程调整到新日期</string>
     <string name="section_title_advanced_features">高级功能</string>
     <string name="item_course_conversion">课表导入/导出</string>
-    <string name="desc_course_conversion">支持多种导入导出方式</string>
+    <string name="desc_course_conversion">支持文件、教务导入及同步功能</string>
     <string name="desc_notification_settings">管理您的课程提醒通知</string>
     <string name="desc_manage_course_tables">管理多份课程表，可切换、删除</string>
     <string name="item_time_slot_customization">自定义时间段</string>

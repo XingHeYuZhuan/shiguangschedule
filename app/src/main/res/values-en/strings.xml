@@ -210,7 +210,7 @@
     <string name="desc_schedule_tweak">Move all courses from one date to another</string>
     <string name="section_title_advanced_features">Advanced features</string>
     <string name="item_course_conversion">Import/Export schedule</string>
-    <string name="desc_course_conversion">Support multiple import/export methods</string>
+    <string name="desc_course_conversion">Supports file, academic affairs import and sync</string>
     <string name="desc_notification_settings">Manage course reminder notifications</string>
     <string name="desc_manage_course_tables">Manage multiple schedules, switch or delete</string>
     <string name="item_time_slot_customization">Custom time periods</string>
