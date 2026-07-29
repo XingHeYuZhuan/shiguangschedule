@@ -82,7 +82,7 @@
     <string name="title_select_week">Select week</string>
     <string name="title_current_week">Week %1$s</string>
     <string name="title_vacation">On vacation</string>
-    <string name="status_semester_ended">Semester ended (%1$s weeks over)</string>
+    <string name="status_semester_ended">Semester ended %d days ago</string>
     <string name="status_week_calc_error">Week calculation error</string>
     
     <!-- Time and Day Formats -->

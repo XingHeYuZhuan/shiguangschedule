@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import org.koin.core.annotation.KoinViewModel
+import java.time.DayOfWeek
 import java.time.LocalDate
 
 @KoinViewModel
@@ -28,6 +30,11 @@ class TodayScheduleViewModel(
     private val styleSettingsRepository: StyleSettingsRepository,
     private val timeSlotRepository: TimeSlotRepository
 ) : ViewModel() {
+
+    companion object {
+        private const val DEFAULT_SEMESTER_TOTAL_WEEKS = 20
+        private const val MAX_TIME_SORT_KEY = "99:99"
+    }
 
     val gridStyle: StateFlow<ScheduleGridStyle> = styleSettingsRepository.styleFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ScheduleGridStyle())
@@ -50,6 +57,9 @@ class TodayScheduleViewModel(
                     try { LocalDate.parse(it) } catch (e: Exception) { null }
                 }
 
+                val totalWeeks = config?.semesterTotalWeeks ?: DEFAULT_SEMESTER_TOTAL_WEEKS
+                val firstDayOfWeek = config?.firstDayOfWeek ?: DayOfWeek.MONDAY.value
+
                 // 判定今天是否在跳过日期集合中
                 val isSkippedDay = settings.skippedDates.contains(todayStr)
 
@@ -60,8 +70,16 @@ class TodayScheduleViewModel(
                     else -> TodayStatus.Normal
                 }
 
-                // 仅在 ViewModel 内部快照中记录是否跳过
-                DataSnapshot(status, weekIndex, timeSlots, startDate, isSkippedDay)
+                // 记录状态与精准计算所需的物理配置
+                DataSnapshot(
+                    status = status,
+                    weekIndex = weekIndex,
+                    timeSlots = timeSlots,
+                    startDate = startDate,
+                    totalWeeks = totalWeeks,
+                    firstDayOfWeek = firstDayOfWeek,
+                    isSkippedDay = isSkippedDay
+                )
             }.flatMapLatest { snapshot ->
                 // 只有 Normal 状态且不是跳过日期时才查询数据库
                 if (snapshot.status == TodayStatus.Normal && snapshot.weekIndex != null && !snapshot.isSkippedDay) {
@@ -69,8 +87,7 @@ class TodayScheduleViewModel(
                         createSuccessState(courses, snapshot, today)
                     }
                 } else {
-                    // 如果是跳过日期，直接返回空课程列表
-                    // UI 层收到空列表会根据原有逻辑自动显示“今日无课”
+                    // 如果是跳过日期或非正常学期状态，直接返回空课程列表
                     flowOf(createSuccessState(emptyList(), snapshot, today))
                 }
             }
@@ -85,11 +102,13 @@ class TodayScheduleViewModel(
         val weekIndex: Int?,
         val timeSlots: List<TimeSlot>,
         val startDate: LocalDate?,
+        val totalWeeks: Int,
+        val firstDayOfWeek: Int,
         val isSkippedDay: Boolean
     )
 
     private fun createSuccessState(
-        courses: List<com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks>,
+        courses: List<CourseWithWeeks>,
         snapshot: DataSnapshot,
         today: LocalDate
     ): TodayUiState.Success {
@@ -104,8 +123,8 @@ class TodayScheduleViewModel(
                 endTime = item.course.customEndTime ?: endSlot?.endTime
             )
         }.sortedWith(
-            compareBy<CourseDisplayModel> { it.startTime ?: "99:99" }
-                .thenBy { it.endTime ?: "99:99" }
+            compareBy<CourseDisplayModel> { it.startTime ?: MAX_TIME_SORT_KEY }
+                .thenBy { it.endTime ?: MAX_TIME_SORT_KEY }
         )
 
         return TodayUiState.Success(
@@ -113,12 +132,18 @@ class TodayScheduleViewModel(
             weekIndex = snapshot.weekIndex ?: 0,
             today = today,
             status = snapshot.status,
-            startDate = snapshot.startDate
+            startDate = snapshot.startDate,
+            totalWeeks = snapshot.totalWeeks,
+            firstDayOfWeek = snapshot.firstDayOfWeek
         )
     }
 }
 
-data class CourseDisplayModel(val course: Course, val startTime: String?, val endTime: String?)
+data class CourseDisplayModel(
+    val course: Course,
+    val startTime: String?,
+    val endTime: String?
+)
 
 enum class TodayStatus { Normal, NoSemesterConfig, SemesterEnded, Vacation }
 
@@ -129,6 +154,8 @@ sealed class TodayUiState {
         val weekIndex: Int,
         val today: LocalDate,
         val status: TodayStatus,
-        val startDate: LocalDate?
+        val startDate: LocalDate?,
+        val totalWeeks: Int,
+        val firstDayOfWeek: Int
     ) : TodayUiState()
 }

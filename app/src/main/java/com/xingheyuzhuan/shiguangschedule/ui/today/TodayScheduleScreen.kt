@@ -40,11 +40,18 @@ import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.ui.components.BottomNavigationBar
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 import org.koin.compose.viewmodel.koinViewModel
+import java.time.DayOfWeek
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+
+private const val DEFAULT_TIME_ZERO = "00:00"
+private const val EMPTY_TIME_PLACEHOLDER = "--:--"
+private const val DEFAULT_DAYS_ZERO = "0"
+private const val DEFAULT_OVERDUE_DAYS = 1
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +106,7 @@ fun TodayContent(
     val targetScrollIndex = remember(state.courses, currentTime) {
         val firstActiveIndex = state.courses.indexOfFirst { model ->
             try {
-                !LocalTime.parse(model.endTime ?: "00:00").isBefore(currentTime)
+                !LocalTime.parse(model.endTime ?: DEFAULT_TIME_ZERO).isBefore(currentTime)
             } catch (e: Exception) {
                 true
             }
@@ -134,16 +141,22 @@ fun TodayContent(
             TodayStatus.Vacation -> {
                 val days = if (state.startDate != null) {
                     ChronoUnit.DAYS.between(state.today, state.startDate).toString()
-                } else "0"
+                } else DEFAULT_DAYS_ZERO
                 stringResource(R.string.title_vacation_until_start, days)
             }
 
             TodayStatus.SemesterEnded -> {
-                val totalDays = if (state.startDate != null) {
-                    ChronoUnit.DAYS.between(state.startDate, state.today).toInt()
-                } else 0
-                val overdueWeeks = (totalDays / 7) - state.weekIndex + 1
-                stringResource(R.string.status_semester_ended, overdueWeeks.coerceAtLeast(1).toString())
+                val overdueDays = if (state.startDate != null) {
+                    val firstDayOfWeek = DayOfWeek.of(state.firstDayOfWeek)
+                    val firstWeekStart = state.startDate.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
+                    val semesterEndDate = firstWeekStart
+                        .plusWeeks(state.totalWeeks.toLong())
+                        .minusDays(1)
+                    ChronoUnit.DAYS.between(semesterEndDate, state.today).toInt().coerceAtLeast(DEFAULT_OVERDUE_DAYS)
+                } else {
+                    DEFAULT_OVERDUE_DAYS
+                }
+                stringResource(R.string.status_semester_ended, overdueDays)
             }
 
             TodayStatus.Normal -> stringResource(R.string.title_current_week, state.weekIndex.toString())
@@ -184,7 +197,7 @@ fun CourseTimelineItem(
     val currentTime = LocalTime.now()
     val isFinished = remember(model.endTime) {
         try {
-            LocalTime.parse(model.endTime ?: "00:00").isBefore(currentTime)
+            LocalTime.parse(model.endTime ?: DEFAULT_TIME_ZERO).isBefore(currentTime)
         } catch (e: Exception) { false }
     }
 
@@ -203,7 +216,7 @@ fun CourseTimelineItem(
             horizontalAlignment = Alignment.End
         ) {
             Text(
-                text = model.startTime ?: "--:--",
+                text = model.startTime ?: EMPTY_TIME_PLACEHOLDER,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = 17.sp,
                     textDecoration = if (isFinished) TextDecoration.LineThrough else null
@@ -212,7 +225,7 @@ fun CourseTimelineItem(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = model.endTime ?: "--:--",
+                text = model.endTime ?: EMPTY_TIME_PLACEHOLDER,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline
             )

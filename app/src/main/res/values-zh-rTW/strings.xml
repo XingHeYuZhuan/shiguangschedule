@@ -82,7 +82,7 @@
     <string name="title_select_week">選擇週次</string>
     <string name="title_current_week">第 %1$s 週</string>
     <string name="title_vacation">假期中</string>
-    <string name="status_semester_ended">學期結束（已超%1$s週）</string>
+    <string name="status_semester_ended">學期已結束 %d 天</string>
     <string name="status_week_calc_error">週次計算錯誤</string>
     
     <!-- 時間與星期格式 -->
