@@ -16,7 +16,8 @@ materialIconsExtended = "1.7.3"
 # KMP 跨平台核心组件
 lifecycle = "2.11.0"
 navigation3 = "1.1.5"
-room = "2.8.4"
+room3 = "3.0.1"
+sqlite = "2.7.0"
 datastore = "1.2.1"
 
 # Android 平台专属依赖
@@ -31,6 +32,7 @@ okhttp = "5.4.0"
 wire = "6.4.5"
 kotlinSerialization = "1.11.0"
 okio = "3.18.1"
+kotlinxDateTime = "0.8.0"
 
 # 依赖注入 (DI) & 工具库
 koin = "4.2.2"
@@ -74,12 +76,13 @@ androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle
 androidx-navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3" }
 androidx-navigation3-ui = { group = "androidx.navigation3", name = "navigation3-ui", version.ref = "navigation3" }
 
-# Jetpack DataStore & Room
+# Jetpack DataStore & Room 3.0 / SQLite 驱动
 androidx-datastore-core = { module = "androidx.datastore:datastore-core", version.ref = "datastore" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
-androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
-androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room3-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room3" }
+androidx-room3-compiler = { module = "androidx.room3:room3-compiler", version.ref = "room3" }
+androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
+androidx-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version.ref = "sqlite" }
 
 # WorkManager & 网络库
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work-runtime" }
@@ -105,6 +108,7 @@ slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javax-inject" }
 aboutlibraries-compose = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDateTime" }
 
 # Koin 依赖注入
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
@@ -133,3 +137,4 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutLibraries" }
 wire = { id = "com.squareup.wire", version.ref = "wire" }
 koin-compiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koin-plugin" }
+androidx-room3 = { id = "androidx.room3", version.ref = "room3" }

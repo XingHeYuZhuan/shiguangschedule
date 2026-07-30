@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.xingheyuzhuan.shiguangschedule.data.db.main.MainAppDatabase
 import com.xingheyuzhuan.shiguangschedule.data.repository.WidgetRepository
 import com.xingheyuzhuan.shiguangschedule.service.CourseNotificationWorker
 import com.xingheyuzhuan.shiguangschedule.service.DndSchedulerWorker
@@ -14,14 +13,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlin.time.Duration.Companion.milliseconds
 import org.koin.core.annotation.Single
 
 /**
- * 中心化的同步管理器，负责在数据库数据初始化后启动同步任务。
+ * 中心化的同步管理器，负责启动同步与 Worker 调度任务。
  */
 @Single
 class SyncManager(
@@ -45,28 +43,20 @@ class SyncManager(
 
     @OptIn(FlowPreview::class)
     fun startAllSynchronizers() {
-        // 监听主数据库的就绪状态
-        MainAppDatabase.isInitialized
-            .filter { it } // 仅在数据库数据初始化完成后触发
+        widgetDataSynchronizer.syncFlow.launchIn(scope)
+
+        widgetRepository.dataUpdatedFlow
+            .debounce(500.milliseconds)
             .onEach {
-                // 启动同步器的监听任务，以应对主数据库数据变化
-                widgetDataSynchronizer.syncFlow.launchIn(scope)
+                Log.d("SyncManager", "Widget 数据库数据更新，正在调度 Worker 任务...")
 
-                // 监听 Widget 数据库更新事件，使用 debounce 避免频繁调度 Worker
-                widgetRepository.dataUpdatedFlow
-                    .debounce(500.milliseconds) // 在 500ms 内只处理一次更新事件
-                    .onEach {
-                        Log.d("SyncManager", "Widget 数据库数据更新，正在调度 Worker 任务...")
+                triggerNotificationWorker()
 
-                        triggerNotificationWorker()
-
-                        DndSchedulerWorker.enqueueWork(appContext)
-                    }
-                    .launchIn(scope)
-
-                println("WidgetDataSynchronizer started.")
-                Log.d("SyncManager", "所有同步器已启动。")
+                DndSchedulerWorker.enqueueWork(appContext)
             }
             .launchIn(scope)
+
+        println("WidgetDataSynchronizer started.")
+        Log.d("SyncManager", "所有同步器已启动。")
     }
 }

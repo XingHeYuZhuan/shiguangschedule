@@ -2,7 +2,7 @@ package com.xingheyuzhuan.shiguangschedule.data.repository
 
 import android.content.Context
 import android.provider.CalendarContract
-import androidx.room.Transaction
+import androidx.room3.Transaction
 import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig

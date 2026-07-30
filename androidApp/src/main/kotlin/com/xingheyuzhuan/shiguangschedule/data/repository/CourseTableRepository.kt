@@ -1,6 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
-import androidx.room.Transaction
+import androidx.room3.Transaction
 import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
@@ -10,8 +10,12 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeek
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.UUID
 import org.koin.core.annotation.Single
@@ -27,6 +31,49 @@ class CourseTableRepository(
     private val timeSlotRepository: TimeSlotRepository,
     private val appSettingsRepository: AppSettingsRepository
 ) {
+    private val repositoryScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
+    init {
+        // 当仓库被依赖注入创建时，自动触发保护/种子数据填充逻辑
+        repositoryScope.launch {
+            seedDefaultData()
+        }
+    }
+
+    /**
+     * 种入初始默认数据（当不存在任何课表时触发）
+     */
+    private suspend fun seedDefaultData() {
+        if (courseTableDao.getAllCourseTables().first().isNotEmpty()) {
+            return
+        }
+
+        val tableId = UUID.randomUUID().toString()
+        val defaultCourseTable = CourseTable(
+            id = tableId,
+            name = "我的课表",
+            createdAt = System.currentTimeMillis()
+        )
+        courseTableDao.insert(defaultCourseTable)
+
+        val defaultConfig = CourseTableConfig(
+            courseTableId = tableId,
+            showWeekends = false,
+            semesterTotalWeeks = 20,
+            defaultClassDuration = 45,
+            defaultBreakDuration = 10,
+            firstDayOfWeek = 1
+        )
+        appSettingsRepository.insertOrUpdateCourseConfig(defaultConfig)
+
+        val defaultTimeSlotsForNewTable = defaultTimeSlots.map {
+            it.copy(courseTableId = tableId)
+        }
+        timeSlotRepository.insertAll(defaultTimeSlotsForNewTable)
+
+        println("数据库初始化数据已完成写入")
+    }
+
     /**
      * 获取所有课表，返回一个数据流。
      */

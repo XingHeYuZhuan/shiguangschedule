@@ -86,8 +86,9 @@ fun CourseDetailBottomSheet(
                 }
 
                 // 备注
-                if (!course.remark.isNullOrBlank()) {
-                    DetailItem(Icons.AutoMirrored.Filled.Notes, course.remark)
+                val remark = course.remark
+                if (!remark.isNullOrBlank()) {
+                    DetailItem(Icons.AutoMirrored.Filled.Notes, remark)
                 }
             }
 

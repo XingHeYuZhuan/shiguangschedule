@@ -1,7 +1,7 @@
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
 import android.content.Context
-import androidx.room.Transaction
+import androidx.room3.Transaction
 import com.xingheyuzhuan.shiguangschedule.BuildConfig
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
