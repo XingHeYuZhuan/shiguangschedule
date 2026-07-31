@@ -1,6 +1,5 @@
 package com.xingheyuzhuan.shiguangschedule.data.api.date
 
-import com.xingheyuzhuan.shiguangschedule.BuildConfig
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -35,13 +34,11 @@ object ApiDateImporter {
     private const val BASE_URL = "https://timor.tech/api/holiday/year"
 
     private val client = HttpClient {
-        // 动态日志配置：Debug 模式开启，Release 模式彻底关闭
         install(Logging) {
-            level = if (BuildConfig.DEBUG) LogLevel.INFO else LogLevel.NONE
+            level = LogLevel.INFO
             logger = Logger.DEFAULT
         }
 
-        // 序列化配置
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
@@ -49,13 +46,11 @@ object ApiDateImporter {
             })
         }
 
-        // 默认请求配置
         defaultRequest {
             url(BASE_URL)
             header("User-Agent", "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36")
         }
 
-        // 4. 超时处理（增强健壮性）
         install(HttpTimeout) {
             requestTimeoutMillis = 15000
             connectTimeoutMillis = 15000
@@ -67,7 +62,6 @@ object ApiDateImporter {
      */
     suspend fun importAndSaveSkippedDates(appSettingsRepository: AppSettingsRepository) {
         try {
-            // Ktor 直接发起请求并解析
             val response: ApiResponse = client.get("").body()
 
             val skippedDates = response.holidays.values
@@ -79,20 +73,12 @@ object ApiDateImporter {
             val updatedSettings = currentSettings.copy(skippedDates = skippedDates)
             appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
 
-            if (BuildConfig.DEBUG) {
-                println("成功导入并保存了 ${skippedDates.size} 个跳过的日期。")
-            }
+            println("成功导入并保存了 ${skippedDates.size} 个跳过的日期。")
         } catch (e: Exception) {
-            // Ktor 将网络错误、解析错误统一通过 Exception 抛出
-            if (BuildConfig.DEBUG) {
-                println("数据导入失败: ${e.localizedMessage}")
-                e.printStackTrace()
-            }
+            println("数据导入失败: ${e.message}")
+            e.printStackTrace()
         }
     }
 
-    /**
-     * 在 App 进程结束时可手动关闭连接池（可选）
-     */
     fun close() = client.close()
 }

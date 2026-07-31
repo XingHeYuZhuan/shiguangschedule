@@ -1,18 +1,18 @@
 package com.xingheyuzhuan.shiguangschedule.tool
 
-import android.content.Context
 import com.xingheyuzhuan.shiguangschedule.data.model.RepoType
 import com.xingheyuzhuan.shiguangschedule.data.model.RepositoryInfo
 import com.xingheyuzhuan.kgit.Ext
 import com.xingheyuzhuan.kgit.logging.ProgressMonitor
 import okio.FileSystem
+import okio.Path
 import okio.Path.Companion.toPath
+import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import school_index.SchoolIndex
-import java.io.File
 
 /**
- * 精简的单行对齐进度监听器
+ * 单行对齐进度监听器
  */
 private class LogProgressMonitor(
     private val stepPrefix: String,
@@ -33,9 +33,7 @@ private class LogProgressMonitor(
         renderProgress()
     }
 
-    override fun endTask() {
-        // 子任务结束时不发送换行，保持同一行刷新的连贯性
-    }
+    override fun endTask() {}
 
     private fun renderProgress() {
         val logLine = if (totalWork > 0) {
@@ -49,35 +47,36 @@ private class LogProgressMonitor(
 }
 
 /**
- * GitUpdater
- * 轻量工作区源码下载、协议版本校验和时间戳版本去重。
+ * Git 仓库更新与资源同步工具（基于 Okio 跨平台实现）
  */
 @Single
 class GitUpdater(
-    private val context: Context
+    private val fileSystem: FileSystem,
+    @Named("FilesDir") private val filesDir: Path,
+    @Named("CacheDir") private val cacheDir: Path
 ) {
 
-    private val CLIENT_PROTOCOL_VERSION: Int = 1
+    private val clientProtocolVersion: Int = 1
 
-    private val baseLocalDir: File
-        get() = File(context.filesDir, "repo")
-    private val indexFileTargetDir: File
-        get() = File(baseLocalDir, "index")
-    private val schoolsFileTargetDir: File
-        get() = File(baseLocalDir, "schools")
+    private val baseLocalDir: Path
+        get() = filesDir / "repo"
+    private val indexFileTargetDir: Path
+        get() = baseLocalDir / "index"
+    private val schoolsFileTargetDir: Path
+        get() = baseLocalDir / "schools"
 
     private data class GitUpdateResult(
         var indexFileContent: ByteArray? = null,
         var indexRemoteVersionId: String? = null,
-        var resourceFiles: List<Pair<File, File>> = emptyList(),
+        var resourceFiles: List<Pair<Path, Path>> = emptyList(),
         var isFatalIndexError: Boolean = false
     )
 
-    private fun readSchoolIndex(file: File): SchoolIndex? {
-        if (!file.exists()) return null
+    private fun readSchoolIndex(path: Path): SchoolIndex? {
+        if (!fileSystem.exists(path)) return null
         return try {
-            file.inputStream().use { stream ->
-                SchoolIndex.ADAPTER.decode(stream)
+            fileSystem.read(path) {
+                SchoolIndex.ADAPTER.decode(this)
             }
         } catch (e: Exception) {
             null
@@ -99,49 +98,37 @@ class GitUpdater(
         return password?.takeIf { it.isNotBlank() } ?: username?.takeIf { it.isNotBlank() }
     }
 
-    /**
-     * 异常解析：非配置异常统一归为连接中断
-     */
     private fun parseNetworkErrorMessage(e: Exception): String {
         val fullErr = ((e.message ?: "") + " " + (e.cause?.message ?: "")).lowercase()
-
         return when {
-            // 1. 权限与凭证配置问题
             fullErr.contains("401") || fullErr.contains("403") || fullErr.contains("not authorized") || fullErr.contains("authentication") ->
                 "身份验证失败，请检查凭证配置"
-
-            // 2. 仓库或分支不存在 (URL/Branch 配置问题)
             fullErr.contains("404") || fullErr.contains("not found") ->
                 "仓库或分支不存在，请检查配置"
-
-            // 3. 其他所有网络、超时、断连等非配置异常，统一提示更换仓库
             else -> "连接中断，请更换仓库"
         }
     }
 
-    /**
-     * 【步骤一】下载资源工作区文件
-     */
     private suspend fun updateResourceFiles(
         repoInfo: RepositoryInfo,
         token: String?,
         onLog: (String) -> Unit,
         result: GitUpdateResult
     ): Boolean {
-        val RESOURCES_PATH = "resources"
-        val tempSchoolsRepoDir = File(context.cacheDir, "temp_schools_repo")
+        val resourcesPath = "resources"
+        val tempSchoolsRepoDir = cacheDir / "temp_schools_repo"
         val progressMonitor = LogProgressMonitor("[1/3]", onLog)
 
         onLog("[1/3] ➜ 开始拉取资源库 (${repoInfo.branch})\n")
 
         try {
-            if (tempSchoolsRepoDir.exists()) {
-                tempSchoolsRepoDir.deleteRecursively()
+            if (fileSystem.exists(tempSchoolsRepoDir)) {
+                fileSystem.deleteRecursively(tempSchoolsRepoDir)
             }
 
             val downloadCmd = Ext.downloadRepository()
                 .setUri(repoInfo.url)
-                .setDirectory(tempSchoolsRepoDir.absolutePath.toPath())
+                .setDirectory(tempSchoolsRepoDir)
                 .setBranch(repoInfo.branch)
                 .setProgressMonitor(progressMonitor)
 
@@ -149,21 +136,22 @@ class GitUpdater(
                 downloadCmd.setToken(token)
             }
 
-            downloadCmd.call(FileSystem.SYSTEM)
+            downloadCmd.call(fileSystem)
 
-            val sourceResourcesDir = File(tempSchoolsRepoDir, RESOURCES_PATH)
-            if (!sourceResourcesDir.exists() || !sourceResourcesDir.isDirectory) {
-                onLog("\r[1/3] ✖ 错误：未找到 '${RESOURCES_PATH}' 目录\n")
+            val sourceResourcesDir = tempSchoolsRepoDir / resourcesPath
+            if (!fileSystem.exists(sourceResourcesDir) || !fileSystem.metadata(sourceResourcesDir).isDirectory) {
+                onLog("\r[1/3] ✖ 错误：未找到 '${resourcesPath}' 目录\n")
                 return false
             }
 
-            val tempFiles = mutableListOf<Pair<File, File>>()
-            sourceResourcesDir.walkTopDown().forEach { sourceFile ->
-                if (sourceFile.isFile) {
-                    if (sourceFile.name.equals("adapters.yaml", ignoreCase = true)) return@forEach
-                    val relativePath = sourceFile.relativeTo(sourceResourcesDir)
-                    val targetFile = File(File(schoolsFileTargetDir, RESOURCES_PATH), relativePath.path)
-                    tempFiles.add(Pair(sourceFile, targetFile))
+            val tempFiles = mutableListOf<Pair<Path, Path>>()
+            fileSystem.listRecursively(sourceResourcesDir).forEach { sourcePath ->
+                if (fileSystem.metadata(sourcePath).isRegularFile) {
+                    if (sourcePath.name.equals("adapters.yaml", ignoreCase = true)) return@forEach
+                    val relativeSegments = sourcePath.segments.drop(sourceResourcesDir.segments.size)
+                    val relativePath = relativeSegments.fold("".toPath()) { acc, segment -> acc / segment }
+                    val targetPath = schoolsFileTargetDir / resourcesPath / relativePath
+                    tempFiles.add(Pair(sourcePath, targetPath))
                 }
             }
 
@@ -180,39 +168,38 @@ class GitUpdater(
         }
     }
 
-    /**
-     * 【步骤二】下载并校验索引文件
-     */
     private suspend fun downloadIndexFile(
         repoInfo: RepositoryInfo,
         token: String?,
         onLog: (String) -> Unit,
         result: GitUpdateResult
     ) {
-        val INDEX_BRANCH = "index-pb-release"
-        val INDEX_FILE_NAME = "school_index.pb"
-        val tempIndexRepoDir = File(context.cacheDir, "temp_index_repo")
+        val indexBranch = "index-pb-release"
+        val indexFileName = "school_index.pb"
+        val tempIndexRepoDir = cacheDir / "temp_index_repo"
         val progressMonitor = LogProgressMonitor("[2/3]", onLog)
 
         onLog("[2/3] ➜ 开始校验数据索引...\n")
 
         try {
-            if (tempIndexRepoDir.exists()) tempIndexRepoDir.deleteRecursively()
+            if (fileSystem.exists(tempIndexRepoDir)) {
+                fileSystem.deleteRecursively(tempIndexRepoDir)
+            }
 
             val downloadCmd = Ext.downloadRepository()
                 .setUri(repoInfo.url)
-                .setDirectory(tempIndexRepoDir.absolutePath.toPath())
-                .setBranch(INDEX_BRANCH)
+                .setDirectory(tempIndexRepoDir)
+                .setBranch(indexBranch)
                 .setProgressMonitor(progressMonitor)
 
             if (!token.isNullOrEmpty()) {
                 downloadCmd.setToken(token)
             }
 
-            downloadCmd.call(FileSystem.SYSTEM)
+            downloadCmd.call(fileSystem)
 
-            val sourceFile = File(tempIndexRepoDir, INDEX_FILE_NAME)
-            if (!sourceFile.exists()) {
+            val sourceFile = tempIndexRepoDir / indexFileName
+            if (!fileSystem.exists(sourceFile)) {
                 val warnMsg = "\r[2/3] ⚠ 未找到远程索引，维持本地索引\n"
                 onLog(warnMsg.padEnd(50, ' '))
                 return
@@ -226,20 +213,20 @@ class GitUpdater(
             }
 
             val remoteProtocol = remoteIndex.protocol_version
-            if (remoteProtocol > CLIENT_PROTOCOL_VERSION) {
+            if (remoteProtocol > clientProtocolVersion) {
                 val fatalMsg = "\r[2/3] ✖ 协议不兼容，请升级 App\n"
                 onLog(fatalMsg.padEnd(50, ' '))
                 result.isFatalIndexError = true
                 return
             }
 
-            val localIndex = readSchoolIndex(File(indexFileTargetDir, INDEX_FILE_NAME))
+            val localIndex = readSchoolIndex(indexFileTargetDir / indexFileName)
             val localVersionId = localIndex?.version_id
 
             if (isNewerVersionId(remoteIndex.version_id, localVersionId)) {
                 val okMsg = "\r[2/3] ✔ 发现新版本索引 (${remoteIndex.version_id})\n"
                 onLog(okMsg.padEnd(50, ' '))
-                result.indexFileContent = sourceFile.readBytes()
+                result.indexFileContent = fileSystem.read(sourceFile) { readByteArray() }
                 result.indexRemoteVersionId = remoteIndex.version_id
             } else if (remoteIndex.version_id == localVersionId) {
                 val okMsg = "\r[2/3] ✔ 索引已是最新 ($localVersionId)\n"
@@ -258,34 +245,37 @@ class GitUpdater(
         }
     }
 
-    /**
-     * 【步骤三】统一写入
-     */
     private fun commitUpdates(result: GitUpdateResult, onLog: (String) -> Unit): Boolean {
         onLog("[3/3] ➜ 正在写入本地存储...\n")
 
-        val INDEX_FILE_NAME = "school_index.pb"
-        val localIndexFile = File(indexFileTargetDir, INDEX_FILE_NAME)
+        val indexFileName = "school_index.pb"
+        val localIndexFile = indexFileTargetDir / indexFileName
         var localIndexContent: ByteArray? = null
-        if (localIndexFile.exists()) {
-            localIndexContent = try { localIndexFile.readBytes() } catch (e: Exception) { null }
+        if (fileSystem.exists(localIndexFile)) {
+            localIndexContent = try {
+                fileSystem.read(localIndexFile) { readByteArray() }
+            } catch (e: Exception) {
+                null
+            }
         }
 
-        if (baseLocalDir.exists()) {
-            baseLocalDir.deleteRecursively()
+        if (fileSystem.exists(baseLocalDir)) {
+            fileSystem.deleteRecursively(baseLocalDir)
         }
 
-        if (!baseLocalDir.mkdirs()) {
+        try {
+            fileSystem.createDirectories(baseLocalDir)
+        } catch (e: Exception) {
             onLog("[3/3] ✖ 无法创建存储目录\n")
             return false
         }
 
         if (result.resourceFiles.isNotEmpty()) {
             try {
-                schoolsFileTargetDir.mkdirs()
+                fileSystem.createDirectories(schoolsFileTargetDir)
                 result.resourceFiles.forEach { (sourceFile, targetFile) ->
-                    targetFile.parentFile?.mkdirs()
-                    sourceFile.copyTo(targetFile, overwrite = true)
+                    targetFile.parent?.let { fileSystem.createDirectories(it) }
+                    fileSystem.copy(sourceFile, targetFile)
                 }
             } catch (e: Exception) {
                 onLog("[3/3] ✖ 写入资源文件失败: ${e.message}\n")
@@ -296,8 +286,10 @@ class GitUpdater(
         val indexContent = result.indexFileContent ?: localIndexContent
         if (indexContent != null) {
             try {
-                indexFileTargetDir.mkdirs()
-                File(indexFileTargetDir, INDEX_FILE_NAME).writeBytes(indexContent)
+                fileSystem.createDirectories(indexFileTargetDir)
+                fileSystem.write(indexFileTargetDir / indexFileName) {
+                    write(indexContent, 0, indexContent.size)
+                }
             } catch (e: Exception) {
                 onLog("[3/3] ✖ 写入索引文件失败\n")
             }
@@ -312,8 +304,8 @@ class GitUpdater(
         val result = GitUpdateResult()
 
         val tempDirsToClean = listOf(
-            File(context.cacheDir, "temp_schools_repo"),
-            File(context.cacheDir, "temp_index_repo")
+            cacheDir / "temp_schools_repo",
+            cacheDir / "temp_index_repo"
         )
 
         try {
@@ -330,7 +322,9 @@ class GitUpdater(
 
         } finally {
             tempDirsToClean.forEach { dir ->
-                if (dir.exists()) dir.deleteRecursively()
+                if (fileSystem.exists(dir)) {
+                    fileSystem.deleteRecursively(dir)
+                }
             }
         }
     }

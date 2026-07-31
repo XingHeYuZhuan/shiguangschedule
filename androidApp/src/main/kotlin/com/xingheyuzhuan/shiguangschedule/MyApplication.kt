@@ -2,35 +2,55 @@ package com.xingheyuzhuan.shiguangschedule
 
 import android.app.Application
 import androidx.work.Configuration
-import com.xingheyuzhuan.shiguangschedule.data.di.DatabaseModule
-import com.xingheyuzhuan.shiguangschedule.data.di.DataStoreModule
+import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
+import com.xingheyuzhuan.shiguangschedule.data.di.SharedModule
 import com.xingheyuzhuan.shiguangschedule.data.sync.SyncManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okio.Path
+import okio.Path.Companion.toPath
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
+import org.koin.androidx.workmanager.koin.workManagerFactory
+import org.koin.core.annotation.ComponentScan
+import org.koin.core.annotation.KoinApplication
+import org.koin.core.annotation.Module
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
+import org.koin.plugin.module.dsl.startKoin
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import org.koin.android.ext.koin.androidContext
-import org.koin.android.ext.koin.androidLogger
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import org.koin.androidx.workmanager.koin.workManagerFactory
-import org.koin.core.annotation.KoinApplication
-import org.koin.core.annotation.ComponentScan
-import org.koin.core.annotation.Module
-import org.koin.plugin.module.dsl.startKoin
 
 @Module(includes = [
-    DatabaseModule::class,
-    DataStoreModule::class
+    SharedModule::class
 ])
 @ComponentScan("com.xingheyuzhuan.shiguangschedule")
 class AppModule
 
 @KoinApplication(modules = [AppModule::class])
 class ScheduleAppConfig
+
+/**
+ * Android 平台特有的基础依赖注入模块
+ */
+val androidPlatformModule = module {
+    single<AppStorage> {
+        object : AppStorage {
+            override val filesDir: Path = androidContext().filesDir.absolutePath.toPath()
+            override val cacheDir: Path = androidContext().cacheDir.absolutePath.toPath()
+            override fun getDatabasePath(dbName: String): String {
+                return androidContext().getDatabasePath(dbName).absolutePath
+            }
+        }
+    }
+    single(named("AppVersionCode")) { BuildConfig.VERSION_CODE }
+    single(named("AppVersionName")) { BuildConfig.VERSION_NAME }
+}
 
 class MyApplication : Application(), Configuration.Provider, KoinComponent {
 
@@ -46,6 +66,7 @@ class MyApplication : Application(), Configuration.Provider, KoinComponent {
             androidLogger()
             androidContext(this@MyApplication)
             workManagerFactory()
+            modules(androidPlatformModule)
         }
 
         clearShareTempFiles()

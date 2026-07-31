@@ -1,7 +1,5 @@
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
-import android.content.Context
-import android.provider.CalendarContract
 import androidx.room3.Transaction
 import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
@@ -10,27 +8,26 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeek
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.CourseConfigJsonModel
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.CourseTableExportModel
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.CourseTableImportModel
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.ExportCourseJsonModel
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.ImportCourseJsonModel
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.TimeSlotJsonModel
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.CourseConfigJsonModel
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.CourseTableExportModel
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.CourseTableImportModel
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.ExportCourseJsonModel
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.ImportCourseJsonModel
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.TimeSlotJsonModel
 import com.xingheyuzhuan.shiguangschedule.tool.CalendarAccountManager
 import com.xingheyuzhuan.shiguangschedule.tool.IcsExportTool
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.UUID
-import kotlin.random.Random
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import org.koin.core.annotation.Single
+import kotlin.random.Random
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * 课表转换仓库，负责处理课程数据的导入、导出以及 ICS 生成等逻辑。
  */
+@OptIn(ExperimentalUuidApi::class)
 @Single
 class CourseConversionRepository(
     private val courseDao: CourseDao,
@@ -40,7 +37,11 @@ class CourseConversionRepository(
     private val styleSettingsRepository: StyleSettingsRepository
 ) {
     private val timeRegex = Regex("^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$")
-    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+    private fun parseToMinutes(timeStr: String): Int {
+        val time = LocalTime.parse(timeStr)
+        return time.hour * 60 + time.minute
+    }
 
     private fun validateTimeSlotsOrThrow(timeSlots: List<TimeSlotJsonModel>) {
         if (timeSlots.isEmpty()) return
@@ -58,8 +59,8 @@ class CourseConversionRepository(
                 throw IllegalArgumentException("时间格式错误")
             }
 
-            val startMinutes = LocalTime.parse(slot.startTime, timeFormatter).let { it.hour * 60 + it.minute }
-            val endMinutes = LocalTime.parse(slot.endTime, timeFormatter).let { it.hour * 60 + it.minute }
+            val startMinutes = parseToMinutes(slot.startTime)
+            val endMinutes = parseToMinutes(slot.endTime)
 
             if (startMinutes >= endMinutes) {
                 throw IllegalArgumentException("开始时间必须早于结束时间")
@@ -87,8 +88,8 @@ class CourseConversionRepository(
             throw IllegalArgumentException("自定义时间格式错误")
         }
 
-        val startMinutes = LocalTime.parse(startTime, timeFormatter).let { it.hour * 60 + it.minute }
-        val endMinutes = LocalTime.parse(endTime, timeFormatter).let { it.hour * 60 + it.minute }
+        val startMinutes = parseToMinutes(startTime)
+        val endMinutes = parseToMinutes(endTime)
 
         if (startMinutes >= endMinutes) {
             throw IllegalArgumentException("自定义开始时间必须早于结束时间")
@@ -136,7 +137,7 @@ class CourseConversionRepository(
         var colorOffset = if (colorSize > 0) Random.nextInt(colorSize) else 0
 
         coursesJsonModel.forEach { jsonCourse ->
-            val courseId = UUID.randomUUID().toString()
+            val courseId = Uuid.random().toString()
 
             val courseIndex = getOrAssignColorByName(
                 jsonCourse = jsonCourse,
@@ -196,7 +197,7 @@ class CourseConversionRepository(
         val currentStyle = styleSettingsRepository.styleFlow.first()
         val colorSize = currentStyle.courseColorMaps.size
 
-        // 处理课程数据（始终清空原有课程） ---
+        // 处理课程数据（始终清空原有课程）
         courseDao.deleteCoursesByTableId(tableId)
 
         val courseEntities = ArrayList<Course>(courseTableJsonModel.courses.size)
@@ -206,8 +207,7 @@ class CourseConversionRepository(
         var colorOffset = if (colorSize > 0) Random.nextInt(colorSize) else 0
 
         courseTableJsonModel.courses.forEach { jsonCourse ->
-            // 如果 JSON 中没给 ID，则生成新的 UUID
-            val courseId = jsonCourse.id ?: UUID.randomUUID().toString()
+            val courseId = jsonCourse.id ?: Uuid.random().toString()
 
             val courseIndex = getOrAssignColorByName(
                 jsonCourse = jsonCourse,
@@ -245,11 +245,9 @@ class CourseConversionRepository(
             }
         }
 
-        // 处理时间段数据（仅在有数据时覆盖） ---
-        // 如果 timeSlots 为 null 或空，则完全不触动数据库中的 time_slot 表
+        // 处理时间段数据（仅在有数据时覆盖）
         val jsonTimeSlots = courseTableJsonModel.timeSlots
         if (!jsonTimeSlots.isNullOrEmpty()) {
-            // 只有确定要导入新时间段时，才删除旧数据
             timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
 
             val timeSlotEntities = jsonTimeSlots.map { jsonTimeSlot ->
@@ -334,15 +332,9 @@ class CourseConversionRepository(
 
     /**
      * 将指定课表下的所有数据导出为一个完整的 JSON 模型。
-     * 包含课程和时间段。
-     *
-     * @param tableId 要导出的课表的 ID。
-     * @return 包含课程和时间段的完整 JSON 模型。
      */
     suspend fun exportCourseTableToJson(tableId: String): CourseTableExportModel? {
-
         val coursesWithWeeks = courseDao.getCoursesWithWeeksByTableId(tableId).first()
-        // 如果找不到课表，直接返回 null
         if (coursesWithWeeks.isEmpty() && appSettingsRepository.getCourseConfigOnce(tableId) == null) {
             return null
         }
@@ -379,12 +371,9 @@ class CourseConversionRepository(
             )
         }
 
-        // 读取课表配置
         val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
-
         val configToExport = courseConfig ?: CourseTableConfig(courseTableId = tableId)
 
-        // 转换为不含 showWeekends 的 JSON 模型
         val exportConfig = CourseConfigJsonModel(
             semesterStartDate = configToExport.semesterStartDate,
             semesterTotalWeeks = configToExport.semesterTotalWeeks,
@@ -403,7 +392,7 @@ class CourseConversionRepository(
     /**
      * 将指定课表下的所有课程数据导出为 ICS 日历文件的内容字符串。
      */
-    suspend fun exportToIcsString(context: Context, tableId: String, alarmMinutes: Int?): String? {
+    suspend fun exportToIcsString(tableId: String, alarmMinutes: Int?): String? {
         val courses = courseDao.getCoursesWithWeeksByTableId(tableId).first()
         val timeSlots = timeSlotDao.getTimeSlotsByCourseTableId(tableId).first()
 
@@ -418,7 +407,6 @@ class CourseConversionRepository(
         }
 
         return IcsExportTool.generateIcsFileContent(
-            context = context,
             courses = courses,
             timeSlots = timeSlots,
             semesterStartDate = semesterStartDate,
@@ -431,9 +419,8 @@ class CourseConversionRepository(
 
     /**
      * 一键同步当前课表到系统日历
-     * 调用方无需传入 tableId 或分钟数，全自动从配置中读取。
      */
-    suspend fun syncCurrentTableToSystemCalendar(context: Context): Boolean {
+    suspend fun syncCurrentTableToSystemCalendar(): Boolean {
         val appSettings = appSettingsRepository.getAppSettingsOnce()
         val currentTableId = appSettings.currentCourseTableId
         if (currentTableId.isEmpty()) return true
@@ -445,44 +432,20 @@ class CourseConversionRepository(
 
         val semesterStartDate = courseConfig?.semesterStartDate?.let {
             try { LocalDate.parse(it) } catch (_: Exception) { null }
+        } ?: return true
+
+        if (courseConfig.semesterTotalWeeks <= 0 || courses.isEmpty()) {
+            return true
         }
 
-        return withContext(Dispatchers.IO) {
-            try {
-                val calendarId = CalendarAccountManager.getOrCreateCalendarId(context)
-                if (calendarId == -1L) return@withContext true
-
-                val resolver = context.contentResolver
-                resolver.delete(
-                    CalendarContract.Events.CONTENT_URI,
-                    "${CalendarContract.Events.CALENDAR_ID} = ?",
-                    arrayOf(calendarId.toString())
-                )
-                if (semesterStartDate == null || courseConfig.semesterTotalWeeks <= 0 || courses.isEmpty()) {
-                    return@withContext true
-                }
-
-                // 生成插入指令
-                val ops = IcsExportTool.generateCalendarOps(
-                    context = context,
-                    courses = courses,
-                    timeSlots = timeSlots,
-                    semesterStartDate = semesterStartDate,
-                    semesterTotalWeeks = courseConfig.semesterTotalWeeks,
-                    firstDayOfWeekInt = courseConfig.firstDayOfWeek,
-                    calendarId = calendarId,
-                    alarmMinutes = alarmMinutes,
-                    skippedDates = appSettings.skippedDates
-                )
-
-                if (ops.isNotEmpty()) {
-                    resolver.applyBatch(CalendarContract.AUTHORITY, ops)
-                }
-
-                true
-            } catch (e: Exception) {
-                true
-            }
-        }
+        return CalendarAccountManager.syncCurrentTableToSystemCalendar(
+            courses = courses,
+            timeSlots = timeSlots,
+            semesterStartDate = semesterStartDate,
+            semesterTotalWeeks = courseConfig.semesterTotalWeeks,
+            firstDayOfWeekInt = courseConfig.firstDayOfWeek,
+            alarmMinutes = alarmMinutes,
+            skippedDates = appSettings.skippedDates
+        )
     }
 }

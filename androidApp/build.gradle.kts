@@ -18,7 +18,7 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 33
-        versionName = "1.2.5"
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -121,6 +121,7 @@ dependencies {
     // Kotlin & 基础序列化
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.serialization.cbor)
+    implementation(libs.kotlinx.datetime)
 
     // AndroidX 核心库
     implementation(libs.androidx.core.ktx)
@@ -166,7 +167,7 @@ dependencies {
     implementation(libs.javax.inject)
     implementation(libs.aboutlibraries.compose)
     implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.logging)

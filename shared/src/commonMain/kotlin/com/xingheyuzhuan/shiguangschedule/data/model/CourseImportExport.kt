@@ -1,10 +1,9 @@
-package com.xingheyuzhuan.shiguangschedule.data.repository
+package com.xingheyuzhuan.shiguangschedule.data.model
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.cbor.Cbor
-
 
 object CourseImportExport {
 

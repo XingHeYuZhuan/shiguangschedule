@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
-import java.io.IOException
 
 /**
  * UI 状态的密封类
@@ -41,8 +40,8 @@ class ContributionViewModel(
             try {
                 val data = contributionRepository.getContributions()
                 _uiState.value = ContributionUiState.Success(data)
-            } catch (e: IOException) {
-                _uiState.value = ContributionUiState.Error("数据加载失败: ${e.localizedMessage}")
+            } catch (e: Exception) {
+                _uiState.value = ContributionUiState.Error(e.message ?: "未知错误")
             }
         }
     }

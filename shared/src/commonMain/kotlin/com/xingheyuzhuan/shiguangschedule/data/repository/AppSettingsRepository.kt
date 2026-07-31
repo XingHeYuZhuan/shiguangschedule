@@ -7,25 +7,29 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfigDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableDao
 import com.xingheyuzhuan.shiguangschedule.data.model.AppSettingsModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
-import java.time.temporal.TemporalAdjusters
-import org.koin.core.annotation.Single
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.format.char
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.toLocalDateTime
 import org.koin.core.annotation.Named
+import org.koin.core.annotation.Single
+import kotlin.time.Clock
 
 /**
  * 应用配置领域仓库
  *
  * 核心职责：
- * 1. 采用 SSOT 原则，将底层存储从 Room 迁移至 DataStore，同时对外部调用方保持接口兼容。
- * 2. 协调全局偏好设置 (DataStore) 与课表物理配置 (Room) 之间的数据流。
- * 3. 提供时间维度计算算法（周次偏移、日期回溯）。
+ * 1. 协调全局偏好设置 (DataStore) 与课表物理配置 (Room) 之间的数据流。
+ * 2. 提供时间维度计算算法（周次偏移、日期回溯）。
  */
 @Single
 class AppSettingsRepository(
@@ -33,7 +37,13 @@ class AppSettingsRepository(
     private val courseTableDao: CourseTableDao,
     private val courseTableConfigDao: CourseTableConfigDao
 ) {
-    private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    private val DATE_FORMATTER = LocalDate.Format {
+        year()
+        char('-')
+        monthNumber()
+        char('-')
+        day()
+    }
 
     /**
      * 课表配置模板
@@ -46,10 +56,10 @@ class AppSettingsRepository(
         semesterTotalWeeks = 20,
         defaultClassDuration = 45,
         defaultBreakDuration = 10,
-        firstDayOfWeek = DayOfWeek.MONDAY.value
+        firstDayOfWeek = DayOfWeek.MONDAY.isoDayNumber
     )
 
-    // 应用全局设置 (原实现：AppSettingsDao -> 现实现：DataStore)
+    // 应用全局设置 (DataStore)
 
     /**
      * 获取应用设置数据流。
@@ -89,7 +99,7 @@ class AppSettingsRepository(
         }
     }
 
-    // 课表具体物理配置 (由 Room 驱动)
+    // 课表具体物理配置 (Room)
 
     /**
      * 根据课表ID获取一次性配置快照。
@@ -110,11 +120,11 @@ class AppSettingsRepository(
      */
     suspend fun insertOrUpdateCourseConfig(newConfig: CourseTableConfig) {
         val constrainedConfig = when {
-            newConfig.firstDayOfWeek == DayOfWeek.SUNDAY.value -> {
+            newConfig.firstDayOfWeek == DayOfWeek.SUNDAY.isoDayNumber -> {
                 newConfig.copy(showWeekends = true)
             }
             !newConfig.showWeekends -> {
-                newConfig.copy(firstDayOfWeek = DayOfWeek.MONDAY.value)
+                newConfig.copy(firstDayOfWeek = DayOfWeek.MONDAY.isoDayNumber)
             }
             else -> newConfig
         }
@@ -133,11 +143,14 @@ class AppSettingsRepository(
     ): Int? {
         if (startDateStr.isNullOrEmpty()) return null
         return try {
-            val firstDayOfWeek = DayOfWeek.of(firstDayOfWeekInt)
-            val alignedStartDate = LocalDate.parse(startDateStr, DATE_FORMATTER)
-                .with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
-            val alignedTargetDate = targetDate.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
-            val diffWeeks = ChronoUnit.WEEKS.between(alignedStartDate, alignedTargetDate).toInt()
+            val targetFirstDayOfWeek = DayOfWeek(firstDayOfWeekInt)
+            val parsedStartDate = LocalDate.parse(startDateStr, DATE_FORMATTER)
+
+            val alignedStartDate = getPreviousOrSameDayOfWeek(parsedStartDate, targetFirstDayOfWeek)
+            val alignedTargetDate = getPreviousOrSameDayOfWeek(targetDate, targetFirstDayOfWeek)
+
+            val diffDays = alignedTargetDate.toEpochDays() - alignedStartDate.toEpochDays()
+            val diffWeeks = (diffDays / 7).toInt()
             diffWeeks + 1
         } catch (e: Exception) {
             e.printStackTrace()
@@ -148,15 +161,16 @@ class AppSettingsRepository(
     /**
      * 基于当前数据库/DataStore状态计算当前自然周次。
      */
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun calculateCurrentWeekFromDb(): Flow<Int?> = getAppSettings().flatMapLatest { appSettings ->
         val currentCourseId = appSettings.currentCourseTableId.ifEmpty {
-            return@flatMapLatest kotlinx.coroutines.flow.flowOf(null)
+            return@flatMapLatest flowOf(null)
         }
         courseTableConfigDao.getConfigById(currentCourseId).map { config ->
             if (config == null) return@map null
+            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
             val rawWeek = getWeekIndexAtDate(
-                targetDate = LocalDate.now(),
+                targetDate = today,
                 startDateStr = config.semesterStartDate,
                 firstDayOfWeekInt = config.firstDayOfWeek
             ) ?: return@map null
@@ -188,11 +202,25 @@ class AppSettingsRepository(
      * 辅助函数：根据目标周数反推开学日期。
      */
     private fun calculateSemesterStartDate(week: Int, firstDayOfWeekInt: Int): String {
-        val today = LocalDate.now()
-        val firstDayOfWeek = DayOfWeek.of(firstDayOfWeekInt)
-        val startOfThisWeek = today.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
-        val weeksToSubtract = (week - 1).toLong()
-        val semesterStartDate = startOfThisWeek.minusWeeks(weeksToSubtract)
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val firstDayOfWeek = DayOfWeek(firstDayOfWeekInt)
+        val startOfThisWeek = getPreviousOrSameDayOfWeek(today, firstDayOfWeek)
+        val daysToSubtract = (week - 1) * 7
+        val semesterStartDate = LocalDate.fromEpochDays(startOfThisWeek.toEpochDays() - daysToSubtract)
         return semesterStartDate.format(DATE_FORMATTER)
+    }
+
+    /**
+     * 对齐日期到指定每周首日的指定星期几。
+     */
+    private fun getPreviousOrSameDayOfWeek(date: LocalDate, targetDayOfWeek: DayOfWeek): LocalDate {
+        val currentDay = date.dayOfWeek.isoDayNumber
+        val targetDay = targetDayOfWeek.isoDayNumber
+        val daysToSubtract = if (currentDay >= targetDay) {
+            currentDay - targetDay
+        } else {
+            7 - (targetDay - currentDay)
+        }
+        return LocalDate.fromEpochDays(date.toEpochDays() - daysToSubtract)
     }
 }

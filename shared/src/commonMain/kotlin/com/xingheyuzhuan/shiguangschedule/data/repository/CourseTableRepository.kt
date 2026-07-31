@@ -15,14 +15,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.util.UUID
+import kotlinx.datetime.LocalDate
 import org.koin.core.annotation.Single
+import kotlin.time.Clock
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * 课表数据仓库，负责处理所有与课表、课程相关的业务逻辑和数据操作。
  */
+@OptIn(ExperimentalUuidApi::class)
 @Single
 class CourseTableRepository(
     private val courseTableDao: CourseTableDao,
@@ -48,11 +52,11 @@ class CourseTableRepository(
             return
         }
 
-        val tableId = UUID.randomUUID().toString()
+        val tableId = Uuid.random().toString()
         val defaultCourseTable = CourseTable(
             id = tableId,
             name = "我的课表",
-            createdAt = System.currentTimeMillis()
+            createdAt = Clock.System.now().toEpochMilliseconds()
         )
         courseTableDao.insert(defaultCourseTable)
 
@@ -97,9 +101,9 @@ class CourseTableRepository(
     @Transaction
     suspend fun createNewCourseTable(name: String) {
         val newTable = CourseTable(
-            id = UUID.randomUUID().toString(),
+            id = Uuid.random().toString(),
             name = name,
-            createdAt = System.currentTimeMillis()
+            createdAt = Clock.System.now().toEpochMilliseconds()
         )
         courseTableDao.insert(newTable)
 
@@ -288,7 +292,7 @@ class CourseTableRepository(
                 courseWeekDao.insertAll(listOf(CourseWeek(courseId = course.id, weekNumber = targetWeek)))
             } else {
                 // 优化：多周课，克隆新 ID 专门用于目标日期
-                val newId = UUID.randomUUID().toString()
+                val newId = Uuid.random().toString()
                 newCourses.add(course.copy(id = newId, day = targetDay))
                 newWeeks.add(CourseWeek(courseId = newId, weekNumber = targetWeek))
                 if (originalWeek != -1) oldIdsToRemove.add(course.id)
@@ -362,7 +366,7 @@ class CourseTableRepository(
 
         // 如果周次为 null（说明没设开学日期）
         if (weekNumber == null) {
-            return kotlinx.coroutines.flow.flowOf(emptyList())
+            return flowOf(emptyList())
         }
 
         // 3. 调用 DAO 层的精准查询方法（按周次过滤）

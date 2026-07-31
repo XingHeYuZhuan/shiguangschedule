@@ -1,21 +1,26 @@
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
-import android.content.Context
-import androidx.room3.Transaction
-import com.xingheyuzhuan.shiguangschedule.BuildConfig
-import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableDao
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.CourseTableImportModel
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.ImportCourseJsonModel
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.SingleTablePack
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport.TotalAppBackupEnvelope
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.CourseTableImportModel
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.ImportCourseJsonModel
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.SingleTablePack
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.TotalAppBackupEnvelope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.getString
+import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
+import shiguangschedule.shared.generated.resources.Res
+import shiguangschedule.shared.generated.resources.backup_err_corrupted
+import shiguangschedule.shared.generated.resources.backup_err_empty
+import shiguangschedule.shared.generated.resources.backup_err_version_too_new
+import kotlin.time.Clock
 
 /**
  * 模块化备份定义
@@ -48,12 +53,13 @@ data class ModuleInfo(
 )
 
 /**
- * 备份与恢复的中央总仓库
+ * 备份与恢复的中央总仓库（KMP 共享层）
  * 职责：调度各业务模块的原子化备份与恢复，确保全软件数据的一致性与扩展性。
  */
 @Single
 class BackupRepository(
-    private val context: Context,
+    @Named("AppVersionCode") private val appVersionCode: Int,
+    @Named("AppVersionName") private val appVersionName: String,
     private val courseTableDao: CourseTableDao,
     private val courseTableRepository: CourseTableRepository,
     private val courseConversionRepository: CourseConversionRepository,
@@ -90,9 +96,9 @@ class BackupRepository(
 
             AppBackupPackage(
                 meta = BackupMeta(
-                    backupTimestamp = System.currentTimeMillis(),
-                    appVersionCode = BuildConfig.VERSION_CODE,
-                    appVersionName = BuildConfig.VERSION_NAME,
+                    backupTimestamp = Clock.System.now().toEpochMilliseconds(),
+                    appVersionCode = appVersionCode,
+                    appVersionName = appVersionName,
                     modules = moduleInfos
                 ),
                 payloadMap = payloadMap
@@ -105,19 +111,18 @@ class BackupRepository(
     /**
      * 原子化分发恢复网关
      */
-    @Transaction
     suspend fun restoreFullSoftwareBackup(backupPackage: AppBackupPackage): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             backupPackage.meta.modules.forEach { info ->
                 when (info.key) {
                     BackupModule.COURSE.key -> {
                         if (info.schemaVersion > CourseImportExport.COURSE_SCHEMA_VERSION) {
-                            return@withContext Result.failure(IllegalStateException(context.getString(R.string.backup_err_version_too_new)))
+                            return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
                         }
                     }
                     BackupModule.STYLE.key -> {
                         if (info.schemaVersion > StyleSettingsRepository.STYLE_SCHEMA_VERSION) {
-                            return@withContext Result.failure(IllegalStateException(context.getString(R.string.backup_err_version_too_new)))
+                            return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
                         }
                     }
                 }
@@ -152,7 +157,7 @@ class BackupRepository(
             }
 
             val envelope = TotalAppBackupEnvelope(
-                backupTimestamp = System.currentTimeMillis(),
+                backupTimestamp = Clock.System.now().toEpochMilliseconds(),
                 appVersionCode = CourseImportExport.COURSE_SCHEMA_VERSION,
                 currentCourseTableId = appSettings.currentCourseTableId,
                 allTables = tablePacks
@@ -165,21 +170,20 @@ class BackupRepository(
     }
 
     @OptIn(ExperimentalSerializationApi::class)
-    @Transaction
     suspend fun restoreAllCourseTablesCbor(cborBytes: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             if (cborBytes.isEmpty()) {
-                return@withContext Result.failure(IllegalArgumentException(context.getString(R.string.backup_err_empty)))
+                return@withContext Result.failure(IllegalArgumentException(getString(Res.string.backup_err_empty)))
             }
 
             val envelope = try {
                 CourseImportExport.cbor.decodeFromByteArray(TotalAppBackupEnvelope.serializer(), cborBytes)
             } catch (_: Exception) {
-                return@withContext Result.failure(IllegalStateException(context.getString(R.string.backup_err_corrupted)))
+                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
             }
 
             if (envelope.appVersionCode > CourseImportExport.COURSE_SCHEMA_VERSION) {
-                return@withContext Result.failure(IllegalStateException(context.getString(R.string.backup_err_version_too_new)))
+                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
             }
 
             courseTableRepository.getAllCourseTables().first().forEach { courseTableDao.delete(it) }
@@ -222,7 +226,7 @@ class BackupRepository(
         try {
             val rawProtoBytes = styleSettingsRepository.exportRawStyleBytes()
             val envelope = StyleBackupEnvelope(
-                backupTimestamp = System.currentTimeMillis(),
+                backupTimestamp = Clock.System.now().toEpochMilliseconds(),
                 appVersionCode = StyleSettingsRepository.STYLE_SCHEMA_VERSION,
                 styleProtoBytes = rawProtoBytes
             )
@@ -239,17 +243,17 @@ class BackupRepository(
     suspend fun restoreAppStyleBytes(styleBytes: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             if (styleBytes.isEmpty()) {
-                return@withContext Result.failure(IllegalArgumentException(context.getString(R.string.backup_err_empty)))
+                return@withContext Result.failure(IllegalArgumentException(getString(Res.string.backup_err_empty)))
             }
 
             val envelope = try {
                 CourseImportExport.cbor.decodeFromByteArray(StyleBackupEnvelope.serializer(), styleBytes)
             } catch (_: Exception) {
-                return@withContext Result.failure(IllegalStateException(context.getString(R.string.backup_err_corrupted)))
+                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
             }
 
             if (envelope.appVersionCode > StyleSettingsRepository.STYLE_SCHEMA_VERSION) {
-                return@withContext Result.failure(IllegalStateException(context.getString(R.string.backup_err_version_too_new)))
+                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
             }
 
             val migratedProtoBytes = if (envelope.appVersionCode < StyleSettingsRepository.STYLE_SCHEMA_VERSION) {

@@ -8,9 +8,10 @@ import io.ktor.client.plugins.auth.providers.basic
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.ktor.util.cio.*
-import io.ktor.utils.io.jvm.javaio.*
-import java.io.File
+import io.ktor.utils.io.readAvailable
+import okio.FileSystem
+import okio.Path
+import okio.SYSTEM
 
 /**
  * WebDAV 协议通信客户端
@@ -40,27 +41,17 @@ class WebDavClient(
     private val normalizedBaseUrl: String
         get() = if (config.baseUrl.endsWith("/")) config.baseUrl else "${config.baseUrl}/"
 
-    /**
-     * 拼接完整的 WebDAV 资源 URL
-     */
     private fun buildFullUrl(relativePath: String): String {
         val root = config.getCleanRootPath()
         val relative = relativePath.trim('/')
         return "$normalizedBaseUrl$root$relative"
     }
 
-    /**
-     * 验证并确保用户配置的根目录存在
-     */
     suspend fun ensureRootDirectoryExists(): Boolean {
         val rootDir = config.getCleanRootPath().trim('/')
         return ensureRemoteDirChainExists(rootDir)
     }
 
-    /**
-     * 级联创建远端目录链
-     * @param relativeDirChain 相对目录路径（例如："dir1/dir2"）
-     */
     private suspend fun ensureRemoteDirChainExists(relativeDirChain: String): Boolean {
         if (relativeDirChain.isEmpty()) return true
 
@@ -70,14 +61,12 @@ class WebDavClient(
         try {
             for (segment in pathSegments) {
                 currentPath = if (currentPath.isEmpty()) segment else "$currentPath/$segment"
-                // 部分 WebDAV 服务器强制要求 MKCOL 请求的 URL 必须以 '/' 结尾
                 val fullUrl = "$normalizedBaseUrl$currentPath/"
 
                 val response = client.request(fullUrl) {
                     method = HttpMethod("MKCOL")
                 }
 
-                // 201: 创建成功; 405: 目录已存在（均视为有效目标）
                 val isSuccess = response.status == HttpStatusCode.Created ||
                         response.status == HttpStatusCode.MethodNotAllowed
 
@@ -92,10 +81,9 @@ class WebDavClient(
     /**
      * 上传本地文件 (PUT)
      */
-    suspend fun uploadFile(localFile: File, remoteFileName: String): Boolean {
-        if (!localFile.exists()) return false
+    suspend fun uploadFile(localPath: Path, remoteFileName: String): Boolean {
+        if (!FileSystem.SYSTEM.exists(localPath)) return false
 
-        // 解析并保障目标文件所需的完整父级目录链
         val rootPrefix = config.getCleanRootPath()
         val fileRelativeDir = remoteFileName.substringBeforeLast('/', "")
 
@@ -108,9 +96,10 @@ class WebDavClient(
         if (!ensureRemoteDirChainExists(fullRelativeDirChain)) return false
 
         return try {
+            val bytes = FileSystem.SYSTEM.read(localPath) { readByteArray() }
             val fullUrl = buildFullUrl(remoteFileName)
             val response = client.put(fullUrl) {
-                setBody(localFile.readChannel())
+                setBody(bytes)
             }
             response.status.isSuccess()
         } catch (e: Exception) {
@@ -121,15 +110,20 @@ class WebDavClient(
     /**
      * 下载远端文件 (GET)
      */
-    suspend fun downloadFile(remoteFileName: String, targetLocalFile: File): Boolean {
+    suspend fun downloadFile(remoteFileName: String, targetLocalPath: Path): Boolean {
         return try {
             val fullUrl = buildFullUrl(remoteFileName)
             val response = client.get(fullUrl)
 
             if (response.status.isSuccess()) {
                 val byteChannel = response.bodyAsChannel()
-                targetLocalFile.outputStream().use { outputStream ->
-                    byteChannel.copyTo(outputStream)
+                val buffer = ByteArray(8192)
+                FileSystem.SYSTEM.write(targetLocalPath) {
+                    while (!byteChannel.isClosedForRead) {
+                        val read = byteChannel.readAvailable(buffer)
+                        if (read <= 0) break
+                        write(buffer, 0, read)
+                    }
                 }
                 true
             } else {

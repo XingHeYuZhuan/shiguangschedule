@@ -24,14 +24,20 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import org.koin.core.annotation.KoinViewModel
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
-import java.time.temporal.TemporalAdjusters
-import java.util.UUID
+import kotlin.time.Clock
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * 课表展示块：封装单次或冲突课程
@@ -56,10 +62,10 @@ data class WeeklyScheduleUiState(
     val currentMergedCourses: List<MergedCourseBlock> = emptyList(),
     val isSemesterSet: Boolean = false,
     val semesterStartDate: LocalDate? = null,
-    val firstDayOfWeek: Int = DayOfWeek.MONDAY.value,
+    val firstDayOfWeek: Int = DayOfWeek.MONDAY.isoDayNumber,
     val weekIndexInPager: Int? = null,
     val currentWeekNumber: Int? = null,
-    val pagerMondayDate: LocalDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
+    val pagerMondayDate: LocalDate = getTodayLocalDate().startOfWeek(DayOfWeek.MONDAY),
     val currentSectionIndex: Int = -1,
     val daysUntilStart: Long = 0,
     val floatingCourse: CourseWithWeeks? = null,
@@ -75,8 +81,41 @@ private data class NormalizedCourse(
     val end: Float
 )
 
+/**
+ * 辅助函数：获取当前系统时区的当前日期
+ */
+private fun getTodayLocalDate(): LocalDate {
+    return Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+}
+
+/**
+ * 辅助函数：获取当前系统时区的当前时间
+ */
+private fun getCurrentLocalTime(): LocalTime {
+    return Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time
+}
+
+/**
+ * 辅助扩展：计算当前日期所在周的起始日期（周一/周日等）
+ */
+private fun LocalDate.startOfWeek(firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY): LocalDate {
+    val dayOfWeek = this.dayOfWeek.isoDayNumber
+    val targetIso = firstDayOfWeek.isoDayNumber
+    val diff = (dayOfWeek - targetIso + 7) % 7
+    return this.minus(diff, DateTimeUnit.DAY)
+}
+
+/**
+ * 辅助函数：格式化 LocalTime 为 HH:mm 格式
+ */
+private fun LocalTime.formatToHHmm(): String {
+    val hourStr = hour.toString().padStart(2, '0')
+    val minuteStr = minute.toString().padStart(2, '0')
+    return "$hourStr:$minuteStr"
+}
+
+@OptIn(ExperimentalUuidApi::class, ExperimentalCoroutinesApi::class)
 @KoinViewModel
-@OptIn(ExperimentalCoroutinesApi::class)
 class WeeklyScheduleViewModel (
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository,
@@ -88,7 +127,7 @@ class WeeklyScheduleViewModel (
     val uiState: StateFlow<WeeklyScheduleUiState> = _uiState.asStateFlow()
 
     private val _pagerMondayDate = MutableStateFlow(
-        LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        getTodayLocalDate().startOfWeek(DayOfWeek.MONDAY)
     )
 
     private val appSettingsFlow = appSettingsRepository.getAppSettings()
@@ -123,7 +162,11 @@ class WeeklyScheduleViewModel (
         val mode = style.toComposedStyle().scheduleMode
 
         if (config != null) {
-            val window = listOf(date.minusWeeks(1), date, date.plusWeeks(1))
+            val window = listOf(
+                date.minus(1, DateTimeUnit.WEEK),
+                date,
+                date.plus(1, DateTimeUnit.WEEK)
+            )
 
             combine(window.map { day ->
                 val pageWeekNum = appSettingsRepository.getWeekIndexAtDate(
@@ -167,9 +210,9 @@ class WeeklyScheduleViewModel (
             combine(configAndTimeFlow, currentCoursesFlow, timeSlotsFlow) { configPkg, cache, timeSlots ->
                 val config = configPkg.config
                 val startDate = config?.semesterStartDate?.let { LocalDate.parse(it) }
-                val firstDayOfWeekInt = config?.firstDayOfWeek ?: DayOfWeek.MONDAY.value
+                val firstDayOfWeekInt = config?.firstDayOfWeek ?: DayOfWeek.MONDAY.isoDayNumber
                 val totalWeeks = config?.semesterTotalWeeks ?: 20
-                val today = LocalDate.now()
+                val today = getTodayLocalDate()
 
                 val currentWeekNum = appSettingsRepository.getWeekIndexAtDate(
                     targetDate = today,
@@ -185,8 +228,8 @@ class WeeklyScheduleViewModel (
 
                 val currentSectionIndex = calculateCurrentSectionIndex(timeSlots)
 
-                val daysUntil = if (startDate != null && today.isBefore(startDate)) {
-                    ChronoUnit.DAYS.between(today, startDate)
+                val daysUntil = if (startDate != null && today < startDate) {
+                    today.daysUntil(startDate).toLong()
                 } else 0L
 
                 val currentWeekCourses = cache[configPkg.mondayDate.toString()] ?: emptyList()
@@ -218,7 +261,7 @@ class WeeklyScheduleViewModel (
 
     private fun calculateCurrentSectionIndex(timeSlots: List<TimeSlot>): Int {
         if (timeSlots.isEmpty()) return -1
-        val now = LocalTime.now()
+        val now = getCurrentLocalTime()
         val currentMinutes = now.hour * 60 + now.minute
 
         timeSlots.forEachIndexed { index, slot ->
@@ -275,29 +318,30 @@ class WeeklyScheduleViewModel (
             }
             ScheduleModeProto.SECTION_MODE -> {
                 if (timeSlots.isEmpty()) return 1.0f
-                val formatter = DateTimeFormatter.ofPattern("HH:mm")
                 val sortedSlots = timeSlots.sortedBy { it.number }
 
-                val firstSlotStart = LocalTime.parse(sortedSlots.first().startTime, formatter)
-                val lastSlotEnd = LocalTime.parse(sortedSlots.last().endTime, formatter)
+                val firstSlotStart = LocalTime.parse(sortedSlots.first().startTime)
+                val lastSlotEnd = LocalTime.parse(sortedSlots.last().endTime)
 
-                if (!time.isAfter(firstSlotStart)) return 1.0f
-                if (!time.isBefore(lastSlotEnd)) return (sortedSlots.size + 1).toFloat()
+                if (time <= firstSlotStart) return 1.0f
+                if (time >= lastSlotEnd) return (sortedSlots.size + 1).toFloat()
 
                 val currentSlot = sortedSlots.find {
-                    val s = LocalTime.parse(it.startTime, formatter)
-                    val e = LocalTime.parse(it.endTime, formatter)
-                    !time.isBefore(s) && !time.isAfter(e)
+                    val s = LocalTime.parse(it.startTime)
+                    val e = LocalTime.parse(it.endTime)
+                    time in s..e
                 }
 
                 if (currentSlot != null) {
-                    val sTime = LocalTime.parse(currentSlot.startTime, formatter)
-                    val eTime = LocalTime.parse(currentSlot.endTime, formatter)
-                    val duration = ChronoUnit.MINUTES.between(sTime, eTime).coerceAtLeast(1)
-                    return currentSlot.number.toFloat() + (ChronoUnit.MINUTES.between(sTime, time).toFloat() / duration)
+                    val sTime = LocalTime.parse(currentSlot.startTime)
+                    val eTime = LocalTime.parse(currentSlot.endTime)
+                    val duration = (eTime.toSecondOfDay() - sTime.toSecondOfDay()) / 60
+                    val safeDuration = if (duration <= 0) 1 else duration
+                    val elapsedMinutes = (time.toSecondOfDay() - sTime.toSecondOfDay()) / 60
+                    return currentSlot.number.toFloat() + (elapsedMinutes.toFloat() / safeDuration)
                 }
 
-                val nextSlot = sortedSlots.find { LocalTime.parse(it.startTime, formatter).isAfter(time) }
+                val nextSlot = sortedSlots.find { LocalTime.parse(it.startTime) > time }
                 nextSlot?.number?.toFloat() ?: (sortedSlots.size + 1).toFloat()
             }
         }
@@ -317,12 +361,11 @@ class WeeklyScheduleViewModel (
                 val totalMinutes = (gridSection * 60f).toInt().coerceIn(0, 24 * 60 - 1)
                 val hour = totalMinutes / 60
                 val minute = totalMinutes % 60
-                LocalTime.of(hour, minute)
+                LocalTime(hour, minute)
             }
             ScheduleModeProto.SECTION_MODE -> {
-                if (timeSlots.isEmpty()) return LocalTime.of(8, 0)
+                if (timeSlots.isEmpty()) return LocalTime(8, 0)
                 val sortedSlots = timeSlots.sortedBy { it.number }
-                val formatter = DateTimeFormatter.ofPattern("HH:mm")
 
                 val targetScale = gridSection + 1.0f
                 val integerPart = targetScale.toInt()
@@ -330,16 +373,19 @@ class WeeklyScheduleViewModel (
 
                 val matchedSlot = sortedSlots.find { it.number == integerPart }
                 if (matchedSlot != null) {
-                    val sTime = LocalTime.parse(matchedSlot.startTime, formatter)
-                    val eTime = LocalTime.parse(matchedSlot.endTime, formatter)
-                    val totalDuration = ChronoUnit.MINUTES.between(sTime, eTime)
-                    val addedMinutes = (fraction * totalDuration).toLong()
-                    sTime.plusMinutes(addedMinutes)
+                    val sTime = LocalTime.parse(matchedSlot.startTime)
+                    val eTime = LocalTime.parse(matchedSlot.endTime)
+                    val totalDuration = (eTime.toSecondOfDay() - sTime.toSecondOfDay()) / 60
+                    val addedMinutes = (fraction * totalDuration).toInt()
+                    val totalSeconds = sTime.toSecondOfDay() + addedMinutes * 60
+                    val finalHour = (totalSeconds / 3600) % 24
+                    val finalMinute = (totalSeconds % 3600) / 60
+                    LocalTime(finalHour, finalMinute)
                 } else {
                     if (integerPart < sortedSlots.first().number) {
-                        LocalTime.parse(sortedSlots.first().startTime, formatter)
+                        LocalTime.parse(sortedSlots.first().startTime)
                     } else {
-                        LocalTime.parse(sortedSlots.last().endTime, formatter)
+                        LocalTime.parse(sortedSlots.last().endTime)
                     }
                 }
             }
@@ -393,21 +439,21 @@ class WeeklyScheduleViewModel (
                 if (tableId.isBlank()) return@launch
 
                 val originalCourse = courseWrapper.course
-                val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
                 val updatedCourseForTime = if (mode == ScheduleModeProto.TIME_24H_MODE) {
                     val baseStartTime = gridScaleToTime(startSection, slots, mode)
-                    val origStart = LocalTime.parse(originalCourse.customStartTime ?: "08:00", timeFormatter)
-                    val origEnd = LocalTime.parse(originalCourse.customEndTime ?: "09:00", timeFormatter)
-                    val originalDurationMinutes = ChronoUnit.MINUTES.between(origStart, origEnd).coerceAtLeast(1)
+                    val origStart = LocalTime.parse(originalCourse.customStartTime ?: "08:00")
+                    val origEnd = LocalTime.parse(originalCourse.customEndTime ?: "09:00")
+                    val originalDurationMinutes = ((origEnd.toSecondOfDay() - origStart.toSecondOfDay()) / 60).coerceAtLeast(1)
                     val newStartTime = baseStartTime
                     val startMinutesFromMidnight = newStartTime.hour * 60 + newStartTime.minute
                     val rawEndMinutes = startMinutesFromMidnight + originalDurationMinutes
 
                     val (finalEndTime, isTruncatedToMidnight) = if (rawEndMinutes >= 1440) {
-                        LocalTime.of(23, 59) to true
+                        LocalTime(23, 59) to true
                     } else {
-                        newStartTime.plusMinutes(originalDurationMinutes) to false
+                        val endSec = (newStartTime.toSecondOfDay() + originalDurationMinutes * 60) % (24 * 3600)
+                        LocalTime(endSec / 3600, (endSec % 3600) / 60) to false
                     }
                     val calcStartSection = newStartTime.hour + 1
 
@@ -421,8 +467,8 @@ class WeeklyScheduleViewModel (
                     originalCourse.copy(
                         day = targetDay,
                         isCustomTime = true,
-                        customStartTime = newStartTime.format(timeFormatter),
-                        customEndTime = finalEndTime.format(timeFormatter),
+                        customStartTime = newStartTime.formatToHHmm(),
+                        customEndTime = finalEndTime.formatToHHmm(),
                         startSection = calcStartSection.coerceIn(1, 24),
                         endSection = finalEndSection.coerceIn(1, 24)
                     )
@@ -462,7 +508,7 @@ class WeeklyScheduleViewModel (
                         .filter { it != sourceWeek }
                     courseTableRepository.upsertCourse(originalCourse, remainingWeeks)
 
-                    val clonedNewId = UUID.randomUUID().toString()
+                    val clonedNewId = Uuid.random().toString()
                     val finalClonedCourse = updatedCourseForTime.copy(id = clonedNewId)
                     courseTableRepository.upsertCourse(finalClonedCourse, listOf(targetWeek))
                 }
@@ -508,13 +554,12 @@ class WeeklyScheduleViewModel (
                 val updatedCourseForTime = if (mode == ScheduleModeProto.TIME_24H_MODE) {
                     val newStartTime = gridScaleToTime(startSection, slots, mode)
                     val newEndTime = gridScaleToTime(endSection, slots, mode)
-                    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
                     originalCourse.copy(
                         day = targetDay,
                         isCustomTime = true,
-                        customStartTime = newStartTime.format(timeFormatter),
-                        customEndTime = newEndTime.format(timeFormatter),
+                        customStartTime = newStartTime.formatToHHmm(),
+                        customEndTime = newEndTime.formatToHHmm(),
                         startSection = (startSection.toInt() + 1).coerceIn(1, 24),
                         endSection = (endSection.toInt() + 1).coerceIn(1, 24)
                     )
@@ -553,7 +598,7 @@ class WeeklyScheduleViewModel (
                         .filter { it != currentWeek }
                     courseTableRepository.upsertCourse(originalCourse, remainingWeeks)
 
-                    val clonedNewId = UUID.randomUUID().toString()
+                    val clonedNewId = Uuid.random().toString()
                     val finalClonedCourse = updatedCourseForTime.copy(id = clonedNewId)
                     courseTableRepository.upsertCourse(finalClonedCourse, listOf(currentWeek))
                 }
@@ -583,7 +628,6 @@ class WeeklyScheduleViewModel (
         val normalizedList = courses.mapNotNull { cw ->
             try {
                 val c = cw.course
-                val formatter = DateTimeFormatter.ofPattern("HH:mm")
 
                 val (sTime, eTime) = if (c.isCustomTime) {
                     LocalTime.parse(c.customStartTime ?: return@mapNotNull null) to
@@ -591,7 +635,7 @@ class WeeklyScheduleViewModel (
                 } else {
                     val startSlot = timeSlots.find { it.number == c.startSection } ?: return@mapNotNull null
                     val endSlot = timeSlots.find { it.number == c.endSection } ?: return@mapNotNull null
-                    LocalTime.parse(startSlot.startTime, formatter) to LocalTime.parse(endSlot.endTime, formatter)
+                    LocalTime.parse(startSlot.startTime) to LocalTime.parse(endSlot.endTime)
                 }
 
                 val s = timeToGridScale(sTime, timeSlots, mode)

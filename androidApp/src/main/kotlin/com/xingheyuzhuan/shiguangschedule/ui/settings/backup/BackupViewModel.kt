@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import okio.Path.Companion.toPath
 import org.koin.core.annotation.KoinViewModel
 import java.io.File
 import java.io.InputStream
@@ -120,12 +121,12 @@ class BackupViewModel(
                 try {
                     val metaFile = File(context.cacheDir, "meta.json")
                     metaFile.writeText(Json.encodeToString(BackupMeta.serializer(), backupPackage.meta))
-                    if (!client.uploadFile(metaFile, "$FIXED_BACKUP_DIR/meta.json")) return@withContext false
+                    if (!client.uploadFile(metaFile.absolutePath.toPath(), "$FIXED_BACKUP_DIR/meta.json")) return@withContext false
 
                     for ((key, bytes) in backupPackage.payloadMap) {
                         val moduleFile = File(context.cacheDir, "$key.cbor")
                         moduleFile.writeBytes(bytes)
-                        if (!client.uploadFile(moduleFile, "$FIXED_BACKUP_DIR/$key.cbor")) return@withContext false
+                        if (!client.uploadFile(moduleFile.absolutePath.toPath(), "$FIXED_BACKUP_DIR/$key.cbor")) return@withContext false
                     }
                     true
                 } catch (e: Exception) {
@@ -155,7 +156,7 @@ class BackupViewModel(
             val result = withContext(Dispatchers.IO) {
                 try {
                     val metaFile = File(context.cacheDir, "meta_restore.json")
-                    if (!client.downloadFile("$FIXED_BACKUP_DIR/meta.json", metaFile)) {
+                    if (!client.downloadFile("$FIXED_BACKUP_DIR/meta.json", metaFile.absolutePath.toPath())) {
                         return@withContext Result.failure(Exception(context.getString(R.string.backup_err_corrupted)))
                     }
                     val meta = Json.decodeFromString(BackupMeta.serializer(), metaFile.readText())
@@ -163,7 +164,7 @@ class BackupViewModel(
                     val payloadMap = mutableMapOf<String, ByteArray>()
                     for (module in meta.modules) {
                         val moduleFile = File(context.cacheDir, "${module.key}_restore.cbor")
-                        if (client.downloadFile("$FIXED_BACKUP_DIR/${module.key}.cbor", moduleFile)) {
+                        if (client.downloadFile("$FIXED_BACKUP_DIR/${module.key}.cbor", moduleFile.absolutePath.toPath())) {
                             payloadMap[module.key] = moduleFile.readBytes()
                         }
                     }

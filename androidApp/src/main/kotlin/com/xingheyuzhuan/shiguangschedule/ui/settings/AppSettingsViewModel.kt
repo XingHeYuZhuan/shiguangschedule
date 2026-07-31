@@ -23,6 +23,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.datetime.toKotlinLocalDate
 
 /**
  * 界面原子状态类：包含设置页渲染所需的全部数据包
@@ -60,7 +61,7 @@ class SettingsViewModel(
     ) { settings, config ->
         val week = if (config != null) {
             val rawWeek = appSettingsRepository.getWeekIndexAtDate(
-                targetDate = LocalDate.now(),
+                targetDate = LocalDate.now().toKotlinLocalDate(),
                 startDateStr = config.semesterStartDate,
                 firstDayOfWeekInt = config.firstDayOfWeek
             )

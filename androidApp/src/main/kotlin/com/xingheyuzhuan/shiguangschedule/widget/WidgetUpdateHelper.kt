@@ -4,10 +4,11 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
+import androidx.datastore.core.DataStore
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.xingheyuzhuan.shiguangschedule.data.model.toProto
 import com.xingheyuzhuan.shiguangschedule.data.repository.WidgetRepository
-import com.xingheyuzhuan.shiguangschedule.data.repository.scheduleGridStyleDataStore
 import com.xingheyuzhuan.shiguangschedule.widget.compact.CompactNativeProvider
 import com.xingheyuzhuan.shiguangschedule.widget.compact.CompactNativeRenderer
 import com.xingheyuzhuan.shiguangschedule.widget.double_days.DoubleDaysNativeProvider
@@ -28,6 +29,7 @@ import kotlin.time.Duration.Companion.seconds
 // 创建一个局部的注入代理中心，用于在全局顶层方法中安全提取注入实例
 private object WidgetDependencyContainer : KoinComponent {
     val repository: WidgetRepository by inject()
+    val styleDataStore: DataStore<ScheduleGridStyleProto> by inject()
 }
 
 /**
@@ -36,8 +38,9 @@ private object WidgetDependencyContainer : KoinComponent {
  */
 suspend fun updateAllWidgets(context: Context) {
     try {
-        // 1. 从 Koin 容器中动态获取单例化的仓库，避免就地重复实例化
+        // 1. 从 Koin 容器中动态获取单例化的仓库与 DataStore
         val repository = WidgetDependencyContainer.repository
+        val styleDataStore = WidgetDependencyContainer.styleDataStore
 
         // 2. 准备基础数据
         val today = LocalDate.now()
@@ -52,7 +55,7 @@ suspend fun updateAllWidgets(context: Context) {
         } ?: 0
 
         val currentStyle = withTimeoutOrNull(2.seconds) {
-            context.scheduleGridStyleDataStore.data.first()
+            styleDataStore.data.first()
         }
 
         val finalStyleToSync = if (currentStyle == null || currentStyle.course_color_maps.isEmpty()) {

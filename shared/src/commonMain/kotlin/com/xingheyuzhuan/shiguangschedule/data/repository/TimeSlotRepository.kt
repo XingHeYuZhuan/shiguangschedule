@@ -3,8 +3,6 @@ package com.xingheyuzhuan.shiguangschedule.data.repository
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Single
 
 /**
@@ -31,8 +29,7 @@ class TimeSlotRepository(
     /**
      * 完全替换指定课表下的所有时间段数据。
      */
-    suspend fun replaceAllForCourseTable(courseTableId: String, timeSlots: List<TimeSlot>) = withContext(Dispatchers.IO) {
-        // 先删除旧数据，再插入新数据
+    suspend fun replaceAllForCourseTable(courseTableId: String, timeSlots: List<TimeSlot>) {
         timeSlotDao.deleteAllTimeSlotsByCourseTableId(courseTableId)
         if (timeSlots.isNotEmpty()) {
             timeSlotDao.insertAll(timeSlots)

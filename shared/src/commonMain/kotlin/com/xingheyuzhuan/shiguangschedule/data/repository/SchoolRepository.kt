@@ -1,15 +1,18 @@
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.xingheyuzhuan.shiguangschedule.data.model.SchoolHistoryModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import java.io.File
+import okio.FileSystem
+import okio.Path
+import okio.buffer
+import okio.use
 import school_index.Adapter
 import school_index.AdapterCategory
 import school_index.School
@@ -23,7 +26,8 @@ import org.koin.core.annotation.Single
  */
 @Single
 class SchoolRepository(
-    private val context: Context
+    private val fileSystem: FileSystem,
+    @Named("FilesDir") private val filesDir: Path
 ) {
 
     // 定义需要在一级菜单中显示的教务类别
@@ -38,16 +42,16 @@ class SchoolRepository(
      */
     private suspend fun loadIndex(): SchoolIndex? {
         return withContext(Dispatchers.IO) {
-            val internalFile = File(context.filesDir, "repo/index/school_index.pb")
+            val internalPath = filesDir / "repo/index/school_index.pb"
 
-            if (!internalFile.exists()) {
-                println("错误：Protobuf 索引文件未找到: ${internalFile.absolutePath}")
+            if (!fileSystem.exists(internalPath)) {
+                println("错误：Protobuf 索引文件未找到: $internalPath")
                 return@withContext null
             }
 
             try {
-                internalFile.inputStream().use { stream ->
-                    return@withContext SchoolIndex.ADAPTER.decode(stream)
+                fileSystem.source(internalPath).use { source ->
+                    return@withContext SchoolIndex.ADAPTER.decode(source.buffer())
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

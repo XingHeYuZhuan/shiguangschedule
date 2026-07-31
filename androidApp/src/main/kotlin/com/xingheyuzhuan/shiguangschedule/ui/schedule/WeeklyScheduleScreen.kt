@@ -71,6 +71,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+import kotlinx.datetime.toKotlinLocalDate
 
 /**
  * 无限时间轴的中值锚点。
@@ -107,7 +108,7 @@ fun WeeklyScheduleScreen(
                 val firstDay = DayOfWeek.of(uiState.firstDayOfWeek)
                 val thisMonday = today.with(TemporalAdjusters.previousOrSame(firstDay))
                 val targetMonday = thisMonday.plusWeeks(offsetWeeks)
-                viewModel.updatePagerDate(targetMonday)
+                viewModel.updatePagerDate(targetMonday.toKotlinLocalDate())
             }
     }
 

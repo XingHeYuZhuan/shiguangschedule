@@ -7,7 +7,7 @@ REPO_JIAOWU="XingHeYuZhuan/shiguang_warehouse"
 API_URL_APP="https://api.github.com/repos/${REPO_APP}/contributors"
 API_URL_JIAOWU="https://api.github.com/repos/${REPO_JIAOWU}/contributors"
 
-CONTRIBUTORS_BASE_DIR="./app/src/main/assets/contributors_data"
+CONTRIBUTORS_BASE_DIR="./shared/src/commonMain/composeResources/files/contributors_data"
 OUTPUT_JSON_FILE="${CONTRIBUTORS_BASE_DIR}/contributors.json"
 AVATAR_DIR="${CONTRIBUTORS_BASE_DIR}/avatars"
 

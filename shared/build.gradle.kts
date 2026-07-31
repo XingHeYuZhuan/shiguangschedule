@@ -15,7 +15,7 @@ plugins {
 kotlin {
     listOf(
         iosArm64(),
-        iosSimulatorArm64()
+        // iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "Shared"
@@ -48,46 +48,61 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            // Compose Multiplatform
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
+            implementation(libs.compose.ui.tooling.preview)
+
+            // Lifecycle & ViewModel
             implementation(libs.androidx.lifecycle.viewmodel.compose)
             implementation(libs.androidx.lifecycle.runtime.compose)
-            implementation(libs.compose.ui.tooling.preview)
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.datetime)
 
-            // Koin 核心与注解依赖
+            // Serialization & Tools
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.serialization.cbor)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.kgit)
+            implementation(libs.okio)
+
+            // Ktor 核心及功能插件
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.logging)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.client.auth)
+
+            // Koin 依赖注入
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.core)
             implementation(libs.koin.annotations)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
 
-            // Room 3.0 运行时（驱动交由平台定义）
+            // Room 3.0 & DataStore
             implementation(libs.androidx.room3.runtime)
-
-            // DataStore 与文件系统
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.androidx.datastore.core)
-            implementation(libs.okio)
 
-            // Wire 运行时依赖
+            // Wire 运行时
             implementation(libs.wire.runtime)
         }
 
         androidMain.dependencies {
             implementation(libs.androidx.sqlite.framework)
-        }
-        iosMain.dependencies {
-            implementation(libs.androidx.sqlite.framework)
+            implementation(libs.ktor.client.cio)
         }
 
-        // JVM 桌面端保留 bundled 驱动（保证兼容性）
         jvmMain.dependencies {
             implementation(libs.androidx.sqlite.bundled)
+            implementation(libs.ktor.client.cio)
+        }
+
+        iosMain.dependencies {
+            implementation(libs.androidx.sqlite.framework)
+            implementation(libs.ktor.client.darwin)
         }
 
         commonTest.dependencies {
@@ -101,7 +116,7 @@ dependencies {
     add("kspAndroid", libs.androidx.room3.compiler)
     add("kspJvm", libs.androidx.room3.compiler)
     add("kspIosArm64", libs.androidx.room3.compiler)
-    add("kspIosSimulatorArm64", libs.androidx.room3.compiler)
+    // add("kspIosSimulatorArm64", libs.androidx.room3.compiler)
 }
 
 // Room 3.0 插件配置 schema 导出路径

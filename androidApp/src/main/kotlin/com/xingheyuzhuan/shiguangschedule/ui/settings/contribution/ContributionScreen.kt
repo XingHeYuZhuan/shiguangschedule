@@ -182,7 +182,7 @@ fun ContributorCard(contributor: Contributor, context: Context) {
             val fullAssetPath = "contributors_data/${contributor.avatar}"
 
             AsyncImage(
-                model = "file:///android_asset/$fullAssetPath",
+                model = "file:///android_asset/compose-resources/files/$fullAssetPath",
                 contentDescription = a11yAvatar,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

@@ -1,11 +1,9 @@
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
-import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.datastore.core.DataStore
-import androidx.datastore.core.Serializer
-import androidx.datastore.dataStore
+import androidx.datastore.core.okio.OkioSerializer
 import com.xingheyuzhuan.shiguangschedule.data.model.DualColor
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
@@ -13,54 +11,41 @@ import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleGrid
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.toCompose
 import com.xingheyuzhuan.shiguangschedule.data.model.toProto
-import com.xingheyuzhuan.shiguangschedule.widget.updateAllWidgets
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.serialization.Serializable
-import java.io.InputStream
-import java.io.OutputStream
+import okio.BufferedSink
+import okio.BufferedSource
 import org.koin.core.annotation.Single
 
 /** DataStore 文件名常量 */
 const val SCHEDULE_STYLE_DATASTORE_FILE_NAME = "schedule_style_settings.pb"
 
 /**
- * DataStore Serializer (适配 Wire 协议)
- * * 使用 Wire 生成的 ADAPTER 替代 Google Protobuf 的 parseFrom/writeTo。
+ * 样式配置的 DataStore 序列化器，基于 Wire 协议与 Okio 跨平台流实现。
  */
-object ScheduleStyleSerializer : Serializer<ScheduleGridStyleProto> {
-    /** 默认值：Wire 中直接构造实例即代表所有字段为默认值的 Proto 对象 */
+object ScheduleStyleSerializer : OkioSerializer<ScheduleGridStyleProto> {
     override val defaultValue: ScheduleGridStyleProto
         get() = ScheduleGridStyleProto()
 
-    override suspend fun readFrom(input: InputStream): ScheduleGridStyleProto {
+    override suspend fun readFrom(source: BufferedSource): ScheduleGridStyleProto {
         return try {
-            // 使用 Wire 生成的 ADAPTER 解码
-            ScheduleGridStyleProto.ADAPTER.decode(input)
+            ScheduleGridStyleProto.ADAPTER.decode(source)
         } catch (e: Exception) {
             defaultValue
         }
     }
 
-    override suspend fun writeTo(t: ScheduleGridStyleProto, output: OutputStream) {
-        // 使用 Wire 生成的 ADAPTER 编码
-        ScheduleGridStyleProto.ADAPTER.encode(output, t)
+    override suspend fun writeTo(t: ScheduleGridStyleProto, sink: BufferedSink) {
+        ScheduleGridStyleProto.ADAPTER.encode(sink, t)
     }
 }
 
 /**
- * 扩展属性：定义 ScheduleGridStyle 的 DataStore。
- * 放在这里可以确保单例性，同时让实现细节对外部隐藏。
- */
-val Context.scheduleGridStyleDataStore: DataStore<ScheduleGridStyleProto> by dataStore(
-    fileName = SCHEDULE_STYLE_DATASTORE_FILE_NAME,
-    serializer = ScheduleStyleSerializer
-)
-
-/**
- * 样式自持版本号的中央备份信封
- * 放在数据源头，对齐课表 envelope 的设计，保持物理传输字段名 appVersionCode
+ * 样式备份信封，包含版本号及序列化后的字节数据。
  */
 @Serializable
 data class StyleBackupEnvelope(
@@ -70,9 +55,7 @@ data class StyleBackupEnvelope(
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as StyleBackupEnvelope
+        if (other !is StyleBackupEnvelope) return false
 
         if (backupTimestamp != other.backupTimestamp) return false
         if (appVersionCode != other.appVersionCode) return false
@@ -90,14 +73,11 @@ data class StyleBackupEnvelope(
 }
 
 /**
- * 样式设置的数据仓库，负责与 Proto DataStore (Wire) 进行交互。
- * * 注意：由于 Wire 生成的是不可变类，所有更新操作均通过 .copy() 及其生成的下划线字段完成。
- *
+ * 样式设置的数据仓库，负责与 Proto DataStore 进行交互及状态管理。
  */
 @Single
 class StyleSettingsRepository(
-    private val dataStore: DataStore<ScheduleGridStyleProto>,
-    private val context: Context
+    private val dataStore: DataStore<ScheduleGridStyleProto>
 ) {
 
     companion object {
@@ -105,10 +85,13 @@ class StyleSettingsRepository(
         const val STYLE_SCHEMA_VERSION = 1
     }
 
+    private val _styleUpdatedChannel = Channel<Unit>(Channel.CONFLATED)
+    val styleUpdatedFlow: Flow<Unit> = _styleUpdatedChannel.receiveAsFlow()
+
     // --- 备份与恢复扩展 API ---
 
     /**
-     * 仅导出当前原生的样式配置字节数组 (排除壁纸路径)
+     * 仅导出当前原生的样式配置字节数组，排除壁纸路径。
      */
     suspend fun exportRawStyleBytes(): ByteArray {
         val currentProto = dataStore.data.first()
@@ -117,7 +100,7 @@ class StyleSettingsRepository(
     }
 
     /**
-     * 将清洗/升级完毕后的原生字节数组还原 (缝合本地壁纸并写入)
+     * 将还原的字节数组与本地壁纸路径合并后写入 DataStore。
      */
     suspend fun restoreRawStyleBytes(bytes: ByteArray): Result<Unit> = runCatching {
         val currentLocalProto = dataStore.data.first()
@@ -127,88 +110,81 @@ class StyleSettingsRepository(
         val finalProto = backupProto.copy(background_image_path = localWallpaperPath)
 
         dataStore.updateData { finalProto }
-        updateAllWidgets(context)
+        _styleUpdatedChannel.trySend(Unit)
     }
 
     /**
-     * 获取当前样式的快照（一次性读取，用于业务逻辑校验）
+     * 获取当前样式的单次快照。
      */
     suspend fun getStyleOnce(): ScheduleGridStyle {
         return dataStore.data.map { it.toCompose() }.first()
     }
 
     /**
-     * 响应式样式流（用于 UI 订阅刷新）
+     * 响应式样式数据流。
      */
     val styleFlow: Flow<ScheduleGridStyle> = dataStore.data
         .map { proto -> proto.toCompose() }
 
-    /**
-     * 通用写入 API
-     * 适配 Wire：将原来的 Builder 模式改为 Kotlin 特性的 Lambda 转换。
-     */
     private suspend fun updateStyle(
         transform: (ScheduleGridStyleProto) -> ScheduleGridStyleProto
     ) {
         dataStore.updateData { currentProto ->
             transform(currentProto)
         }
+        _styleUpdatedChannel.trySend(Unit)
     }
 
     // --- 原子化公共写入 API (Setters) ---
 
-    /** 设置时间列宽度 (DP 值) */
+    /** 设置时间列宽度 (DP) */
     suspend fun setTimeColumnWidth(widthDp: Float) = updateStyle {
         it.copy(time_column_width_dp = widthDp)
     }
 
-    /** 设置日表头高度 (DP 值) */
+    /** 设置日表头高度 (DP) */
     suspend fun setDayHeaderHeight(heightDp: Float) = updateStyle {
         it.copy(day_header_height_dp = heightDp)
     }
 
-    /** 设置节次高度 (DP 值) */
+    /** 设置节次高度 (DP) */
     suspend fun setSectionHeight(heightDp: Float) = updateStyle {
         it.copy(section_height_dp = heightDp)
     }
 
-    /** 设置圆角半径 (DP 值) */
+    /** 设置课程块圆角半径 (DP) */
     suspend fun setCourseBlockCornerRadius(radiusDp: Float) = updateStyle {
         it.copy(course_block_corner_radius_dp = radiusDp)
     }
 
-    /** 设置外部边距 (DP 值) */
+    /** 设置课程块外部边距 (DP) */
     suspend fun setCourseBlockOuterPadding(paddingDp: Float) = updateStyle {
         it.copy(course_block_outer_padding_dp = paddingDp)
     }
 
-    /** 设置内部填充 (DP 值) */
+    /** 设置课程块内部填充 (DP) */
     suspend fun setCourseBlockInnerPadding(paddingDp: Float) = updateStyle {
         it.copy(course_block_inner_padding_dp = paddingDp)
     }
 
-    /** 设置透明度 (0.0f - 1.0f) */
+    /** 设置课程块透明度 */
     suspend fun setCourseBlockAlpha(alpha: Float) = updateStyle {
         it.copy(course_block_alpha_float = alpha)
     }
 
-
-    /** 设置颜色列表映射 */
+    /** 设置课程颜色映射列表 */
     suspend fun setCourseColorMaps(maps: List<DualColor>) {
         updateStyle {
-            // Wire 的列表是不可变的，直接通过 copy 替换整个列表
             it.copy(course_color_maps = maps.map { dc -> dc.toProto() })
         }
-        updateAllWidgets(context)
     }
 
-    /** 重置为默认样式 */
+    /** 重置所有样式设置为默认值 */
     suspend fun resetAllStyleSettings() {
         dataStore.updateData {
-            // 直接构造空对象即为默认
             ScheduleGridStyleProto()
         }
-        updateAllWidgets(context)
+        _styleUpdatedChannel.trySend(Unit)
     }
 
     /** 设置是否隐藏左侧时间列的具体时间 */
@@ -231,7 +207,7 @@ class StyleSettingsRepository(
         it.copy(show_start_time = show)
     }
 
-    /** 设置课程块字体的缩放比例 */
+    /** 设置课程块字体缩放比例 */
     suspend fun setCourseBlockFontScale(scale: Float) = updateStyle {
         it.copy(course_block_font_scale = scale)
     }
@@ -266,15 +242,12 @@ class StyleSettingsRepository(
         it.copy(border_type = type)
     }
 
-    /** 设置课表展示模式（传统节次模式 vs 24小时绝对时间轴模式） */
+    /** 设置课表展示模式 */
     suspend fun setScheduleMode(mode: ScheduleModeProto) = updateStyle {
         it.copy(schedule_mode = mode)
     }
 
-    /**
-     * 设置自定义页面文本颜色
-     * @param color 传入 Color 对象；传 null 则清除自定义颜色，恢复系统默认
-     */
+    /** 设置页面文本颜色 */
     suspend fun setPageTextColor(color: Color?) = updateStyle {
         it.copy(page_text_color_long = color?.toArgb()?.toLong())
     }
@@ -284,20 +257,17 @@ class StyleSettingsRepository(
         it.copy(course_text_color_long = color?.toArgb()?.toLong())
     }
 
-    /** 设置背景壁纸的物理路径 */
+    /** 设置背景壁纸路径 */
     suspend fun setBackgroundImagePath(path: String) = updateStyle {
         it.copy(background_image_path = path)
     }
 
-    /**
-     * 重置为默认样式（但保留壁纸）
-     */
+    /** 重置样式设置但保留壁纸 */
     suspend fun resetAllStyleSettingsExceptWallpaper() {
         dataStore.updateData { currentProto ->
             val currentPath = currentProto.background_image_path
-            // 先创建一个全默认对象，再 copy 之前的路径进去
             ScheduleGridStyleProto().copy(background_image_path = currentPath)
         }
-        updateAllWidgets(context)
+        _styleUpdatedChannel.trySend(Unit)
     }
 }

@@ -9,7 +9,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.widget.Toast
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseConversionRepository
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.SendChannel

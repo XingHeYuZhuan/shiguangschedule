@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.toKotlinLocalDate
 import org.koin.core.annotation.KoinViewModel
 import java.io.File
 import java.io.FileOutputStream
@@ -63,7 +64,7 @@ class StyleSettingsViewModel(
                     showWeekends = config?.showWeekends ?: true,
                     totalWeeks = 20,
                     isSemesterSet = true,
-                    semesterStartDate = java.time.LocalDate.now(),
+                    semesterStartDate = java.time.LocalDate.now().toKotlinLocalDate(),
                     firstDayOfWeek = 1,
                     currentWeekNumber = 1
                 )

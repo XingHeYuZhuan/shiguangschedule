@@ -6,7 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseConversionRepository
-import com.xingheyuzhuan.shiguangschedule.data.repository.CourseImportExport
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -76,7 +76,10 @@ class CourseTableConversionViewModel(
                 if (_uiState.value.exportType == ExportType.JSON) {
                     val jsonModel = courseConversionRepository.exportCourseTableToJson(tableId)
                     if (jsonModel != null) {
-                        val jsonString = CourseImportExport.json.encodeToString(CourseImportExport.CourseTableExportModel.serializer(), jsonModel)
+                        val jsonString = CourseImportExport.json.encodeToString(
+                            CourseImportExport.CourseTableExportModel.serializer(),
+                            jsonModel
+                        )
                         _events.send(ConversionEvent.LaunchExportFileCreator(jsonString))
                     } else {
                         val message = context.getString(R.string.error_export_table_not_found)
@@ -120,7 +123,7 @@ class CourseTableConversionViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val icsContent = courseConversionRepository.exportToIcsString(context,tableId, alarmMinutes)
+                val icsContent = courseConversionRepository.exportToIcsString(tableId, alarmMinutes)
                 if (icsContent != null) {
                     outputStream.bufferedWriter(Charset.forName("UTF-8")).use { writer ->
                         writer.write(icsContent)
@@ -145,7 +148,7 @@ class CourseTableConversionViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val success = courseConversionRepository.syncCurrentTableToSystemCalendar(context)
+                val success = courseConversionRepository.syncCurrentTableToSystemCalendar()
                 val message = if (success) {
                     context.getString(R.string.toast_sync_calendar_success)
                 } else {
