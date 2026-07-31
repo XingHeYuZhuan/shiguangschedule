@@ -9,17 +9,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.koin.compiler)
     alias(libs.plugins.androidx.room3)
-}
-
-// Room 3.0 插件配置 schema 导出路径
-room3 {
-    schemaDirectory("$projectDir/schemas")
-}
-
-// Koin 编译器行为配置
-koinCompiler {
-    userLogs = false
-    unsafeDslChecks = true
+    alias(libs.plugins.wire)
 }
 
 kotlin {
@@ -83,6 +73,9 @@ kotlin {
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.androidx.datastore.core)
             implementation(libs.okio)
+
+            // Wire 运行时依赖
+            implementation(libs.wire.runtime)
         }
 
         androidMain.dependencies {
@@ -109,4 +102,28 @@ dependencies {
     add("kspJvm", libs.androidx.room3.compiler)
     add("kspIosArm64", libs.androidx.room3.compiler)
     add("kspIosSimulatorArm64", libs.androidx.room3.compiler)
+}
+
+// Room 3.0 插件配置 schema 导出路径
+room3 {
+    schemaDirectory("$projectDir/schemas")
+}
+
+// Koin 编译器行为配置
+koinCompiler {
+    userLogs = false
+    unsafeDslChecks = true
+}
+
+// Wire 编译配置
+wire {
+    sourcePath {
+        srcDir("src/commonMain/proto")
+    }
+
+    kotlin {
+        escapeKotlinKeywords = true
+        enumMode = "enum_class"
+        rpcRole = "none"
+    }
 }

@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.aboutLibraries)
-    alias(libs.plugins.wire)
     alias(libs.plugins.koin.compiler)
 }
 
@@ -171,7 +170,6 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.logging)
     implementation(libs.ktor.client.auth)
-    implementation(libs.wire.runtime)
     implementation(libs.kgit)
     implementation(libs.okio)
 
@@ -182,17 +180,6 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 }
 
-wire {
-    sourcePath {
-        srcDir("src/main/proto")
-    }
-
-    kotlin {
-        escapeKotlinKeywords = true
-        enumMode = "enum_class"
-        rpcRole = "none"
-    }
-}
 
 androidComponents {
     onVariants { variant ->
