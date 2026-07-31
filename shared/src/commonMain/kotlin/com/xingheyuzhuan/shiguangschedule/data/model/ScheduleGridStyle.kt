@@ -60,17 +60,17 @@ data class ScheduleGridStyle(
     }
 
     companion object {
-        // --- 默认常量 ---
-        internal val DEFAULT_TIME_COLUMN_WIDTH = 40f
-        internal val DEFAULT_DAY_HEADER_HEIGHT = 45f
-        internal val DEFAULT_SECTION_HEIGHT = 70f
-        internal val DEFAULT_BLOCK_CORNER_RADIUS = 4f
-        internal val DEFAULT_BLOCK_OUTER_PADDING = 1f
-        internal val DEFAULT_BLOCK_INNER_PADDING = 4f
-        internal val DEFAULT_BLOCK_ALPHA = 1f
-        internal val DEFAULT_FONT_SCALE = 1f
+        // --- 默认常量
+        val DEFAULT_TIME_COLUMN_WIDTH = 40f
+        val DEFAULT_DAY_HEADER_HEIGHT = 45f
+        val DEFAULT_SECTION_HEIGHT = 70f
+        val DEFAULT_BLOCK_CORNER_RADIUS = 4f
+        val DEFAULT_BLOCK_OUTER_PADDING = 1f
+        val DEFAULT_BLOCK_INNER_PADDING = 4f
+        val DEFAULT_BLOCK_ALPHA = 1f
+        val DEFAULT_FONT_SCALE = 1f
 
-        internal val DEFAULT_COLOR_MAPS = listOf(
+        val DEFAULT_COLOR_MAPS = listOf(
             DualColor(light = Color(0xFFFFCC99), dark = Color(0xFF663300)),
             DualColor(light = Color(0xFFFFE699), dark = Color(0xFF664D00)),
             DualColor(light = Color(0xFFE6FF99), dark = Color(0xFF4D6600)),

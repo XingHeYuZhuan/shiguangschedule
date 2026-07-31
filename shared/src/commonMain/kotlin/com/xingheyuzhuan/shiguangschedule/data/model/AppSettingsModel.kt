@@ -7,7 +7,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import com.xingheyuzhuan.shiguangschedule.R
+import org.jetbrains.compose.resources.StringResource
+import shiguangschedule.shared.generated.resources.*
 import com.xingheyuzhuan.shiguangschedule.ui.theme.Purple40
 import com.xingheyuzhuan.shiguangschedule.ui.theme.Purple80
 
@@ -34,12 +35,12 @@ enum class AutoControlMode(val value: String) {
 /**
  * 可选的启动页面枚举
  */
-enum class StartScreen(val value: String, val labelRes: Int) {
+enum class StartScreen(val value: String, val labelRes: StringResource) {
     /** 周课表 */
-    COURSE_SCHEDULE("COURSE_SCHEDULE", R.string.nav_course_schedule),
+    COURSE_SCHEDULE("COURSE_SCHEDULE", Res.string.nav_course_schedule),
 
     /** 今日课表 */
-    TODAY_SCHEDULE("TODAY_SCHEDULE", R.string.nav_today_schedule);
+    TODAY_SCHEDULE("TODAY_SCHEDULE", Res.string.nav_today_schedule);
 
     companion object {
         fun fromString(value: String?): StartScreen {
@@ -51,15 +52,15 @@ enum class StartScreen(val value: String, val labelRes: Int) {
 /**
  * 应用主题模式枚举
  */
-enum class AppThemeMode(val value: String, val labelRes: Int) {
+enum class AppThemeMode(val value: String, val labelRes: StringResource) {
     /** 跟随系统 */
-    FOLLOW_SYSTEM("FOLLOW_SYSTEM", R.string.theme_follow_system),
+    FOLLOW_SYSTEM("FOLLOW_SYSTEM", Res.string.theme_follow_system),
 
     /** 浅色模式 */
-    LIGHT("LIGHT", R.string.theme_light),
+    LIGHT("LIGHT", Res.string.theme_light),
 
     /** 深色模式 */
-    DARK("DARK", R.string.theme_dark);
+    DARK("DARK", Res.string.theme_dark);
 
     companion object {
         fun fromString(value: String?): AppThemeMode? {
@@ -91,7 +92,8 @@ data class AppSettingsModel(
     /** 自动化控制的具体模式，限定为 [AutoControlMode] */
     val autoControlMode: AutoControlMode = AutoControlMode.DND,
 
-    /** * 兼容穿戴设备同步通知的开关
+    /**
+     * 兼容穿戴设备同步通知的开关
      * true: 开启兼容模式（关闭 Ongoing，方便手环抓取）
      * false: 关闭兼容模式（默认，使用 Android 16 实时更新特性）
      */
@@ -109,12 +111,10 @@ data class AppSettingsModel(
     /** 是否开启动态取色 (Material You) */
     val useDynamicColor: Boolean = true,
 
-    /** * 自定义浅色主题主色
-     */
+    /** 自定义浅色主题主色 */
     val customLightPrimary: Long = Purple40.toArgb().toLong(),
 
-    /** * 自定义深色主题主色
-     */
+    /** 自定义深色主题主色 */
     val customDarkPrimary: Long = Purple80.toArgb().toLong(),
 ) {
     /**

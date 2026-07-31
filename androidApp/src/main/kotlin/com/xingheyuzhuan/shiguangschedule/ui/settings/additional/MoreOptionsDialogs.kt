@@ -28,6 +28,7 @@ import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.model.StartScreen
 import com.xingheyuzhuan.shiguangschedule.tool.UpdateChecker.Companion.UPDATE_CHANNELS
 import com.xingheyuzhuan.shiguangschedule.tool.UpdateStatus
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * 启动页面选择弹窗

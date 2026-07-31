@@ -116,6 +116,7 @@ aboutLibraries {
 dependencies {
     // 引入共享模块
     implementation(project(":shared"))
+    implementation(libs.compose.components.resources)
 
     // Kotlin & 基础序列化
     implementation(libs.kotlinx.serialization.json)
