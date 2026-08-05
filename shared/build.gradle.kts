@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.koin.compiler)
     alias(libs.plugins.androidx.room3)
     alias(libs.plugins.wire)
+    alias(libs.plugins.aboutLibraries)
 }
 
 kotlin {
@@ -47,47 +48,60 @@ kotlin {
     }
 
     sourceSets {
-        commonMain.dependencies {
-            // Compose Multiplatform
-            implementation(libs.compose.runtime)
-            implementation(libs.compose.foundation)
-            implementation(libs.compose.material3)
-            implementation(libs.compose.ui)
-            implementation(libs.compose.components.resources)
-            implementation(libs.compose.ui.tooling.preview)
+        commonMain {
+            dependencies {
+                // 1. Compose Multiplatform 核心 UI 库
+                implementation(libs.compose.runtime)
+                implementation(libs.compose.foundation)
+                implementation(libs.compose.material3)
+                implementation(libs.compose.ui)
+                implementation(libs.compose.animation)
+                implementation(libs.compose.material.icons.extended)
+                implementation(libs.compose.components.resources)
+                implementation(libs.compose.ui.tooling.preview)
 
-            // Lifecycle & ViewModel
-            implementation(libs.androidx.lifecycle.viewmodel.compose)
-            implementation(libs.androidx.lifecycle.runtime.compose)
+                // 2. Lifecycle & Navigation3 导航体系
+                implementation(libs.androidx.lifecycle.viewmodel.compose)
+                implementation(libs.androidx.lifecycle.runtime.compose)
+                implementation(libs.androidx.navigation3.ui)
+                implementation(libs.androidx.navigationevent)
+                implementation(libs.androidx.navigationevent.compose)
+                implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 
-            // Serialization & Tools
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.serialization.cbor)
-            implementation(libs.kotlinx.datetime)
-            implementation(libs.kgit)
-            implementation(libs.okio)
+                // 3. UI 补充库 (Coil & 开源许可)
+                implementation(libs.coil.compose)
+                implementation(libs.aboutlibraries.compose.m3)
 
-            // Ktor 核心及功能插件
-            implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.logging)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(libs.ktor.client.auth)
+                // 4. Koin 依赖注入
+                implementation(project.dependencies.platform(libs.koin.bom))
+                implementation(libs.koin.core)
+                implementation(libs.koin.compose)
+                implementation(libs.koin.compose.viewmodel)
+                implementation(libs.koin.compose.navigation3)
 
-            // Koin 依赖注入
-            implementation(project.dependencies.platform(libs.koin.bom))
-            implementation(libs.koin.core)
-            implementation(libs.koin.annotations)
-            implementation(libs.koin.compose)
-            implementation(libs.koin.compose.viewmodel)
+                // 5. Serialization & 工具库
+                implementation(libs.kotlinx.serialization.json)
+                implementation(libs.kotlinx.serialization.cbor)
+                implementation(libs.kotlinx.datetime)
+                implementation(libs.kgit)
+                implementation(libs.okio)
 
-            // Room 3.0 & DataStore
-            implementation(libs.androidx.room3.runtime)
-            implementation(libs.androidx.datastore.preferences)
-            implementation(libs.androidx.datastore.core)
+                // 6. Ktor 核心网络库
+                implementation(libs.ktor.client.core)
+                implementation(libs.ktor.client.logging)
+                implementation(libs.ktor.client.content.negotiation)
+                implementation(libs.ktor.serialization.kotlinx.json)
+                implementation(libs.ktor.client.auth)
+                implementation(libs.koin.annotations)
 
-            // Wire 运行时
-            implementation(libs.wire.runtime)
+                // 7. Room 3.0 & DataStore 存储
+                implementation(libs.androidx.room3.runtime)
+                implementation(libs.androidx.datastore.preferences)
+                implementation(libs.androidx.datastore.core)
+
+                // 8. Wire Protobuf 运行时
+                implementation(libs.wire.runtime)
+            }
         }
 
         androidMain.dependencies {
@@ -119,15 +133,19 @@ dependencies {
     // add("kspIosSimulatorArm64", libs.androidx.room3.compiler)
 }
 
+aboutLibraries {
+    export {
+        outputPath = file("src/commonMain/composeResources/files/aboutlibraries.json")
+        prettyPrint = true
+    }
+    library {
+        duplicationMode = com.mikepenz.aboutlibraries.plugin.DuplicateMode.MERGE
+    }
+}
+
 // Room 3.0 插件配置 schema 导出路径
 room3 {
     schemaDirectory("$projectDir/schemas")
-}
-
-// Koin 编译器行为配置
-koinCompiler {
-    userLogs = false
-    unsafeDslChecks = true
 }
 
 // Wire 编译配置

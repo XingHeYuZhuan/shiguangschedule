@@ -35,7 +35,7 @@
     <string name="text_no_courses_today">今天没有课程</string>
     <string name="title_vacation_until_start">假期中（距离开学还有%1$s天）</string>
     <string name="title_semester_not_set">请设置开学日期</string>
-    <string name="date_format_year_month_day">yyyy年M月d日</string>
+    <string name="date_format_year_month_day">%1$s年%2$s月%3$s日</string>
 
     <!-- 添加课程 -->
     <string name="toast_save_success">保存成功</string>
@@ -77,12 +77,12 @@
     <string name="course_position_prefix">地点: %1$s</string>
     <string name="course_teacher_prefix">老师: %1$s</string>
     <string name="title_course_overlap">重叠课程列表</string>
-    <string name="label_courses_overlap">%d门重叠</string>
+    <string name="label_courses_overlap">%1$d门重叠</string>
     <string name="course_time_sections_count">(%1$s节)</string>
     <string name="title_select_week">选择周次</string>
     <string name="title_current_week">第 %1$s 周</string>
     <string name="title_vacation">假期中</string>
-    <string name="status_semester_ended">学期已结束 %d 天</string>
+    <string name="status_semester_ended">学期已结束 %1$d 天</string>
     <string name="status_week_calc_error">周次计算错误</string>
 
     <!-- 时间与星期格式 -->
@@ -223,8 +223,8 @@
     <string name="dialog_title_manual_set_week">手动设置当前周数</string>
     <string name="dialog_title_set_first_day_of_week">设置每周起始日</string>
     <string name="text_no_course_tables">暂无课表可选择</string>
-    <string name="course_table_id_prefix">ID: %s</string>
-    <string name="course_table_created_at_prefix">创建于: %s</string>
+    <string name="course_table_id_prefix">ID: %1$s</string>
+    <string name="course_table_created_at_prefix">创建于: %1$s</string>
     <string name="label_current">当前</string>
 
     <!-- 管理课表 -->
@@ -322,6 +322,7 @@
 
     <!-- 更多设置 -->
     <string name="title_more_options">更多</string>
+    <string name="item_developer_options">开发者选项</string>
     <string name="a11y_app_icon">应用图标</string>
     <string name="a11y_navigate">跳转</string>
     <string name="a11y_acknowledgment">鸣谢</string>
@@ -337,14 +338,12 @@
     <string name="item_check_software_update">检查软件更新</string>
     <string name="item_language_settings">语言设置</string>
     <string name="language_follow_system">跟随系统</string>
-
     <string name="dialog_checking_update">正在检查更新...</string>
     <string name="tip_please_wait">正在连接服务器，请稍候。</string>
-
-    <string name="dialog_new_version_found">发现新版本 %s</string>
+    <string name="dialog_new_version_found">发现新版本 %1$s</string>
     <string name="dialog_current_version_latest">当前版本已是最新</string>
     <string name="dialog_update_check_failed">更新检查失败</string>
-    <string name="label_error_message">错误信息：%s</string>
+    <string name="label_error_message">错误信息：%1$s</string>
     <string name="btn_download_update">下载更新</string>
     <string name="btn_update_now">立即更新</string>
     <string name="tip_non_mandatory_update">提示：强制更新不会显示此取消按钮。</string>
@@ -374,6 +373,7 @@
     <string name="tweak_mode_merge">合并 (A + B)</string>
     <string name="tweak_mode_overwrite">覆盖 (A → B)</string>
     <string name="tweak_mode_exchange">交换 (A ↔ B)</string>
+    <string name="date_format_month_day">%1$d月%2$d日</string>
 
     <!-- 教务导入 -->
     <string name="title_select_school">选择学校</string>

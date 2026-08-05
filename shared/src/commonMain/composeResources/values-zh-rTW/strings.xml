@@ -35,7 +35,7 @@
     <string name="text_no_courses_today">今天沒有課程</string>
     <string name="title_vacation_until_start">假期中（距離開學還有%1$s天）</string>
     <string name="title_semester_not_set">請設定開學日期</string>
-    <string name="date_format_year_month_day">yyyy年M月d日</string>
+    <string name="date_format_year_month_day">%1$s年%2$s月%3$s日</string>
 
     <!-- 新增課程 -->
     <string name="toast_save_success">儲存成功</string>
@@ -77,12 +77,12 @@
     <string name="course_position_prefix">地點: %1$s</string>
     <string name="course_teacher_prefix">老師: %1$s</string>
     <string name="title_course_overlap">重疊課程列表</string>
-    <string name="label_courses_overlap">%d門重疊</string>
+    <string name="label_courses_overlap">%1$d門重疊</string>
     <string name="course_time_sections_count">(%1$s節)</string>
     <string name="title_select_week">選擇週次</string>
     <string name="title_current_week">第 %1$s 週</string>
     <string name="title_vacation">假期中</string>
-    <string name="status_semester_ended">學期已結束 %d 天</string>
+    <string name="status_semester_ended">學期已結束 %1$d 天</string>
     <string name="status_week_calc_error">週次計算錯誤</string>
     
     <!-- 時間與星期格式 -->
@@ -222,8 +222,8 @@
     <string name="dialog_title_manual_set_week">手動設定目前週數</string>
     <string name="dialog_title_set_first_day_of_week">設定每週起始日</string>
     <string name="text_no_course_tables">目前沒有課表可選擇</string>
-    <string name="course_table_id_prefix">ID: %s</string>
-    <string name="course_table_created_at_prefix">建立於: %s</string>
+    <string name="course_table_id_prefix">ID: %1$s</string>
+    <string name="course_table_created_at_prefix">建立於: %1$s</string>
     <string name="label_current">目前</string>
     
     <!-- 管理課表 -->
@@ -315,6 +315,7 @@
     <string name="error_ics_export_failed">行事曆檔案匯出失敗：%1$s</string>
     
     <!-- 更多設定 -->
+    <string name="item_developer_options">開發者選項</string>
     <string name="error_sync_calendar_failed">同步失敗，請檢查行事曆權限</string>
     <string name="title_more_options">更多</string>
     <string name="a11y_app_icon">應用程式圖示</string>
@@ -336,10 +337,10 @@
     <string name="dialog_checking_update">正在檢查更新...</string>
     <string name="tip_please_wait">正在連線伺服器，請稍候。</string>
 
-    <string name="dialog_new_version_found">發現新版本 %s</string>
+    <string name="dialog_new_version_found">發現新版本 %1$s</string>
     <string name="dialog_current_version_latest">目前版本已是最新</string>
     <string name="dialog_update_check_failed">更新檢查失敗</string>
-    <string name="label_error_message">錯誤資訊：%s</string>
+    <string name="label_error_message">錯誤資訊：%1$s</string>
     <string name="btn_download_update">下載更新</string>
     <string name="btn_update_now">立即更新</string>
     <string name="tip_non_mandatory_update">提示：強制更新不會顯示此取消按鈕。</string>
@@ -369,6 +370,7 @@
     <string name="tweak_mode_merge">合併 (A + B)</string>
     <string name="tweak_mode_overwrite">覆蓋 (A → B)</string>
     <string name="tweak_mode_exchange">交換 (A ↔ B)</string>
+    <string name="date_format_month_day">%1$d月%2$d日</string>
 
     <!-- 教務匯入 -->
     <string name="title_select_school">選擇學校</string>

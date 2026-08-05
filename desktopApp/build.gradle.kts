@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.koin.compiler)
 }
 
 kotlin {
@@ -15,18 +16,22 @@ kotlin {
 
 dependencies {
     implementation(project(":shared"))
+    implementation(project.dependencies.platform(libs.koin.bom))
+    implementation(libs.koin.core)
+    implementation(libs.koin.compose)
 
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.compose.ui.tooling.preview)
 }
 
+
 compose.desktop {
     application {
         mainClass = "com.xingheyuzhuan.shiguangschedule.MainKt"
 
         buildTypes.release.proguard {
-            isEnabled.set(true)
+            isEnabled.set(false)
         }
 
         nativeDistributions {

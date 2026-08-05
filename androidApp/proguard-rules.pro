@@ -31,10 +31,7 @@
     public <init>(android.content.Context, androidx.work.WorkerParameters);
 }
 
-# 网络库 (Ktor/OkHttp)
--dontwarn okhttp3.**
--dontwarn okio.**
--keep class okhttp3.** { *; }
+# 网络库 (Ktor)
 -dontwarn io.ktor.**
 
 # 日志与极致优化

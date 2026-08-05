@@ -7,9 +7,30 @@ import java.io.File
 
 @Single
 class JvmAppStorage : AppStorage {
+
     private val appRootDir: File by lazy {
         val userHome = System.getProperty("user.home")
-        val dir = File(userHome, ".ShiguangSchedule")
+        val folderName = "shiguangschedule"
+
+        // 结合 OperatingSystem 枚举进行类型安全的匹配
+        val dir = when (OperatingSystem.current) {
+            OperatingSystem.WINDOWS -> {
+                val appData = System.getenv("APPDATA") ?: "$userHome/AppData/Roaming"
+                File(appData, folderName)
+            }
+            OperatingSystem.MACOS -> {
+                File(userHome, "Library/Application Support/$folderName")
+            }
+            OperatingSystem.LINUX -> {
+                val configHome = System.getenv("XDG_CONFIG_HOME") ?: "$userHome/.config"
+                File(configHome, folderName)
+            }
+            OperatingSystem.UNKNOWN -> {
+                // 异常/极罕见系统兜底路径
+                File(userHome, ".$folderName")
+            }
+        }
+
         if (!dir.exists()) dir.mkdirs()
         dir
     }

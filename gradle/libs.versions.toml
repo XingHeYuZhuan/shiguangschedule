@@ -12,10 +12,12 @@ composeMultiplatform = "1.11.1"
 kotlinxCoroutines = "1.11.0"
 material3 = "1.9.0"
 materialIconsExtended = "1.7.3"
+navigationEvent = "1.1.2"
 
 # KMP 跨平台核心组件
 lifecycle = "2.11.0"
-navigation3 = "1.1.5"
+compose-multiplatform-lifecycle = "2.11.0"
+multiplatform-nav3-ui = "1.1.1"
 room3 = "3.0.1"
 sqlite = "2.7.0"
 datastore = "1.2.1"
@@ -28,7 +30,6 @@ work-runtime = "2.11.2"
 
 # 网络与持久化/序列化
 ktor = "3.5.1"
-okhttp = "5.4.0"
 wire = "6.4.5"
 kotlinSerialization = "1.11.0"
 okio = "3.18.1"
@@ -38,9 +39,7 @@ kotlinxDateTime = "0.8.0"
 koin = "4.2.2"
 koin-plugin = "1.1.0"
 coil = "3.5.0"
-aboutLibraries = "15.0.3"
-slf4j = "2.0.18"
-javax-inject = "1"
+aboutLibraries = "15.0.4"
 kgit = "1.0.1"
 
 # 测试框架
@@ -59,22 +58,29 @@ compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-pre
 compose-animation = { module = "org.jetbrains.compose.animation:animation", version.ref = "composeMultiplatform" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+androidx-navigationevent = { module = "androidx.navigationevent:navigationevent", version.ref = "navigationEvent" }
+androidx-navigationevent-compose = { module = "androidx.navigationevent:navigationevent-compose", version.ref = "navigationEvent" }
 
 # Kotlin & 通用测试
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
 
-# AndroidX 基础库与 KMP Lifecycle / Navigation
+# Android 平台专属基础库
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
-androidx-lifecycle-viewmodel-navigation3 = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycle" }
-androidx-lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
-androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
-androidx-navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3" }
-androidx-navigation3-ui = { group = "androidx.navigation3", name = "navigation3-ui", version.ref = "navigation3" }
+
+# KMP Lifecycle (JetBrains Compose Multiplatform 移植版)
+androidx-lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "compose-multiplatform-lifecycle" }
+androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "compose-multiplatform-lifecycle" }
+
+# Navigation 3 多平台核心 UI 库 (JetBrains 移植)
+androidx-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "multiplatform-nav3-ui" }
+
+# Navigation 3 ViewModel 扩展 (JetBrains 移植)
+androidx-lifecycle-viewmodel-navigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "compose-multiplatform-lifecycle" }
 
 # Jetpack DataStore & Room 3.0 / SQLite 驱动
 androidx-datastore-core = { module = "androidx.datastore:datastore-core", version.ref = "datastore" }
@@ -86,8 +92,6 @@ androidx-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", versi
 
 # WorkManager
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work-runtime" }
-okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
-okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 
 # Ktor (跨平台 HTTP 客户端)
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
@@ -104,9 +108,7 @@ kotlinx-serialization-cbor = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 wire-runtime = { module = "com.squareup.wire:wire-runtime", version.ref = "wire" }
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 kgit = { module = "io.github.xingheyuzhuan:kgit", version.ref = "kgit" }
-slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
-javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javax-inject" }
-aboutlibraries-compose = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
+aboutlibraries-compose-m3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDateTime" }
 
@@ -134,7 +136,7 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutLibraries" }
+aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutLibraries" }
 wire = { id = "com.squareup.wire", version.ref = "wire" }
 koin-compiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koin-plugin" }
 androidx-room3 = { id = "androidx.room3", version.ref = "room3" }

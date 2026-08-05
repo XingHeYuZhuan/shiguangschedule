@@ -35,7 +35,7 @@
     <string name="text_no_courses_today">No courses today</string>
     <string name="title_vacation_until_start">Vacation (%1$s days left)</string>
     <string name="title_semester_not_set">Please set semester start date</string>
-    <string name="date_format_year_month_day">MMM d, yyyy</string>
+    <string name="date_format_year_month_day">%2$s/%3$s/%1$s</string>
 
     <!-- Add Course -->
     <string name="toast_save_success">Saved successfully</string>
@@ -77,12 +77,12 @@
     <string name="course_position_prefix">Location: %1$s</string>
     <string name="course_teacher_prefix">Instructor: %1$s</string>
     <string name="title_course_overlap">Overlapping Courses</string>
-    <string name="label_courses_overlap">%d overlapping</string>
+    <string name="label_courses_overlap">%1$d overlapping</string>
     <string name="course_time_sections_count">(%1$s periods)</string>
     <string name="title_select_week">Select week</string>
     <string name="title_current_week">Week %1$s</string>
     <string name="title_vacation">On vacation</string>
-    <string name="status_semester_ended">Semester ended %d days ago</string>
+    <string name="status_semester_ended">Semester ended %1$d days ago</string>
     <string name="status_week_calc_error">Week calculation error</string>
     
     <!-- Time and Day Formats -->
@@ -222,8 +222,8 @@
     <string name="dialog_title_manual_set_week">Manually set current week</string>
     <string name="dialog_title_set_first_day_of_week">Set week start day</string>
     <string name="text_no_course_tables">No schedules available</string>
-    <string name="course_table_id_prefix">ID: %s</string>
-    <string name="course_table_created_at_prefix">Created: %s</string>
+    <string name="course_table_id_prefix">ID: %1$s</string>
+    <string name="course_table_created_at_prefix">Created: %1$s</string>
     <string name="label_current">Current</string>
     
     <!-- Manage Course Tables -->
@@ -315,6 +315,7 @@
     <string name="error_ics_export_failed">Calendar export failed: %1$s</string>
     
     <!-- More Settings -->
+    <string name="item_developer_options">Developer Options</string>
     <string name="section_sync">Sync</string>
     <string name="item_sync_to_system_calendar">Sync to System Calendar</string>
     <string name="desc_sync_to_system_calendar">Sync the current schedule to your phone\\\'s system calendar with one click</string>
@@ -340,10 +341,10 @@
     <string name="dialog_checking_update">Checking for update...</string>
     <string name="tip_please_wait">Connecting to server, please wait.</string>
 
-    <string name="dialog_new_version_found">New version found %s</string>
+    <string name="dialog_new_version_found">New version found %1$s</string>
     <string name="dialog_current_version_latest">Current version is the latest</string>
     <string name="dialog_update_check_failed">Update check failed</string>
-    <string name="label_error_message">Error message: %s</string>
+    <string name="label_error_message">Error message: %1$s</string>
     <string name="btn_download_update">Download update</string>
     <string name="btn_update_now">Update now</string>
     <string name="tip_non_mandatory_update">Tip: The cancel button is not shown for mandatory updates.</string>
@@ -373,6 +374,7 @@
     <string name="tweak_mode_merge">Merge (A + B)</string>
     <string name="tweak_mode_overwrite">Overwrite (A → B)</string>
     <string name="tweak_mode_exchange">Exchange (A ↔ B)</string>
+    <string name="date_format_month_day">%1$d/%2$d</string>
 
     <!-- Academic System Import -->
     <string name="title_select_school">Select school</string>
