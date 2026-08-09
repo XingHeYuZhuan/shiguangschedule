@@ -1,0 +1,2 @@
+# 忽略 Gradle 自动压缩生成的离线学校资源 Zip
+src/commonMain/composeResources/files/offline_schools.zip

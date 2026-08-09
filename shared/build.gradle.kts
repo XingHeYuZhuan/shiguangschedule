@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.tasks.bundling.Zip
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -159,4 +160,28 @@ wire {
         enumMode = "enum_class"
         rpcRole = "none"
     }
+}
+
+
+// 1. 注册自动打 ZIP 包 Task
+val packSchoolsZip = tasks.register<Zip>("packSchoolsZip") {
+    group = "build"
+    description = "自动将 assets/offline_repo 离线适配资源打包为 composeResources 识别的 ZIP 压缩包。"
+
+    // 从 assets/offline_repo 打包
+    from(layout.projectDirectory.dir("assets/offline_repo"))
+
+    // 输出到 Compose 资源目录
+    destinationDirectory.set(layout.projectDirectory.dir("src/commonMain/composeResources/files"))
+    archiveFileName.set("offline_schools.zip")
+}
+
+// 2. 彻底消除 Gradle 隐式依赖警告的精准挂载
+tasks.matching {
+    // 精确覆盖 Compose Resources 插件中所有扫描/复制/代码生成 Task
+    it.name.startsWith("generateComposeResClass") ||
+            it.name.startsWith("copyNonXmlValueResources") ||
+            it.name.startsWith("prepareComposeResources")
+}.configureEach {
+    dependsOn(packSchoolsZip)
 }

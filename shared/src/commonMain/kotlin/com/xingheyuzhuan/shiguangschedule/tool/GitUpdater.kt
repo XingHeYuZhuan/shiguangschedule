@@ -56,7 +56,8 @@ class GitUpdater(
     @Named("CacheDir") private val cacheDir: Path
 ) {
 
-    private val clientProtocolVersion: Int = 1
+    // 升级客户端支持的最高协议版本为 2
+    private val clientProtocolVersion: Int = 2
 
     private val baseLocalDir: Path
         get() = filesDir / "repo"
@@ -213,8 +214,9 @@ class GitUpdater(
             }
 
             val remoteProtocol = remoteIndex.protocol_version
+            // 判断远程索引协议是否大于客户端支持的最大协议版本 (2)
             if (remoteProtocol > clientProtocolVersion) {
-                val fatalMsg = "\r[2/3] ✖ 协议不兼容，请升级 App\n"
+                val fatalMsg = "\r[2/3] ✖ 协议不兼容 (远程 v$remoteProtocol > 本地 v$clientProtocolVersion)，请升级 App\n"
                 onLog(fatalMsg.padEnd(50, ' '))
                 result.isFatalIndexError = true
                 return
@@ -249,32 +251,29 @@ class GitUpdater(
         onLog("[3/3] ➜ 正在写入本地存储...\n")
 
         val indexFileName = "school_index.pb"
-        val localIndexFile = indexFileTargetDir / indexFileName
-        var localIndexContent: ByteArray? = null
-        if (fileSystem.exists(localIndexFile)) {
-            localIndexContent = try {
-                fileSystem.read(localIndexFile) { readByteArray() }
-            } catch (e: Exception) {
-                null
-            }
-        }
-
-        if (fileSystem.exists(baseLocalDir)) {
-            fileSystem.deleteRecursively(baseLocalDir)
-        }
 
         try {
-            fileSystem.createDirectories(baseLocalDir)
+            if (!fileSystem.exists(baseLocalDir)) {
+                fileSystem.createDirectories(baseLocalDir)
+            }
         } catch (e: Exception) {
-            onLog("[3/3] ✖ 无法创建存储目录\n")
+            onLog("[3/3] ✖ 无法创建存储目录: ${e.message}\n")
             return false
         }
 
         if (result.resourceFiles.isNotEmpty()) {
             try {
-                fileSystem.createDirectories(schoolsFileTargetDir)
+                if (!fileSystem.exists(schoolsFileTargetDir)) {
+                    fileSystem.createDirectories(schoolsFileTargetDir)
+                }
+
                 result.resourceFiles.forEach { (sourceFile, targetFile) ->
                     targetFile.parent?.let { fileSystem.createDirectories(it) }
+
+                    if (fileSystem.exists(targetFile)) {
+                        fileSystem.delete(targetFile)
+                    }
+
                     fileSystem.copy(sourceFile, targetFile)
                 }
             } catch (e: Exception) {
@@ -283,15 +282,17 @@ class GitUpdater(
             }
         }
 
-        val indexContent = result.indexFileContent ?: localIndexContent
-        if (indexContent != null) {
+        result.indexFileContent?.let { newIndexBytes ->
             try {
-                fileSystem.createDirectories(indexFileTargetDir)
+                if (!fileSystem.exists(indexFileTargetDir)) {
+                    fileSystem.createDirectories(indexFileTargetDir)
+                }
                 fileSystem.write(indexFileTargetDir / indexFileName) {
-                    write(indexContent, 0, indexContent.size)
+                    write(newIndexBytes, 0, newIndexBytes.size)
                 }
             } catch (e: Exception) {
-                onLog("[3/3] ✖ 写入索引文件失败\n")
+                onLog("[3/3] ✖ 写入索引文件失败: ${e.message}\n")
+                return false
             }
         }
 

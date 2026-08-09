@@ -38,13 +38,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
+import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
 import com.xingheyuzhuan.shiguangschedule.tool.FileManagerCallbacks
 import com.xingheyuzhuan.shiguangschedule.tool.rememberFileManager
 import com.xingheyuzhuan.shiguangschedule.ui.components.ShareDialog
 import kotlinx.coroutines.launch
-
 import okio.Buffer
+import okio.FileSystem
+import okio.SYSTEM
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_back
@@ -78,7 +81,8 @@ import kotlin.time.Clock
 fun CourseTableConversionScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    viewModel: CourseTableConversionViewModel = koinViewModel()
+    viewModel: CourseTableConversionViewModel = koinViewModel(),
+    appStorage: AppStorage = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -88,8 +92,11 @@ fun CourseTableConversionScreen(
     val snackbarFileSaveCanceled = stringResource(Res.string.snackbar_file_save_canceled)
 
     var pendingImportTableId by remember { mutableStateOf<String?>(null) }
+
+    // 用于暂存导出的缓存路径和触发 ShareDialog 的路径状态
+    var pendingShareFilePath by remember { mutableStateOf<String?>(null) }
     var shareFilePath by remember { mutableStateOf<String?>(null) }
-    val shareFileMimeType by remember { mutableStateOf("application/json") }
+    var shareFileMimeType by remember { mutableStateOf("application/json") }
 
     val fileManager = rememberFileManager(
         callbacks = FileManagerCallbacks(
@@ -104,7 +111,10 @@ fun CourseTableConversionScreen(
                 pendingImportTableId = null
             },
             onFileExported = { success ->
-                if (!success) {
+                if (success) {
+                    shareFilePath = pendingShareFilePath
+                } else {
+                    pendingShareFilePath = null
                     coroutineScope.launch { snackbarHostState.showSnackbar(snackbarFileSaveCanceled) }
                 }
             }
@@ -121,12 +131,32 @@ fun CourseTableConversionScreen(
                 is ConversionEvent.LaunchExportFileCreator -> {
                     val timestamp = Clock.System.now().toEpochMilliseconds()
                     val fileName = "shiguangschedule_$timestamp.json"
-                    fileManager.exportFile(fileName, event.jsonContent.encodeToByteArray())
+                    val bytes = event.jsonContent.encodeToByteArray()
+
+                    val shareTempDir = appStorage.cacheDir / "share_temp"
+                    val tempFilePath = shareTempDir / fileName
+                    FileSystem.SYSTEM.createDirectories(shareTempDir)
+                    FileSystem.SYSTEM.write(tempFilePath) {
+                        write(bytes)
+                    }
+                    pendingShareFilePath = tempFilePath.toString()
+                    shareFileMimeType = "application/json"
+                    fileManager.exportFile(fileName, bytes)
                 }
                 is ConversionEvent.LaunchExportIcsFileCreator -> {
                     val timestamp = Clock.System.now().toEpochMilliseconds()
                     val fileName = "shiguangschedule_$timestamp.ics"
-                    fileManager.exportFile(fileName, event.icsContent.encodeToByteArray())
+                    val bytes = event.icsContent.encodeToByteArray()
+                    val shareTempDir = appStorage.cacheDir / "share_temp"
+                    val tempFilePath = shareTempDir / fileName
+                    FileSystem.SYSTEM.createDirectories(shareTempDir)
+                    FileSystem.SYSTEM.write(tempFilePath) {
+                        write(bytes)
+                    }
+                    pendingShareFilePath = tempFilePath.toString()
+                    shareFileMimeType = "text/calendar"
+
+                    fileManager.exportFile(fileName, bytes)
                 }
                 is ConversionEvent.ShowMessage -> {
                     snackbarHostState.showSnackbar(event.message)
@@ -252,7 +282,10 @@ fun CourseTableConversionScreen(
         ShareDialog(
             filePath = path,
             mimeType = shareFileMimeType,
-            onDismiss = { shareFilePath = null }
+            onDismiss = {
+                shareFilePath = null
+                pendingShareFilePath = null
+            }
         )
     }
 }
