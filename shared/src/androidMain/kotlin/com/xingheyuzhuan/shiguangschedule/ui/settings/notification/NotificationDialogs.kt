@@ -68,6 +68,7 @@ fun NotificationDialogDispatcher(
     viewModel: NotificationSettingsViewModel
 ) {
     val coroutineScope = rememberCoroutineScope()
+    var showDndGuideDialog by remember { mutableStateOf(false) }
 
     when (uiState.activeDialog) {
         is NotificationDialogType.EditRemindMinutes -> {
@@ -98,6 +99,9 @@ fun NotificationDialogDispatcher(
                         viewModel.updateAutoMode(true, selectedKey)
                     }
                     viewModel.dismissDialog()
+                },
+                onRequireDndPermission = {
+                    showDndGuideDialog = true
                 },
                 onDismiss = { viewModel.dismissDialog() }
             )
@@ -141,11 +145,18 @@ fun NotificationDialogDispatcher(
 
         else -> {}
     }
+
+    // 选中自动模式无权限时，弹出勿扰权限引导弹窗
+    if (showDndGuideDialog) {
+        DndPermissionGuideDialog(
+            onDismiss = { showDndGuideDialog = false }
+        )
+    }
 }
 
 /**
  * Android 专属的权限引导弹窗组
- * 由 Android 侧的 Card 组件按照本地 UI State 显隐控制并调用
+ * 由 Android 侧组件按照本地 UI State 显隐控制并调用
  */
 @Composable
 fun ExactAlarmPermissionGuideDialog(
@@ -179,6 +190,7 @@ fun AutoModeSelectionDialog(
     currentAutoControlMode: AutoControlMode,
     hasDndPermission: Boolean,
     onModeSelected: (Any) -> Unit,
+    onRequireDndPermission: () -> Unit,
     onDismiss: () -> Unit
 ) {
     var selectedKey by remember { mutableStateOf<Any>(if (currentAutoModeEnabled) currentAutoControlMode else "OFF") }
@@ -217,7 +229,14 @@ fun AutoModeSelectionDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onModeSelected(selectedKey) }) {
+            Button(onClick = {
+                if (selectedKey != "OFF" && !hasDndPermission) {
+                    onDismiss()
+                    onRequireDndPermission()
+                } else {
+                    onModeSelected(selectedKey)
+                }
+            }) {
                 Text(stringResource(Res.string.action_confirm))
             }
         },

@@ -18,11 +18,12 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import org.koin.core.annotation.Single
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * 中心化的同步管理器（Android 端），负责启动共享层的同步，并监听同步完成事件来调度 Worker 与小组件刷新。
  */
-@Single
+@Single(createdAtStart = true)
 class SyncManager(
     private val appContext: Context,
     private val widgetDataSynchronizer: WidgetDataSynchronizer,
@@ -31,6 +32,12 @@ class SyncManager(
 ) {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val isStarted = AtomicBoolean(false)
+
+    // 在构造时自动触发启动逻辑
+    init {
+        startAllSynchronizers()
+    }
 
     private fun triggerNotificationWorker() {
         val workRequest = OneTimeWorkRequestBuilder<CourseNotificationWorker>().build()
@@ -45,6 +52,11 @@ class SyncManager(
      * 启动所有同步器及平台相关的后台调度
      */
     fun startAllSynchronizers() {
+        if (!isStarted.compareAndSet(false, true)) {
+            Log.d("SyncManager", "所有同步器已处于启动状态，跳过重复启动。")
+            return
+        }
+
         // 监听数据同步完成
         widgetDataSynchronizer.startSync()
         widgetDataSynchronizer.syncCompletedFlow

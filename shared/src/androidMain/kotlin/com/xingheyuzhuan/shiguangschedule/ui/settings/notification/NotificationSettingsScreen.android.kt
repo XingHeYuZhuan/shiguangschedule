@@ -5,8 +5,12 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.xingheyuzhuan.shiguangschedule.data.model.AutoControlMode
 import com.xingheyuzhuan.shiguangschedule.ui.components.ToastManager
 import org.jetbrains.compose.resources.stringResource
@@ -26,6 +30,7 @@ actual fun PlatformGeneralSettingsSection(
     viewModel: NotificationSettingsViewModel
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     // 注册通知权限请求器，若用户拒绝授权则通过 ToastManager 弹出提示
     val permissionDeniedMessage = stringResource(Res.string.toast_notification_permission_denied)
@@ -37,11 +42,23 @@ actual fun PlatformGeneralSettingsSection(
         }
     }
 
-    // 页面首次加载时检查系统权限状态，并在 Android 13+ 平台上按需发起通知权限申请
-    LaunchedEffect(Unit) {
-        viewModel.updateExactAlarmStatus(hasExactAlarmPermission(context))
-        viewModel.updateDndPermissionStatus(hasDndPermission(context))
+    // 监听生命周期：每次页面重新回到前台
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.updateExactAlarmStatus(hasExactAlarmPermission(context))
+                viewModel.updateDndPermissionStatus(hasDndPermission(context))
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
 
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // 页面首次挂载时在 Android 13+ 平台上按需发起通知权限申请
+    LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission(context)) {
             notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }

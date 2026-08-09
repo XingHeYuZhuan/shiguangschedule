@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import shiguangschedule.shared.generated.resources.Res
@@ -58,9 +59,10 @@ fun GeneralSettingsCard(
     onBatteryOptimizationClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 本地维护 Android 专属权限弹窗的显隐状态，不污染全平台 ViewModel
+    val context = LocalContext.current
+
+    // 仅在开启提醒开关但无权限时弹窗引导
     var showExactAlarmDialog by remember { mutableStateOf(false) }
-    var showDndDialog by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
         Text(
@@ -101,7 +103,17 @@ fun GeneralSettingsCard(
                     )
                     Switch(
                         checked = uiState.reminderEnabled,
-                        onCheckedChange = onReminderToggle
+                        onCheckedChange = { targetState ->
+                            if (targetState) {
+                                if (hasExactAlarmPermission(context)) {
+                                    onReminderToggle(true)
+                                } else {
+                                    showExactAlarmDialog = true
+                                }
+                            } else {
+                                onReminderToggle(false)
+                            }
+                        }
                     )
                 }
 
@@ -157,7 +169,7 @@ fun GeneralSettingsCard(
                     onClick = onRemindTimeClick
                 )
 
-                // 5. 精确闹钟权限 (Android 12+)
+                // 5. 精确闹钟权限 (Android 12+)：直接跳转页面
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     HorizontalDivider()
                     val statusText = if (uiState.exactAlarmStatus)
@@ -168,13 +180,13 @@ fun GeneralSettingsCard(
                     SettingItemRow(
                         title = stringResource(Res.string.item_exact_alarm_permission),
                         currentValue = statusText,
-                        onClick = { showExactAlarmDialog = true }
+                        onClick = { openExactAlarmSettings(context) }
                     )
                 }
 
                 HorizontalDivider()
 
-                // 6. 勿扰模式权限
+                // 6. 勿扰模式权限：直接跳转页面
                 val dndStatusText = if (uiState.dndPermissionStatus)
                     stringResource(Res.string.status_authorized)
                 else
@@ -183,7 +195,7 @@ fun GeneralSettingsCard(
                 SettingItemRow(
                     title = stringResource(Res.string.item_dnd_permission),
                     currentValue = dndStatusText,
-                    onClick = { showDndDialog = true }
+                    onClick = { openDndSettings(context) }
                 )
 
                 HorizontalDivider()
@@ -205,16 +217,10 @@ fun GeneralSettingsCard(
         }
     }
 
-    // 渲染 Android 专属权限弹窗组件
+    // 点击开启上课提醒无权限时显示的弹窗
     if (showExactAlarmDialog) {
         ExactAlarmPermissionGuideDialog(
             onDismiss = { showExactAlarmDialog = false }
-        )
-    }
-
-    if (showDndDialog) {
-        DndPermissionGuideDialog(
-            onDismiss = { showDndDialog = false }
         )
     }
 }

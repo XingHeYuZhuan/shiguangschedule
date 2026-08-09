@@ -24,8 +24,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -68,7 +70,6 @@ class WidgetDataSynchronizer(
         syncFlow
             .debounce(500.milliseconds)
             .onEach {
-                // 通知各平台：数据已同步更新，可以刷新 Widget 或系统通知了
                 _syncCompletedChannel.trySend(Unit)
             }
             .launchIn(scope)
@@ -95,7 +96,8 @@ class WidgetDataSynchronizer(
             } else {
                 flowOf(Quadruple(appSettings, emptyList(), emptyList(), null))
             }
-        }.combine(flowOf(Unit)) { (appSettings, coursesWithWeeks, timeSlots, config), _ ->
+        }
+        .map { (appSettings, coursesWithWeeks, timeSlots, config) ->
             if (config != null) {
                 performSync(appSettings, config, coursesWithWeeks, timeSlots)
             } else {
@@ -137,11 +139,11 @@ class WidgetDataSynchronizer(
         courseConfig: CourseTableConfig,
         coursesWithWeeks: List<CourseWithWeeks>,
         timeSlots: List<TimeSlot>
-    ) {
+    ) = withContext(Dispatchers.IO) {
         val semesterStartDateString = courseConfig.semesterStartDate ?: run {
             widgetRepository.deleteAll()
             widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
-            return
+            return@withContext
         }
         val semesterTotalWeeks = courseConfig.semesterTotalWeeks
         val firstDayOfWeekInt = courseConfig.firstDayOfWeek
@@ -149,7 +151,7 @@ class WidgetDataSynchronizer(
         if (semesterTotalWeeks <= 0) {
             widgetRepository.deleteAll()
             widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
-            return
+            return@withContext
         }
 
         // 更新小组件的全局基础设置
@@ -170,7 +172,7 @@ class WidgetDataSynchronizer(
         } catch (e: Exception) {
             widgetRepository.deleteAll()
             widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
-            return
+            return@withContext
         }
 
         // 将开学日期对齐到设定的每周起始日
