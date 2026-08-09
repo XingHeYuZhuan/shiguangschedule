@@ -18,8 +18,10 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -45,7 +47,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * 负责主数据库与 Widget 数据库之间的数据同步（跨平台共享核心逻辑）。
  * 持续监听应用设置、课表及时间段的变化，自动计算并写入优化后的 Widget 专用数据库。
  */
-@Single
+@Single(createdAtStart = true)
 class WidgetDataSynchronizer(
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository,
@@ -54,26 +56,13 @@ class WidgetDataSynchronizer(
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val widgetSyncDays = 7 // 每次同步未来 7 天的数据
+    private val isStarted = MutableStateFlow(false)
 
     // 内部通道：用于向各平台分发“数据同步完成”的通知信号
     private val _syncCompletedChannel = Channel<Unit>(Channel.CONFLATED)
 
     /** 暴露给各平台（Android / iOS）监听的同步完成事件流 */
     val syncCompletedFlow: Flow<Unit> = _syncCompletedChannel.receiveAsFlow()
-
-    /**
-     * 启动自动同步监听（跨平台调用入口）。
-     * 会对数据库流的变化进行防抖处理，并在每次同步完成后发出通知。
-     */
-    @OptIn(FlowPreview::class)
-    fun startSync() {
-        syncFlow
-            .debounce(500.milliseconds)
-            .onEach {
-                _syncCompletedChannel.trySend(Unit)
-            }
-            .launchIn(scope)
-    }
 
     /**
      * 持续监听主数据库变化的 Flow 核心链条。
@@ -106,6 +95,45 @@ class WidgetDataSynchronizer(
                 widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
             }
         }
+
+    init {
+        // 自动触发启动
+        startSync()
+    }
+
+    /**
+     * 启动自动同步监听（跨平台调用入口）。
+     * 会对数据库流的变化进行防抖处理，并在每次同步完成后发出通知。
+     */
+    @OptIn(FlowPreview::class)
+    fun startSync() {
+        // 确保防重：若已经启动过则直接返回
+        if (isStarted.value) return
+        isStarted.value = true
+
+        // 1. 监听课表数据与小组件所需数据的实时变更
+        syncFlow
+            .debounce(500.milliseconds)
+            .onEach {
+                _syncCompletedChannel.trySend(Unit)
+            }
+            .launchIn(scope)
+
+        // 2. 监听通知/自动化配置变更，同样触发同步通知（以便各平台调度 WorkManager/系统闹钟/DND 任务）
+        appSettingsRepository.getAppSettings()
+            .map { settings ->
+                Triple(
+                    settings.reminderEnabled to settings.remindBeforeMinutes,
+                    settings.autoModeEnabled to settings.autoControlMode,
+                    settings.compatWearableSync
+                )
+            }
+            .distinctUntilChanged()
+            .onEach {
+                _syncCompletedChannel.trySend(Unit)
+            }
+            .launchIn(scope)
+    }
 
     /** 四元组辅助数据类，用于 combine 操作符传递多路数据 */
     private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
