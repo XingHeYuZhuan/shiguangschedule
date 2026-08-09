@@ -34,21 +34,6 @@ android {
         }
     }
 
-    flavorDimensions += "version"
-
-    productFlavors {
-        create("dev") {
-            dimension = "version"
-            // 开发者版本包名后缀与版本名后缀
-            applicationIdSuffix = ".dev"
-            versionNameSuffix = "-dev"
-        }
-
-        create("prod") {
-            dimension = "version"
-        }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -110,7 +95,6 @@ dependencies {
 
 androidComponents {
     onVariants { variant ->
-        val flavor = variant.flavorName ?: ""
         val buildType = variant.buildType ?: ""
         val versionName = android.defaultConfig.versionName ?: ""
 
@@ -119,8 +103,8 @@ androidComponents {
                 it.filterType == FilterConfiguration.FilterType.ABI
             }?.identifier ?: "universal"
 
-            // 统一动态设置构建出的 APK 文件名
-            output.outputFileName.set("shiguangschedule-v${versionName}-${flavor}-${abiFilter}-${buildType}.apk")
+            // 动态设置输出的 APK 文件名
+            output.outputFileName.set("shiguangschedule-v${versionName}-${abiFilter}-${buildType}.apk")
         }
     }
 }

@@ -1,2 +1,3 @@
-# 忽略 Gradle 自动压缩生成的离线学校资源 Zip
+# Compose Resources 自动生成的产物
 src/commonMain/composeResources/files/offline_schools.zip
+src/commonMain/composeResources/files/aboutlibraries.json

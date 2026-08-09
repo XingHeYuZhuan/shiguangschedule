@@ -2,15 +2,6 @@ name: Android CI Build
 
 on:
   workflow_dispatch:
-    inputs:
-      build_label:
-        description: '请选择要构建的发布版本 (Choose Build Variant)'
-        required: true
-        default: '正式版'
-        type: choice
-        options:
-          - 正式版
-          - 开发者版
 
 jobs:
   build:
@@ -24,15 +15,15 @@ jobs:
 
       - name: 清理索引和资源目标目录 (Clean Specific Resource Dirs)
         run: |
-          # 强制删除 app/src/main/assets/offline_repo/index 和 schools 的内容
-          rm -rf app/src/main/assets/offline_repo/index
-          rm -rf app/src/main/assets/offline_repo/schools
-          mkdir -p app/src/main/assets/offline_repo/index
-          mkdir -p app/src/main/assets/offline_repo/schools
+          # 强制删除 shared/assets/offline_repo/index 和 schools 的内容
+          rm -rf shared/assets/offline_repo/index
+          rm -rf shared/assets/offline_repo/schools
+          mkdir -p shared/assets/offline_repo/index
+          mkdir -p shared/assets/offline_repo/schools
 
       - name: 克隆索引文件 (Clone Index PB File)
         run: |
-          INDEX_PATH="app/src/main/assets/offline_repo/index"
+          INDEX_PATH="shared/assets/offline_repo/index"
           REPO_URL="https://${{ secrets.GITHUB_TOKEN }}@github.com/XingHeYuZhuan/shiguang_warehouse.git"
           
           echo "--- 正在克隆 index-pb-release 分支并获取 school_index.pb ---"
@@ -57,7 +48,7 @@ jobs:
 
       - name: 克隆资源文件并清理 adapters.yaml (Clone Resources & Filter YAML)
         run: |
-          SCHOOLS_PATH="app/src/main/assets/offline_repo/schools"
+          SCHOOLS_PATH="shared/assets/offline_repo/schools"
           REPO_URL="https://${{ secrets.GITHUB_TOKEN }}@github.com/XingHeYuZhuan/shiguang_warehouse.git"
           
           ABS_SCHOOLS_PATH=$(realpath $SCHOOLS_PATH)
@@ -107,26 +98,6 @@ jobs:
           # 运行脚本，它将生成 app/src/main/assets/contributors_data 目录
           .github/scripts/build_contributors.sh    
 
-      - name: 步骤：解析构建标签，确定任务和风味
-        id: resolve_vars
-        run: |
-          LABEL="${{ github.event.inputs.build_label }}"
-
-          case "$LABEL" in
-            "正式版")
-              TASK="assembleProdRelease"
-              FLAVOR="prod"
-              ;;
-            "开发者版")
-              TASK="assembleDevRelease"
-              FLAVOR="dev"
-              ;;
-          esac
-
-          echo "task=$TASK" >> $GITHUB_OUTPUT
-          echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
-          echo "已选择：$LABEL，对应 Gradle 任务：$TASK"
-
       - name: 设置 JDK 21 (Setup JDK)
         uses: actions/setup-java@v4
         with:
@@ -147,21 +118,19 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
 
-
-      - name: 运行动态构建任务 (Build with Dynamic Flavor)
+      - name: 运行 Release 构建任务 (Build Release APK)
         run: |
           chmod +x ./gradlew
-          ./gradlew ${{ steps.resolve_vars.outputs.task }} \
+          ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file="${{ github.workspace }}/app/release.jks" \
             -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
             -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
             -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}" \
             --stacktrace
 
-
       - name: 上传构建产物到仓库 (Upload Artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: app-${{ steps.resolve_vars.outputs.flavor }}-release-apk
-          path: app/build/outputs/apk/${{ steps.resolve_vars.outputs.flavor }}/release/*.apk
+          name: app-release-apk
+          path: app/build/outputs/apk/release/*.apk
           retention-days: 7
