@@ -95,7 +95,7 @@ jobs:
           chmod +x .github/scripts/build_contributors.sh
 
           echo "--- 正在执行贡献者数据生成 ---"
-          # 运行脚本，它将生成 app/src/main/assets/contributors_data 目录
+          # 运行脚本
           .github/scripts/build_contributors.sh    
 
       - name: 设置 JDK 21 (Setup JDK)
@@ -116,13 +116,13 @@ jobs:
 
       - name: 解码并准备签名密钥文件 (Decode and Prepare Signing Key)
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > androidApp/release.jks
 
       - name: 运行 Release 构建任务 (Build Release APK)
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file="${{ github.workspace }}/app/release.jks" \
+            -Pandroid.injected.signing.store.file="${{ github.workspace }}/androidApp/release.jks" \
             -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
             -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
             -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}" \
@@ -132,5 +132,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: androidApp/build/outputs/apk/release/*.apk
           retention-days: 7
