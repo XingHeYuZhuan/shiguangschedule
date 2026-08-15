@@ -1,0 +1,38 @@
+package com.xingheyuzhuan.shiguangschedule.data.repository
+
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
+import kotlinx.coroutines.flow.Flow
+import org.koin.core.annotation.Single
+
+/**
+ * 时间段数据仓库。
+ */
+@Single
+class TimeSlotRepository(
+    private val timeSlotDao: TimeSlotDao
+) {
+    /**
+     * 获取指定课表的所有时间段，返回一个数据流。
+     */
+    fun getTimeSlotsByCourseTableId(courseTableId: String): Flow<List<TimeSlot>> {
+        return timeSlotDao.getTimeSlotsByCourseTableId(courseTableId)
+    }
+
+    /**
+     * 插入或更新所有时间段。
+     */
+    suspend fun insertAll(timeSlots: List<TimeSlot>) {
+        timeSlotDao.insertAll(timeSlots)
+    }
+
+    /**
+     * 完全替换指定课表下的所有时间段数据。
+     */
+    suspend fun replaceAllForCourseTable(courseTableId: String, timeSlots: List<TimeSlot>) {
+        timeSlotDao.deleteAllTimeSlotsByCourseTableId(courseTableId)
+        if (timeSlots.isNotEmpty()) {
+            timeSlotDao.insertAll(timeSlots)
+        }
+    }
+}
