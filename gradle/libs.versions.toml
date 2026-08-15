@@ -11,6 +11,7 @@ ksp = "2.3.10"
 composeMultiplatform = "1.11.1"
 kotlinxCoroutines = "1.11.0"
 material3 = "1.9.0"
+materialKolor = "5.0.0"
 
 # KMP 跨平台核心组件
 lifecycle = "2.11.0"
@@ -55,6 +56,9 @@ compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.r
 compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 compose-animation = { module = "org.jetbrains.compose.animation:animation", version.ref = "composeMultiplatform" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
+
+# Dynamic Color 动态主题
+material-kolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
 
 # Kotlin & 通用测试
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

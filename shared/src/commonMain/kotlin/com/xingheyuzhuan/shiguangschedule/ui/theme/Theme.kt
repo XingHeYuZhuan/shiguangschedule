@@ -7,6 +7,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import com.materialkolor.PaletteStyle
+import com.materialkolor.rememberDynamicColorScheme
 import com.xingheyuzhuan.shiguangschedule.data.model.AppSettingsModel
 import com.xingheyuzhuan.shiguangschedule.data.model.AppThemeMode
 
@@ -66,6 +68,22 @@ fun ShiguangScheduleTheme(
         colorScheme = colorScheme,
         typography = Typography,
         content = content
+    )
+}
+
+/**
+ * 共享的 MaterialKolor 动态配色方案生成函数
+ */
+@Composable
+fun rememberMaterialKolorScheme(
+    darkTheme: Boolean,
+    seedColor: Color,
+    style: PaletteStyle = PaletteStyle.Expressive
+): ColorScheme {
+    return rememberDynamicColorScheme(
+        seedColor = seedColor,
+        isDark = darkTheme,
+        style = style
     )
 }
 
