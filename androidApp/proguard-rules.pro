@@ -61,18 +61,8 @@
 }
 -keep class * extends com.squareup.wire.ProtoAdapter { *; }
 
-# WebView & JS 交互
--keep class com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web.AndroidBridge { *; }
--keepclassmembers class com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web.AndroidBridge {
-    @android.webkit.JavascriptInterface <methods>;
-}
 
 # 数据模型与数据库
--keep class * extends androidx.room3.RoomDatabase { <init>(); }
--keep class * implements androidx.room3.RoomDatabaseConstructor { *; }
--keep class * extends androidx.room3.RoomDatabaseConstructor { *; }
--keep @androidx.room3.Entity class * { *; }
--keep @androidx.room3.Dao interface * { *; }
 -dontwarn androidx.sqlite.**
 -keep class androidx.sqlite.** { *; }
 -keep class com.xingheyuzhuan.shiguangschedule.shared.** { *; }

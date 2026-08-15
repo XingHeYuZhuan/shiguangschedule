@@ -16,7 +16,7 @@ plugins {
 kotlin {
     listOf(
         iosArm64(),
-        // iosSimulatorArm64()
+        iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "Shared"
@@ -130,7 +130,7 @@ dependencies {
     add("kspAndroid", libs.androidx.room3.compiler)
     add("kspJvm", libs.androidx.room3.compiler)
     add("kspIosArm64", libs.androidx.room3.compiler)
-    // add("kspIosSimulatorArm64", libs.androidx.room3.compiler)
+    add("kspIosSimulatorArm64", libs.androidx.room3.compiler)
 }
 
 // 导出第三方依赖许可信息
