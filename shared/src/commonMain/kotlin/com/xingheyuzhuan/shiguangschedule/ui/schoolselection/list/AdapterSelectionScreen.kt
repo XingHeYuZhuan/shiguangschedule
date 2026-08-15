@@ -15,9 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,15 +39,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import school_index.Adapter
 import school_index.AdapterCategory
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_back_to_school_list
+import shiguangschedule.shared.generated.resources.arrow_back_24px
 import shiguangschedule.shared.generated.resources.category_bachelor_associate
 import shiguangschedule.shared.generated.resources.category_general_tool
 import shiguangschedule.shared.generated.resources.category_other
 import shiguangschedule.shared.generated.resources.category_postgraduate
+import shiguangschedule.shared.generated.resources.info_24px
 import shiguangschedule.shared.generated.resources.label_contributor_format
 import shiguangschedule.shared.generated.resources.label_contributor_unknown
 import shiguangschedule.shared.generated.resources.text_no_adapter_for_category_school
@@ -111,7 +111,7 @@ fun AdapterSelectionScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = stringResource(Res.string.a11y_back_to_school_list)
                         )
                     }
@@ -211,7 +211,7 @@ fun AdapterCard(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Default.Info,
+                    imageVector = vectorResource(Res.drawable.info_24px),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(16.dp)

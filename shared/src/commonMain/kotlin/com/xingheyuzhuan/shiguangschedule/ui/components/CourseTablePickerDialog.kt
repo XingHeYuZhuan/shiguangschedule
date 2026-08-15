@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -46,6 +44,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinViewModel
 import shiguangschedule.shared.generated.resources.Res
@@ -53,6 +52,7 @@ import shiguangschedule.shared.generated.resources.a11y_add_new_table
 import shiguangschedule.shared.generated.resources.action_add
 import shiguangschedule.shared.generated.resources.action_cancel
 import shiguangschedule.shared.generated.resources.action_confirm
+import shiguangschedule.shared.generated.resources.add_24px
 import shiguangschedule.shared.generated.resources.course_table_created_at_prefix
 import shiguangschedule.shared.generated.resources.course_table_id_prefix
 import shiguangschedule.shared.generated.resources.dialog_title_add_table
@@ -176,7 +176,7 @@ fun CourseTablePickerDialog(
                     )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = vectorResource(Res.drawable.add_24px),
                         contentDescription = stringResource(Res.string.a11y_add_new_table),
                         modifier = Modifier.size(20.dp)
                     )

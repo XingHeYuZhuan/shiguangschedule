@@ -11,11 +11,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,9 +38,28 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.xingheyuzhuan.shiguangschedule.ui.components.ToastManager
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.a11y_back
+import shiguangschedule.shared.generated.resources.a11y_delete
+import shiguangschedule.shared.generated.resources.a11y_save
+import shiguangschedule.shared.generated.resources.action_add
+import shiguangschedule.shared.generated.resources.add_24px
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.common_action_continue_editing
+import shiguangschedule.shared.generated.resources.common_action_exit_without_save
+import shiguangschedule.shared.generated.resources.common_dialog_msg_unsaved_changes
+import shiguangschedule.shared.generated.resources.common_dialog_title_abandon_changes
+import shiguangschedule.shared.generated.resources.delete_24px
+import shiguangschedule.shared.generated.resources.check_24px
+import shiguangschedule.shared.generated.resources.label_course_name
+import shiguangschedule.shared.generated.resources.title_add_course
+import shiguangschedule.shared.generated.resources.title_edit_course
+import shiguangschedule.shared.generated.resources.toast_delete_success
+import shiguangschedule.shared.generated.resources.toast_name_empty
+import shiguangschedule.shared.generated.resources.toast_save_success
+import shiguangschedule.shared.generated.resources.toast_time_invalid
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,7 +142,7 @@ fun AddEditCourseScreen(
                 navigationIcon = {
                     IconButton(onClick = handleBackPress) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = stringResource(Res.string.a11y_back)
                         )
                     }
@@ -136,7 +150,7 @@ fun AddEditCourseScreen(
                 actions = {
                     if (uiState.isEditing) {
                         IconButton(onClick = viewModel::onDelete) {
-                            Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.a11y_delete))
+                            Icon(vectorResource(Res.drawable.delete_24px), contentDescription = stringResource(Res.string.a11y_delete))
                         }
                     }
                     IconButton(
@@ -156,7 +170,7 @@ fun AddEditCourseScreen(
                             }
                         }
                     ) {
-                        Icon(Icons.Default.Done, contentDescription = stringResource(Res.string.a11y_save))
+                        Icon(vectorResource(Res.drawable.check_24px), contentDescription = stringResource(Res.string.a11y_save))
                     }
                 }
             )
@@ -238,7 +252,7 @@ fun AddEditCourseScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
+                    Icon(vectorResource(Res.drawable.add_24px), contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(Res.string.action_add),

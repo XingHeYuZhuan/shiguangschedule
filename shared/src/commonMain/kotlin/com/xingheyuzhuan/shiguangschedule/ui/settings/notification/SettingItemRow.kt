@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,8 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_details
+import shiguangschedule.shared.generated.resources.chevron_right_24px
 
 /**
  * 设置项单行通用 UI 组件
@@ -62,7 +62,7 @@ fun SettingItemRow(
                 )
             }
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                imageVector = vectorResource(Res.drawable.chevron_right_24px),
                 contentDescription = stringResource(Res.string.a11y_details),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

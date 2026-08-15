@@ -28,10 +28,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
@@ -87,7 +83,56 @@ import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.stringResource
-import shiguangschedule.shared.generated.resources.*
+import org.jetbrains.compose.resources.vectorResource
+import shiguangschedule.shared.generated.resources.Res
+import shiguangschedule.shared.generated.resources.action_cancel
+import shiguangschedule.shared.generated.resources.action_confirm
+import shiguangschedule.shared.generated.resources.action_reset
+import shiguangschedule.shared.generated.resources.action_reset_style
+import shiguangschedule.shared.generated.resources.border_type_dashed
+import shiguangschedule.shared.generated.resources.border_type_solid
+import shiguangschedule.shared.generated.resources.check_24px
+import shiguangschedule.shared.generated.resources.desc_wallpaper_set
+import shiguangschedule.shared.generated.resources.desc_wallpaper_unset
+import shiguangschedule.shared.generated.resources.dialog_reset_message
+import shiguangschedule.shared.generated.resources.dialog_reset_title
+import shiguangschedule.shared.generated.resources.format_week_display
+import shiguangschedule.shared.generated.resources.image_24px
+import shiguangschedule.shared.generated.resources.label_border_type
+import shiguangschedule.shared.generated.resources.label_corner_radius
+import shiguangschedule.shared.generated.resources.label_course_text_color
+import shiguangschedule.shared.generated.resources.label_day_header_height
+import shiguangschedule.shared.generated.resources.label_font_scale
+import shiguangschedule.shared.generated.resources.label_hide_date_under_day
+import shiguangschedule.shared.generated.resources.label_hide_grid_lines
+import shiguangschedule.shared.generated.resources.label_hide_location
+import shiguangschedule.shared.generated.resources.label_hide_section_time
+import shiguangschedule.shared.generated.resources.label_hide_teacher
+import shiguangschedule.shared.generated.resources.label_inner_padding
+import shiguangschedule.shared.generated.resources.label_none
+import shiguangschedule.shared.generated.resources.label_opacity
+import shiguangschedule.shared.generated.resources.label_outer_padding
+import shiguangschedule.shared.generated.resources.label_page_text_color
+import shiguangschedule.shared.generated.resources.label_range
+import shiguangschedule.shared.generated.resources.label_remove_location_at
+import shiguangschedule.shared.generated.resources.label_schedule_mode_24h
+import shiguangschedule.shared.generated.resources.label_section_height
+import shiguangschedule.shared.generated.resources.label_show_start_time
+import shiguangschedule.shared.generated.resources.label_text_align_center_h
+import shiguangschedule.shared.generated.resources.label_text_align_center_v
+import shiguangschedule.shared.generated.resources.label_time_column_width
+import shiguangschedule.shared.generated.resources.label_wallpaper
+import shiguangschedule.shared.generated.resources.placeholder_input_value
+import shiguangschedule.shared.generated.resources.preview_dark_mode
+import shiguangschedule.shared.generated.resources.preview_light_mode
+import shiguangschedule.shared.generated.resources.refresh_24px
+import shiguangschedule.shared.generated.resources.status_not_set
+import shiguangschedule.shared.generated.resources.style_category_color_scheme
+import shiguangschedule.shared.generated.resources.style_category_course_block
+import shiguangschedule.shared.generated.resources.style_category_grid_size
+import shiguangschedule.shared.generated.resources.style_category_interface
+import shiguangschedule.shared.generated.resources.title_dark_color_pool
+import shiguangschedule.shared.generated.resources.title_light_color_pool
 import kotlin.math.roundToInt
 import kotlin.time.Clock
 
@@ -531,7 +576,7 @@ fun StyleSwitchItem(
             checked = checked,
             onCheckedChange = onCheckedChange,
             thumbContent = if (checked) {
-                { Icon(modifier = Modifier.size(SwitchDefaults.IconSize), imageVector = Icons.Filled.Check, contentDescription = null) }
+                { Icon(modifier = Modifier.size(SwitchDefaults.IconSize), imageVector = vectorResource(Res.drawable.check_24px), contentDescription = null) }
             } else null
         )
     }
@@ -562,7 +607,7 @@ fun WallpaperItem(
             )
         }
         Icon(
-            imageVector = Icons.Default.Image,
+            imageVector = vectorResource(Res.drawable.image_24px),
             contentDescription = null,
             tint = if (hasWallpaper) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
         )
@@ -631,7 +676,7 @@ fun ColorPickerItem(
                         onReset()
                         showSheet = false
                     }) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(vectorResource(Res.drawable.refresh_24px), contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(Res.string.action_reset))
                     }

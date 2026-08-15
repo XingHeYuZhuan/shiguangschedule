@@ -1,13 +1,28 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings.course
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.StickyNote2
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,8 +34,19 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.model.DualColor
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.delete_24px
+import shiguangschedule.shared.generated.resources.label_custom_time
+import shiguangschedule.shared.generated.resources.label_day_of_week
+import shiguangschedule.shared.generated.resources.label_position
+import shiguangschedule.shared.generated.resources.label_remark
+import shiguangschedule.shared.generated.resources.label_section_range_suffix
+import shiguangschedule.shared.generated.resources.label_teacher
+import shiguangschedule.shared.generated.resources.location_on_24px
+import shiguangschedule.shared.generated.resources.person_24px
+import shiguangschedule.shared.generated.resources.sticky_note_2_24px
+import shiguangschedule.shared.generated.resources.week_days_full_names
 
 /**
  * 课程方案卡片
@@ -64,7 +90,7 @@ fun CourseSchemeCard(
             // 右侧内容区
             Column(modifier = Modifier.padding(16.dp).weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Person, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(vectorResource(Res.drawable.person_24px), null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                     TextField(
                         value = scheme.teacher,
                         onValueChange = onTeacherChange,
@@ -89,7 +115,7 @@ fun CourseSchemeCard(
 
                     if (showRemoveButton) {
                         IconButton(onClick = onRemoveClick) {
-                            Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
+                            Icon(vectorResource(Res.drawable.delete_24px), null, tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -100,7 +126,7 @@ fun CourseSchemeCard(
                     onValueChange = onPositionChange,
                     placeholder = { Text(stringResource(Res.string.label_position)) },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.LocationOn, null, Modifier.size(18.dp)) },
+                    leadingIcon = { Icon(vectorResource(Res.drawable.location_on_24px), null, Modifier.size(18.dp)) },
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true
                 )
@@ -113,7 +139,7 @@ fun CourseSchemeCard(
                     onValueChange = onRemarkChange,
                     placeholder = { Text(stringResource(Res.string.label_remark)) },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(imageVector = Icons.AutoMirrored.Filled.StickyNote2, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    leadingIcon = { Icon(imageVector = vectorResource(Res.drawable.sticky_note_2_24px), contentDescription = null, modifier = Modifier.size(18.dp)) },
                     minLines = 1,
                     maxLines = 5,
                     supportingText = {

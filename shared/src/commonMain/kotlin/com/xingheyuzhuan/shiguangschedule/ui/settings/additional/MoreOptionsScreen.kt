@@ -8,15 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ListAlt
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.PeopleAlt
-import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,11 +37,31 @@ import com.xingheyuzhuan.shiguangschedule.tool.UpdateStatus
 import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsViewModel
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.qualifier.named
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.a11y_back
+import shiguangschedule.shared.generated.resources.app_name
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.code_24px
+import shiguangschedule.shared.generated.resources.home_24px
+import shiguangschedule.shared.generated.resources.item_check_software_update
+import shiguangschedule.shared.generated.resources.item_contributors
+import shiguangschedule.shared.generated.resources.item_github_repo
+import shiguangschedule.shared.generated.resources.item_language_settings
+import shiguangschedule.shared.generated.resources.item_open_source_licenses
+import shiguangschedule.shared.generated.resources.item_start_screen_settings
+import shiguangschedule.shared.generated.resources.item_update_repo
+import shiguangschedule.shared.generated.resources.label_version_prefix
+import shiguangschedule.shared.generated.resources.language_24px
+import shiguangschedule.shared.generated.resources.list_alt_24px
+import shiguangschedule.shared.generated.resources.palette_24px
+import shiguangschedule.shared.generated.resources.people_alt_24px
+import shiguangschedule.shared.generated.resources.theme_settings_title
+import shiguangschedule.shared.generated.resources.title_more_options
+import shiguangschedule.shared.generated.resources.update_24px
 
 private const val GITHUB_REPO_URL = "https://github.com/XingHeYuZhuan/shiguangschedule"
 
@@ -100,7 +111,7 @@ fun MoreOptionsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = stringResource(Res.string.a11y_back)
                         )
                     }
@@ -162,28 +173,28 @@ fun MoreOptionsScreen(
 
                     // 检查更新
                     SettingListItem(
-                        icon = Icons.Default.Update,
+                        icon = vectorResource(Res.drawable.update_24px),
                         title = stringResource(Res.string.item_check_software_update),
                         onClick = { showChannelDialog = true }
                     )
 
                     // 语言切换 (导航至独立页面)
                     SettingListItem(
-                        icon = Icons.Default.Language,
+                        icon = vectorResource(Res.drawable.language_24px),
                         title = stringResource(Res.string.item_language_settings),
                         onClick = { onNavigate(Destination.LanguageSettings) }
                     )
 
                     // 主题设置
                     SettingListItem(
-                        icon = Icons.Default.Palette,
+                        icon = vectorResource(Res.drawable.palette_24px),
                         title = stringResource(Res.string.theme_settings_title),
                         onClick = { onNavigate(Destination.ThemeSettings) }
                     )
 
                     // 启动页面设置
                     SettingListItem(
-                        icon = Icons.Default.Home,
+                        icon = vectorResource(Res.drawable.home_24px),
                         title = stringResource(Res.string.item_start_screen_settings),
                         onClick = { showStartScreenDialog = true },
                         trailingContent = {
@@ -197,28 +208,28 @@ fun MoreOptionsScreen(
 
                     // GitHub 仓库
                     SettingListItem(
-                        icon = Icons.Default.Code,
+                        icon = vectorResource(Res.drawable.code_24px),
                         title = stringResource(Res.string.item_github_repo),
                         onClick = { uriHandler.openUri(GITHUB_REPO_URL) }
                     )
 
                     // 开源许可证
                     SettingListItem(
-                        icon = Icons.AutoMirrored.Filled.ListAlt,
+                        icon = vectorResource(Res.drawable.list_alt_24px),
                         title = stringResource(Res.string.item_open_source_licenses),
                         onClick = { onNavigate(Destination.OpenSourceLicenses) }
                     )
 
                     // 更新适配仓库
                     SettingListItem(
-                        icon = Icons.Default.Update,
+                        icon = vectorResource(Res.drawable.update_24px),
                         title = stringResource(Res.string.item_update_repo),
                         onClick = { onNavigate(Destination.UpdateRepo) }
                     )
 
                     // 贡献者
                     SettingListItem(
-                        icon = Icons.Default.PeopleAlt,
+                        icon = vectorResource(Res.drawable.people_alt_24px),
                         title = stringResource(Res.string.item_contributors),
                         onClick = { onNavigate(Destination.ContributionList) },
                         showDivider = false

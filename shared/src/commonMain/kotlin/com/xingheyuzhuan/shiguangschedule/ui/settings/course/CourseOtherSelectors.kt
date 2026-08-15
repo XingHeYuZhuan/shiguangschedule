@@ -24,8 +24,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,8 +52,19 @@ import com.xingheyuzhuan.shiguangschedule.data.model.DualColor
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.action_cancel
+import shiguangschedule.shared.generated.resources.action_confirm
+import shiguangschedule.shared.generated.resources.action_double_week
+import shiguangschedule.shared.generated.resources.action_select_all
+import shiguangschedule.shared.generated.resources.action_single_week
+import shiguangschedule.shared.generated.resources.check_24px
+import shiguangschedule.shared.generated.resources.label_course_weeks
+import shiguangschedule.shared.generated.resources.label_none
+import shiguangschedule.shared.generated.resources.text_weeks_selected
+import shiguangschedule.shared.generated.resources.title_select_color
+import shiguangschedule.shared.generated.resources.title_select_weeks
 
 
 @Composable
@@ -318,7 +327,7 @@ fun ColorPickerBottomSheet(
                     ) {
                         if (isSelected) {
                             Icon(
-                                imageVector = Icons.Default.Done,
+                                imageVector = vectorResource(Res.drawable.check_24px),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(20.dp)

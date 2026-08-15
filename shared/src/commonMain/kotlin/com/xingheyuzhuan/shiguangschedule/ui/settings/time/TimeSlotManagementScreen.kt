@@ -15,11 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -62,9 +57,45 @@ import com.xingheyuzhuan.shiguangschedule.ui.components.ToastManager
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.a11y_add_time_slot
+import shiguangschedule.shared.generated.resources.a11y_back
+import shiguangschedule.shared.generated.resources.a11y_delete_time_slot
+import shiguangschedule.shared.generated.resources.a11y_save_all_settings
+import shiguangschedule.shared.generated.resources.action_add
+import shiguangschedule.shared.generated.resources.action_cancel
+import shiguangschedule.shared.generated.resources.action_save_changes
+import shiguangschedule.shared.generated.resources.add_24px
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.common_action_continue_editing
+import shiguangschedule.shared.generated.resources.common_action_exit_without_save
+import shiguangschedule.shared.generated.resources.common_dialog_msg_unsaved_changes
+import shiguangschedule.shared.generated.resources.common_dialog_title_abandon_changes
+import shiguangschedule.shared.generated.resources.delete_24px
+import shiguangschedule.shared.generated.resources.dialog_title_add_time_slot
+import shiguangschedule.shared.generated.resources.dialog_title_edit_time_slot
+import shiguangschedule.shared.generated.resources.label_break_duration_minutes
+import shiguangschedule.shared.generated.resources.label_class_duration_minutes
+import shiguangschedule.shared.generated.resources.label_time_picker_end
+import shiguangschedule.shared.generated.resources.label_time_picker_hour
+import shiguangschedule.shared.generated.resources.label_time_picker_minute
+import shiguangschedule.shared.generated.resources.label_time_picker_start
+import shiguangschedule.shared.generated.resources.label_time_slot_alias
+import shiguangschedule.shared.generated.resources.save_24px
+import shiguangschedule.shared.generated.resources.text_no_time_slots_hint
+import shiguangschedule.shared.generated.resources.time_slot_section_number
+import shiguangschedule.shared.generated.resources.title_default_duration_settings
+import shiguangschedule.shared.generated.resources.title_time_slot_management
+import shiguangschedule.shared.generated.resources.toast_break_duration_non_negative
+import shiguangschedule.shared.generated.resources.toast_class_duration_positive
+import shiguangschedule.shared.generated.resources.toast_end_time_must_be_later
+import shiguangschedule.shared.generated.resources.toast_settings_saved
+import shiguangschedule.shared.generated.resources.toast_slot_added_unsaved
+import shiguangschedule.shared.generated.resources.toast_slot_modified_unsaved
+import shiguangschedule.shared.generated.resources.toast_slot_removed_unsaved
+import shiguangschedule.shared.generated.resources.toast_time_conflict
 
 /**
  * 时间段管理界面的 Compose UI。
@@ -146,7 +177,7 @@ fun TimeSlotManagementScreen(
                 title = { Text(titleTimeSlotManagement) },
                 navigationIcon = {
                     IconButton(onClick = handleBackPress) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = a11yBack)
+                        Icon(vectorResource(Res.drawable.arrow_back_24px), contentDescription = a11yBack)
                     }
                 },
                 actions = {
@@ -154,7 +185,7 @@ fun TimeSlotManagementScreen(
                         editingTimeSlot = null
                         showEditBottomSheet = true
                     }) {
-                        Icon(Icons.Filled.Add, contentDescription = a11yAddTimeSlot)
+                        Icon(vectorResource(Res.drawable.add_24px), contentDescription = a11yAddTimeSlot)
                     }
                     IconButton(onClick = {
                         coroutineScope.launch {
@@ -172,7 +203,7 @@ fun TimeSlotManagementScreen(
                             )
                         }
                     }) {
-                        Icon(Icons.Filled.Save, contentDescription = a11ySaveAllSettings)
+                        Icon(vectorResource(Res.drawable.save_24px), contentDescription = a11ySaveAllSettings)
                     }
                 }
             )
@@ -424,7 +455,7 @@ fun TimeSlotItem(
                 softWrap = false
             )
             IconButton(onClick = onDeleteClick) {
-                Icon(Icons.Filled.Delete, contentDescription = a11yDeleteTimeSlot)
+                Icon(vectorResource(Res.drawable.delete_24px), contentDescription = a11yDeleteTimeSlot)
             }
         }
     }

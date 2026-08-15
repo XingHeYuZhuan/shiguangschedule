@@ -8,9 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -24,7 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import shiguangschedule.shared.generated.resources.Res
+import shiguangschedule.shared.generated.resources.chevron_right_24px
+import shiguangschedule.shared.generated.resources.favorite_24px
 import shiguangschedule.shared.generated.resources.label_special_thanks
 import shiguangschedule.shared.generated.resources.text_acknowledgment_body
 
@@ -50,7 +50,7 @@ fun SettingListItem(
         },
         trailingContent = trailingContent ?: {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                imageVector = vectorResource(Res.drawable.chevron_right_24px),
                 contentDescription = null
             )
         }
@@ -75,7 +75,7 @@ fun AcknowledgmentContent() {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = Icons.Default.Favorite,
+                imageVector = vectorResource(Res.drawable.favorite_24px),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)

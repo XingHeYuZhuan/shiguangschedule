@@ -18,12 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
@@ -68,9 +62,38 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.a11y_back
+import shiguangschedule.shared.generated.resources.action_cancel
+import shiguangschedule.shared.generated.resources.action_confirm
+import shiguangschedule.shared.generated.resources.action_deselect_all
+import shiguangschedule.shared.generated.resources.action_select_all
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.calendar_today_24px
+import shiguangschedule.shared.generated.resources.close_24px
+import shiguangschedule.shared.generated.resources.confirm_delete
+import shiguangschedule.shared.generated.resources.course_time_day_section_details_tweak
+import shiguangschedule.shared.generated.resources.course_time_day_time_details_tweak
+import shiguangschedule.shared.generated.resources.delete_24px
+import shiguangschedule.shared.generated.resources.dialog_delete_confirm_msg
+import shiguangschedule.shared.generated.resources.filter_list_24px
+import shiguangschedule.shared.generated.resources.hint_affected_count
+import shiguangschedule.shared.generated.resources.hint_no_selection
+import shiguangschedule.shared.generated.resources.item_quick_delete
+import shiguangschedule.shared.generated.resources.label_day_of_week
+import shiguangschedule.shared.generated.resources.label_dimension_dates
+import shiguangschedule.shared.generated.resources.label_dimension_weeks_days
+import shiguangschedule.shared.generated.resources.label_none
+import shiguangschedule.shared.generated.resources.label_weeks_format
+import shiguangschedule.shared.generated.resources.quick_delete_dialog_select_date_title
+import shiguangschedule.shared.generated.resources.quick_delete_filter_date_range_hint
+import shiguangschedule.shared.generated.resources.quick_delete_filter_weeks_days_hint
+import shiguangschedule.shared.generated.resources.quick_delete_label_days_prefix
+import shiguangschedule.shared.generated.resources.title_current_week
+import shiguangschedule.shared.generated.resources.title_select_weeks
+import shiguangschedule.shared.generated.resources.week_days_full_names
 import kotlin.time.Instant
 
 /**
@@ -124,7 +147,7 @@ fun QuickDeleteScreen(
                 title = { Text(stringResource(Res.string.item_quick_delete)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.a11y_back))
+                        Icon(vectorResource(Res.drawable.arrow_back_24px), stringResource(Res.string.a11y_back))
                     }
                 }
             )
@@ -140,7 +163,7 @@ fun QuickDeleteScreen(
                             .padding(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                     ) {
-                        Icon(Icons.Default.DeleteForever, null)
+                        Icon(vectorResource(Res.drawable.delete_24px), null)
                         Spacer(Modifier.size(8.dp))
                         Text(stringResource(Res.string.confirm_delete))
                     }
@@ -171,7 +194,7 @@ fun QuickDeleteScreen(
                         modifier = Modifier.padding(16.dp).fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.FilterList, null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(vectorResource(Res.drawable.filter_list_24px), null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             if (uiState.selectedWeeks.isEmpty() || uiState.selectedDays.isEmpty()) {
@@ -196,7 +219,7 @@ fun QuickDeleteScreen(
                         // 如果有选择内容，显示清除图标
                         if (uiState.selectedWeeks.isNotEmpty() || uiState.selectedDays.isNotEmpty()) {
                             IconButton(onClick = { viewModel.clearWeeksAndDays() }, modifier = Modifier.size(24.dp)) {
-                                Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp))
+                                Icon(vectorResource(Res.drawable.close_24px), null, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -218,7 +241,7 @@ fun QuickDeleteScreen(
                         modifier = Modifier.padding(16.dp).fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.DateRange, null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(vectorResource(Res.drawable.calendar_today_24px), null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(12.dp))
                         val dateText = if (uiState.startDate != null && uiState.endDate != null) {
                             "${uiState.startDate} ~ ${uiState.endDate}"
@@ -233,7 +256,7 @@ fun QuickDeleteScreen(
                         )
                         if (uiState.startDate != null) {
                             IconButton(onClick = { viewModel.clearDateRange() }, modifier = Modifier.size(24.dp)) {
-                                Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp))
+                                Icon(vectorResource(Res.drawable.close_24px), null, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -487,7 +510,7 @@ fun DeletePreviewCard(
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            Icon(Icons.Default.DeleteForever, null, tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+            Icon(vectorResource(Res.drawable.delete_24px), null, tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
         }
     }
 }

@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DeveloperMode
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
@@ -36,8 +34,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_app_icon
+import shiguangschedule.shared.generated.resources.developer_mode_24px
 import shiguangschedule.shared.generated.resources.ic_launcher_foreground
 import shiguangschedule.shared.generated.resources.item_developer_options
 
@@ -108,7 +108,7 @@ fun DeveloperModeSettingItem(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingListItem(
-                icon = Icons.Default.DeveloperMode,
+                icon = vectorResource(Res.drawable.developer_mode_24px),
                 title = stringResource(Res.string.item_developer_options),
                 onClick = { onDeveloperModeChanged(!isDeveloperModeEnabled) },
                 showDivider = false,

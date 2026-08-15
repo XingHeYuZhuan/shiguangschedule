@@ -10,9 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,11 +44,14 @@ import okio.Buffer
 import okio.FileSystem
 import okio.SYSTEM
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_back
 import shiguangschedule.shared.generated.resources.a11y_details
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.chevron_right_24px
 import shiguangschedule.shared.generated.resources.desc_backup_restore
 import shiguangschedule.shared.generated.resources.desc_export_ics_with_alarm
 import shiguangschedule.shared.generated.resources.desc_export_json_with_config
@@ -173,7 +173,7 @@ fun CourseTableConversionScreen(
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = vectorResource(Res.drawable.arrow_back_24px),
                                 contentDescription = stringResource(Res.string.a11y_back)
                             )
                         }
@@ -313,7 +313,7 @@ private fun ConversionRow(
             Text(desc, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Icon(
-            imageVector = Icons.Filled.ChevronRight,
+            imageVector = vectorResource(Res.drawable.chevron_right_24px),
             contentDescription = stringResource(Res.string.a11y_details),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )

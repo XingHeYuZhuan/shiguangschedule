@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -48,9 +45,55 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.action_cancel
+import shiguangschedule.shared.generated.resources.action_confirm
+import shiguangschedule.shared.generated.resources.chevron_right_24px
+import shiguangschedule.shared.generated.resources.date_format_year_month_day
+import shiguangschedule.shared.generated.resources.day_of_week_monday
+import shiguangschedule.shared.generated.resources.day_of_week_sunday
+import shiguangschedule.shared.generated.resources.desc_course_conversion
+import shiguangschedule.shared.generated.resources.desc_course_management
+import shiguangschedule.shared.generated.resources.desc_current_week_manual
+import shiguangschedule.shared.generated.resources.desc_first_day_of_week
+import shiguangschedule.shared.generated.resources.desc_manage_course_tables
+import shiguangschedule.shared.generated.resources.desc_more_options
+import shiguangschedule.shared.generated.resources.desc_notification_settings
+import shiguangschedule.shared.generated.resources.desc_personalization
+import shiguangschedule.shared.generated.resources.desc_quick_actions
+import shiguangschedule.shared.generated.resources.desc_set_start_date
+import shiguangschedule.shared.generated.resources.desc_show_non_current_week
+import shiguangschedule.shared.generated.resources.desc_show_weekends
+import shiguangschedule.shared.generated.resources.desc_time_slot_customization
+import shiguangschedule.shared.generated.resources.desc_total_weeks
+import shiguangschedule.shared.generated.resources.dialog_title_manual_set_week
+import shiguangschedule.shared.generated.resources.dialog_title_select_total_weeks
+import shiguangschedule.shared.generated.resources.dialog_title_set_first_day_of_week
+import shiguangschedule.shared.generated.resources.item_course_conversion
+import shiguangschedule.shared.generated.resources.item_course_management
+import shiguangschedule.shared.generated.resources.item_current_week
+import shiguangschedule.shared.generated.resources.item_first_day_of_week
+import shiguangschedule.shared.generated.resources.item_more_options
+import shiguangschedule.shared.generated.resources.item_personalization
+import shiguangschedule.shared.generated.resources.item_quick_actions
+import shiguangschedule.shared.generated.resources.item_set_start_date
+import shiguangschedule.shared.generated.resources.item_show_non_current_week
+import shiguangschedule.shared.generated.resources.item_show_weekends
+import shiguangschedule.shared.generated.resources.item_time_slot_customization
+import shiguangschedule.shared.generated.resources.item_total_weeks
+import shiguangschedule.shared.generated.resources.more_horiz_24px
+import shiguangschedule.shared.generated.resources.section_title_advanced_features
+import shiguangschedule.shared.generated.resources.section_title_general_settings
+import shiguangschedule.shared.generated.resources.status_current_week_format
+import shiguangschedule.shared.generated.resources.status_not_set
+import shiguangschedule.shared.generated.resources.status_set_start_date_first
+import shiguangschedule.shared.generated.resources.status_total_weeks_format
+import shiguangschedule.shared.generated.resources.title_course_notification_settings
+import shiguangschedule.shared.generated.resources.title_manage_course_tables
+import shiguangschedule.shared.generated.resources.title_schedule_settings
+import shiguangschedule.shared.generated.resources.title_vacation
 
 private val SETTING_PADDING = 16.dp
 private val SECTION_SPACING = 16.dp
@@ -365,7 +408,7 @@ private fun AdvancedSettingsSection(onNavigate: (Destination) -> Unit) {
                 title = stringResource(Res.string.item_more_options),
                 subtitle = stringResource(Res.string.desc_more_options),
                 onClick = { onNavigate(Destination.MoreOptions) },
-                icon = Icons.Default.MoreHoriz
+                icon = vectorResource(Res.drawable.more_horiz_24px)
             )
         }
     }
@@ -378,7 +421,7 @@ private fun AdvancedSettingsSection(onNavigate: (Destination) -> Unit) {
 private fun SettingItem(
     title: String,
     subtitle: String,
-    icon: ImageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+    icon: ImageVector = vectorResource(Res.drawable.chevron_right_24px),
     onClick: (() -> Unit)? = null,
     trailingContent: @Composable () -> Unit = { Icon(icon, contentDescription = null) }
 ) {

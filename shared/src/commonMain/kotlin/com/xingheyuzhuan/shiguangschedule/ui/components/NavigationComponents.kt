@@ -1,13 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule.ui.components
 
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ViewAgenda
-import androidx.compose.material.icons.filled.ViewWeek
-import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.ViewAgenda
-import androidx.compose.material.icons.outlined.ViewWeek
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -22,18 +15,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.xingheyuzhuan.shiguangschedule.Destination
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import shiguangschedule.shared.generated.resources.Res
+import shiguangschedule.shared.generated.resources.account_circle_24px
+import shiguangschedule.shared.generated.resources.account_circle_filled_24px
 import shiguangschedule.shared.generated.resources.nav_course_schedule
 import shiguangschedule.shared.generated.resources.nav_settings
 import shiguangschedule.shared.generated.resources.nav_today_schedule
+import shiguangschedule.shared.generated.resources.view_agenda_24px
+import shiguangschedule.shared.generated.resources.view_agenda_filled_24px
+import shiguangschedule.shared.generated.resources.view_week_24px
+import shiguangschedule.shared.generated.resources.view_week_filled_24px
 
 /**
- * 导航 3 版本的底部导航栏 (Compose Multiplatform 跨平台版)
- * @param currentDestination 当前所在的 Destination 对象
- * @param onTabSelected 当用户点击 Tab 时的回调
- * @param isTransparent 是否开启透明模式（用于课表背景图展示）
- * @param contentColor 自定义内容颜色（通常来自课表样式的文字颜色）
- * @param modifier 外部传入的修饰符，用于支持折叠动画同步
+ * 底部导航栏组件
+ *
+ * @param currentDestination 当前路由 Destination 对象
+ * @param onTabSelected 点击 Tab 时的回调
+ * @param isTransparent 是否开启透明模式
+ * @param contentColor 自定义文本与图标颜色
+ * @param modifier 布局修饰符
  */
 @Composable
 fun BottomNavigationBar(
@@ -43,11 +44,22 @@ fun BottomNavigationBar(
     isTransparent: Boolean = false,
     contentColor: Color? = null
 ) {
-    // 定义底部三个主入口及其对应的文本和图标
     val navItems = listOf(
-        Triple(stringResource(Res.string.nav_today_schedule), Destination.TodaySchedule, Icons.Filled.ViewAgenda to Icons.Outlined.ViewAgenda),
-        Triple(stringResource(Res.string.nav_course_schedule), Destination.CourseSchedule, Icons.Filled.ViewWeek to Icons.Outlined.ViewWeek),
-        Triple(stringResource(Res.string.nav_settings), Destination.Settings, Icons.Filled.AccountCircle to Icons.Outlined.AccountCircle)
+        Triple(
+            stringResource(Res.string.nav_today_schedule),
+            Destination.TodaySchedule,
+            vectorResource(Res.drawable.view_agenda_filled_24px) to vectorResource(Res.drawable.view_agenda_24px)
+        ),
+        Triple(
+            stringResource(Res.string.nav_course_schedule),
+            Destination.CourseSchedule,
+            vectorResource(Res.drawable.view_week_filled_24px) to vectorResource(Res.drawable.view_week_24px)
+        ),
+        Triple(
+            stringResource(Res.string.nav_settings),
+            Destination.Settings,
+            vectorResource(Res.drawable.account_circle_filled_24px) to vectorResource(Res.drawable.account_circle_24px)
+        )
     )
 
     val iconSize = 24.dp

@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,8 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.action_cancel
+import shiguangschedule.shared.generated.resources.archive_24px
+import shiguangschedule.shared.generated.resources.close_24px
 import shiguangschedule.shared.generated.resources.floating_course_hint
 
 @Composable
@@ -57,7 +57,7 @@ fun FloatingCourseBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Archive,
+                    imageVector = vectorResource(Res.drawable.archive_24px),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(20.dp)
@@ -88,7 +88,7 @@ fun FloatingCourseBar(
                         )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = vectorResource(Res.drawable.close_24px),
                         contentDescription = stringResource(Res.string.action_cancel),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(16.dp)

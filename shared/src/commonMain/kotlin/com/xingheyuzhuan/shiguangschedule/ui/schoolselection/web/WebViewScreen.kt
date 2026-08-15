@@ -12,15 +12,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.DesktopWindows
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -58,6 +49,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.components.ToastManager
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
@@ -72,9 +64,17 @@ import shiguangschedule.shared.generated.resources.action_execute_import
 import shiguangschedule.shared.generated.resources.action_refresh
 import shiguangschedule.shared.generated.resources.action_switch_to_desktop_mode
 import shiguangschedule.shared.generated.resources.action_switch_to_phone_mode
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.arrow_forward_24px
+import shiguangschedule.shared.generated.resources.build_24px
+import shiguangschedule.shared.generated.resources.desktop_windows_24px
 import shiguangschedule.shared.generated.resources.dialog_title_select_table_for_import
 import shiguangschedule.shared.generated.resources.item_devtools_debug
+import shiguangschedule.shared.generated.resources.link_24px
+import shiguangschedule.shared.generated.resources.more_vert_24px
+import shiguangschedule.shared.generated.resources.phone_android_24px
 import shiguangschedule.shared.generated.resources.placeholder_enter_url_full
+import shiguangschedule.shared.generated.resources.refresh_24px
 import shiguangschedule.shared.generated.resources.status_disabled
 import shiguangschedule.shared.generated.resources.status_enabled
 import shiguangschedule.shared.generated.resources.text_import_guide
@@ -185,7 +185,7 @@ fun WebViewScreen(
                 navigationIcon = {
                     IconButton(onClick = handleBackAction) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = stringResource(
                                 if (isEditingUrl) Res.string.a11y_cancel_editing else Res.string.a11y_back
                             )
@@ -231,7 +231,7 @@ fun WebViewScreen(
                                 onClick = { onSearch(inputUrl) },
                                 enabled = inputUrl.trim().isNotBlank() && inputUrl.trim() != "https://"
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(Res.string.a11y_load))
+                                Icon(vectorResource(Res.drawable.arrow_forward_24px), contentDescription = stringResource(Res.string.a11y_load))
                             }
                         } else if (showAddressBarToggleButton) {
                             IconButton(onClick = {
@@ -240,12 +240,12 @@ fun WebViewScreen(
                                 inputUrl = if (rawUrl.isBlank() || rawUrl == "about:blank") "" else rawUrl
                                 keyboardController?.show()
                             }) {
-                                Icon(Icons.Default.Link, contentDescription = stringResource(Res.string.a11y_enter_url))
+                                Icon(vectorResource(Res.drawable.link_24px), contentDescription = stringResource(Res.string.a11y_enter_url))
                             }
                         }
 
                         IconButton(onClick = { expanded = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.a11y_more_options))
+                            Icon(vectorResource(Res.drawable.more_vert_24px), contentDescription = stringResource(Res.string.a11y_more_options))
                         }
 
                         DropdownMenu(
@@ -258,12 +258,12 @@ fun WebViewScreen(
                                     webViewController.reload()
                                     expanded = false
                                 },
-                                leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = stringResource(Res.string.a11y_refresh)) }
+                                leadingIcon = { Icon(vectorResource(Res.drawable.refresh_24px), contentDescription = stringResource(Res.string.a11y_refresh)) }
                             )
 
                             if (!isDesktopPlatform) {
                                 val switchTextId = if (isDesktopMode) Res.string.action_switch_to_phone_mode else Res.string.action_switch_to_desktop_mode
-                                val switchIcon = if (isDesktopMode) Icons.Filled.PhoneAndroid else Icons.Filled.DesktopWindows
+                                val switchIcon = if (isDesktopMode) vectorResource(Res.drawable.phone_android_24px) else vectorResource(Res.drawable.desktop_windows_24px)
 
                                 DropdownMenuItem(
                                     text = { Text(stringResource(switchTextId)) },
@@ -295,7 +295,7 @@ fun WebViewScreen(
                                         val tText = if (isDevToolsEnabled) toastDevToolsEnabled else toastDevToolsDisabled
                                         ToastManager.show(tText)
                                     },
-                                    leadingIcon = { Icon(Icons.Filled.Build, contentDescription = stringResource(Res.string.a11y_devtools)) },
+                                    leadingIcon = { Icon(vectorResource(Res.drawable.build_24px), contentDescription = stringResource(Res.string.a11y_devtools)) },
                                     text = { Text(stringResource(Res.string.item_devtools_debug)) },
                                     trailingIcon = { Switch(checked = isDevToolsEnabled, onCheckedChange = null) }
                                 )

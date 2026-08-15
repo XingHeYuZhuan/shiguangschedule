@@ -14,11 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,11 +47,29 @@ import com.xingheyuzhuan.shiguangschedule.data.model.SchoolHistoryModel
 import com.xingheyuzhuan.shiguangschedule.ui.components.AlphabetIndexerList
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import school_index.AdapterCategory
 import school_index.School
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.a11y_back
+import shiguangschedule.shared.generated.resources.a11y_clear_search
+import shiguangschedule.shared.generated.resources.a11y_delete
+import shiguangschedule.shared.generated.resources.a11y_school_icon
+import shiguangschedule.shared.generated.resources.a11y_search
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.category_bachelor_associate
+import shiguangschedule.shared.generated.resources.category_general_tool
+import shiguangschedule.shared.generated.resources.category_other
+import shiguangschedule.shared.generated.resources.category_postgraduate
+import shiguangschedule.shared.generated.resources.close_24px
+import shiguangschedule.shared.generated.resources.label_recent_visit
+import shiguangschedule.shared.generated.resources.school_24px
+import shiguangschedule.shared.generated.resources.search_24px
+import shiguangschedule.shared.generated.resources.search_hint_school
+import shiguangschedule.shared.generated.resources.text_no_adapter_for_category
+import shiguangschedule.shared.generated.resources.text_no_school_found
+import shiguangschedule.shared.generated.resources.title_select_school
 
 /**
  * 主学校选择屏幕，现在通过 ViewModel 管理状态和数据获取。
@@ -217,7 +230,7 @@ private fun SchoolContent(
                                     modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Close,
+                                        imageVector = vectorResource(Res.drawable.close_24px),
                                         contentDescription = stringResource(Res.string.a11y_delete),
                                         modifier = Modifier.size(20.dp),
                                         tint = MaterialTheme.colorScheme.outline
@@ -327,7 +340,7 @@ fun SearchBarWithTitle(
                         }
                     }) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = stringResource(Res.string.a11y_back)
                         )
                     }
@@ -336,14 +349,14 @@ fun SearchBarWithTitle(
                     if (!searchActive) {
                         IconButton(onClick = { onSearchActiveChange(true) }) {
                             Icon(
-                                imageVector = Icons.Default.Search,
+                                imageVector = vectorResource(Res.drawable.search_24px),
                                 contentDescription = stringResource(Res.string.a11y_search)
                             )
                         }
                     } else if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { onQueryChange("") }) {
                             Icon(
-                                imageVector = Icons.Default.Close,
+                                imageVector = vectorResource(Res.drawable.close_24px),
                                 contentDescription = stringResource(Res.string.a11y_clear_search)
                             )
                         }
@@ -393,7 +406,7 @@ fun SchoolItem(school: School, onClick: (School) -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.School,
+                imageVector = vectorResource(Res.drawable.school_24px),
                 contentDescription = stringResource(Res.string.a11y_school_icon),
                 modifier = Modifier
                     .size(24.dp)

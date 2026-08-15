@@ -13,9 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -70,11 +67,14 @@ import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.action_select_table
+import shiguangschedule.shared.generated.resources.arrow_drop_down_24px
 import shiguangschedule.shared.generated.resources.format_week_display
 import shiguangschedule.shared.generated.resources.snackbar_add_course_within_semester
+import shiguangschedule.shared.generated.resources.swap_horiz_24px
 import shiguangschedule.shared.generated.resources.title_current_week
 import shiguangschedule.shared.generated.resources.title_semester_not_set
 import shiguangschedule.shared.generated.resources.title_vacation
@@ -222,7 +222,7 @@ fun WeeklyScheduleScreen(
                                 color = customTextColor
                             )
                             Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
+                                imageVector = vectorResource(Res.drawable.arrow_drop_down_24px),
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(20.dp)
@@ -234,7 +234,7 @@ fun WeeklyScheduleScreen(
                     actions = {
                         IconButton(onClick = { showTableSwitcher = true }) {
                             Icon(
-                                imageVector = Icons.Default.SwapHoriz,
+                                imageVector = vectorResource(Res.drawable.swap_horiz_24px),
                                 contentDescription = stringResource(Res.string.action_select_table),
                                 tint = customTextColor
                             )

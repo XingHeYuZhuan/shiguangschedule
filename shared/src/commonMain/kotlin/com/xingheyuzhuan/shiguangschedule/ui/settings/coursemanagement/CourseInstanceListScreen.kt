@@ -13,13 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +40,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_enter_selection_mode
@@ -54,9 +48,15 @@ import shiguangschedule.shared.generated.resources.a11y_exit_selection_mode
 import shiguangschedule.shared.generated.resources.action_add
 import shiguangschedule.shared.generated.resources.action_deselect_all
 import shiguangschedule.shared.generated.resources.action_select_all
+import shiguangschedule.shared.generated.resources.add_24px
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.check_24px
+import shiguangschedule.shared.generated.resources.close_24px
 import shiguangschedule.shared.generated.resources.course_time_day_section_details_tweak
 import shiguangschedule.shared.generated.resources.course_time_day_time_details_tweak
+import shiguangschedule.shared.generated.resources.delete_24px
 import shiguangschedule.shared.generated.resources.label_weeks_format
+import shiguangschedule.shared.generated.resources.menu_open_24px
 import shiguangschedule.shared.generated.resources.title_selected_items_count
 import shiguangschedule.shared.generated.resources.week_days_full_names
 
@@ -116,7 +116,7 @@ fun CourseInstanceListScreen(
                 navigationIcon = {
                     IconButton(onClick = if (isSelectionMode) viewModel::toggleSelectionMode else onNavigateBack) {
                         Icon(
-                            if (isSelectionMode) Icons.Filled.Close else Icons.AutoMirrored.Filled.ArrowBack,
+                            if (isSelectionMode) vectorResource(Res.drawable.close_24px) else vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = null
                         )
                     }
@@ -129,13 +129,13 @@ fun CourseInstanceListScreen(
 
                         IconButton(onClick = viewModel::toggleSelectAll, enabled = totalCount > 0) {
                             val selectAllStringRes = if (isAllSelected) Res.string.action_deselect_all else Res.string.action_select_all
-                            Icon(Icons.Filled.Check, contentDescription = stringResource(selectAllStringRes))
+                            Icon(vectorResource(Res.drawable.check_24px), contentDescription = stringResource(selectAllStringRes))
                         }
 
                         IconButton(onClick = {
                             scope.launch { viewModel.deleteSelectedCourses() }
                         }, enabled = selectedCount > 0) {
-                            Icon(Icons.Filled.Delete, contentDescription = null)
+                            Icon(vectorResource(Res.drawable.delete_24px), contentDescription = null)
                         }
                     }
 
@@ -144,7 +144,7 @@ fun CourseInstanceListScreen(
                         enabled = courseInstances.isNotEmpty() || isSelectionMode
                     ) {
                         val descriptionRes = if (isSelectionMode) Res.string.a11y_exit_selection_mode else Res.string.a11y_enter_selection_mode
-                        Icon(Icons.AutoMirrored.Filled.MenuOpen, contentDescription = stringResource(descriptionRes))
+                        Icon(vectorResource(Res.drawable.menu_open_24px), contentDescription = stringResource(descriptionRes))
                     }
                 }
             )
@@ -152,7 +152,7 @@ fun CourseInstanceListScreen(
         floatingActionButton = {
             if (!isSelectionMode) {
                 FloatingActionButton(onClick = onNavigateToAddNewCourse) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.action_add))
+                    Icon(vectorResource(Res.drawable.add_24px), contentDescription = stringResource(Res.string.action_add))
                 }
             }
         }

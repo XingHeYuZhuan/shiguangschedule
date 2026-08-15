@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,8 +28,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.a11y_back
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.chevron_right_24px
+import shiguangschedule.shared.generated.resources.desc_schedule_tweak
+import shiguangschedule.shared.generated.resources.item_quick_actions
+import shiguangschedule.shared.generated.resources.item_quick_delete
+import shiguangschedule.shared.generated.resources.item_schedule_tweak
+import shiguangschedule.shared.generated.resources.label_quick_action_category_schedule
+import shiguangschedule.shared.generated.resources.quick_delete_subtitle
+
 /**
  * 快捷操作二级页面
  * 用于收纳高频使用的工具类功能，如调课、临时改动等
@@ -50,7 +57,7 @@ fun QuickActionsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = stringResource(Res.string.a11y_back)
                         )
                     }
@@ -143,7 +150,7 @@ private fun QuickActionItem(
             )
         }
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+            imageVector = vectorResource(Res.drawable.chevron_right_24px),
             contentDescription = null,
             modifier = Modifier.padding(start = 4.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant

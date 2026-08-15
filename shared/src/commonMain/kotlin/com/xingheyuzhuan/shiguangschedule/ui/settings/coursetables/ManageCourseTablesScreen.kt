@@ -12,12 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,9 +40,37 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.a11y_add_new_table
+import shiguangschedule.shared.generated.resources.a11y_back
+import shiguangschedule.shared.generated.resources.a11y_current_table
+import shiguangschedule.shared.generated.resources.a11y_delete
+import shiguangschedule.shared.generated.resources.a11y_edit
+import shiguangschedule.shared.generated.resources.a11y_save
+import shiguangschedule.shared.generated.resources.action_add
+import shiguangschedule.shared.generated.resources.action_cancel
+import shiguangschedule.shared.generated.resources.add_24px
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.check_circle_24px
+import shiguangschedule.shared.generated.resources.confirm_delete
+import shiguangschedule.shared.generated.resources.course_table_created_at_prefix
+import shiguangschedule.shared.generated.resources.course_table_id_prefix
+import shiguangschedule.shared.generated.resources.delete_24px
+import shiguangschedule.shared.generated.resources.dialog_text_confirm_delete
+import shiguangschedule.shared.generated.resources.dialog_title_add_table
+import shiguangschedule.shared.generated.resources.dialog_title_edit_table
+import shiguangschedule.shared.generated.resources.edit_24px
+import shiguangschedule.shared.generated.resources.label_table_name
+import shiguangschedule.shared.generated.resources.text_no_tables_hint
+import shiguangschedule.shared.generated.resources.title_manage_course_tables
+import shiguangschedule.shared.generated.resources.toast_add_table_success
+import shiguangschedule.shared.generated.resources.toast_delete_last_table_failed
+import shiguangschedule.shared.generated.resources.toast_delete_table_success
+import shiguangschedule.shared.generated.resources.toast_edit_table_success
+import shiguangschedule.shared.generated.resources.toast_name_empty
+import shiguangschedule.shared.generated.resources.toast_switch_table_success
 import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,14 +115,14 @@ fun ManageCourseTablesScreen(
                 title = { Text(titleManageTables) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = a11yBack)
+                        Icon(vectorResource(Res.drawable.arrow_back_24px), contentDescription = a11yBack)
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddTableDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = a11yAddNewTable)
+                Icon(vectorResource(Res.drawable.add_24px), contentDescription = a11yAddNewTable)
             }
         }
     ) { innerPadding ->
@@ -319,17 +341,17 @@ fun CourseTableCard(
             ) {
                 if (isSelected) {
                     Icon(
-                        imageVector = Icons.Default.CheckCircle,
+                        imageVector = vectorResource(Res.drawable.check_circle_24px),
                         contentDescription = a11yCurrentTable,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(end = 4.dp)
                     )
                 }
                 IconButton(onClick = { onEditClick(tableInfo) }) {
-                    Icon(Icons.Default.Edit, contentDescription = a11yEdit)
+                    Icon(vectorResource(Res.drawable.edit_24px), contentDescription = a11yEdit)
                 }
                 IconButton(onClick = { onDeleteClick(tableInfo) }) {
-                    Icon(Icons.Default.Delete, contentDescription = a11yDelete)
+                    Icon(vectorResource(Res.drawable.delete_24px), contentDescription = a11yDelete)
                 }
             }
         }

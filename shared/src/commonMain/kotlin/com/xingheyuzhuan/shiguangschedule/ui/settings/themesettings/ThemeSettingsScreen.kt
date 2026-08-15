@@ -17,9 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -58,9 +55,24 @@ import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsViewModel
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 import com.xingheyuzhuan.shiguangschedule.ui.theme.supportsDynamicColor
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.a11y_back
+import shiguangschedule.shared.generated.resources.action_reset
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.custom_color_title
+import shiguangschedule.shared.generated.resources.dark_primary_color
+import shiguangschedule.shared.generated.resources.dynamic_color_desc
+import shiguangschedule.shared.generated.resources.dynamic_color_title
+import shiguangschedule.shared.generated.resources.light_primary_color
+import shiguangschedule.shared.generated.resources.refresh_24px
+import shiguangschedule.shared.generated.resources.theme_color_hint
+import shiguangschedule.shared.generated.resources.theme_dark
+import shiguangschedule.shared.generated.resources.theme_follow_system
+import shiguangschedule.shared.generated.resources.theme_light
+import shiguangschedule.shared.generated.resources.theme_mode_label
+import shiguangschedule.shared.generated.resources.theme_settings_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +91,7 @@ fun ThemeSettingsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = stringResource(Res.string.a11y_back)
                         )
                     }
@@ -207,7 +219,7 @@ private fun ColorPickerItem(
                     Text(text = label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 
                     TextButton(onClick = onReset) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(vectorResource(Res.drawable.refresh_24px), contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(Res.string.action_reset))
                     }

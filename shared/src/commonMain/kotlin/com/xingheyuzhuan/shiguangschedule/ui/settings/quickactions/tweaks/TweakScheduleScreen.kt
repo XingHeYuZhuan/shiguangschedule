@@ -12,14 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.DoubleArrow
-import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -55,9 +47,37 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.a11y_arrow
+import shiguangschedule.shared.generated.resources.a11y_back
+import shiguangschedule.shared.generated.resources.a11y_save_tweak
+import shiguangschedule.shared.generated.resources.action_select_table
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.arrow_downward_24px
+import shiguangschedule.shared.generated.resources.arrow_drop_down_24px
+import shiguangschedule.shared.generated.resources.arrow_forward_24px
+import shiguangschedule.shared.generated.resources.course_time_day_section_details_tweak
+import shiguangschedule.shared.generated.resources.course_time_day_time_details_tweak
+import shiguangschedule.shared.generated.resources.date_format_month_day
+import shiguangschedule.shared.generated.resources.dialog_title_select_export_table
+import shiguangschedule.shared.generated.resources.check_24px
+import shiguangschedule.shared.generated.resources.double_arrow_24px
+import shiguangschedule.shared.generated.resources.label_select_tweak_table
+import shiguangschedule.shared.generated.resources.label_tweak_from_date
+import shiguangschedule.shared.generated.resources.label_tweak_to_date
+import shiguangschedule.shared.generated.resources.sync_alt_24px
+import shiguangschedule.shared.generated.resources.text_error
+import shiguangschedule.shared.generated.resources.text_no_course
+import shiguangschedule.shared.generated.resources.text_tweak_hint
+import shiguangschedule.shared.generated.resources.title_tweak_from_course
+import shiguangschedule.shared.generated.resources.title_tweak_schedule
+import shiguangschedule.shared.generated.resources.title_tweak_to_course
+import shiguangschedule.shared.generated.resources.tweak_mode_exchange
+import shiguangschedule.shared.generated.resources.tweak_mode_merge
+import shiguangschedule.shared.generated.resources.tweak_mode_overwrite
+import shiguangschedule.shared.generated.resources.week_days_full_names
 import kotlin.time.Instant
 
 @Composable
@@ -120,14 +140,14 @@ fun TweakScheduleScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = a11yBack
                         )
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.moveCourses() }) {
-                        Icon(imageVector = Icons.Default.Done, contentDescription = a11ySaveTweak)
+                        Icon(imageVector = vectorResource(Res.drawable.check_24px), contentDescription = a11ySaveTweak)
                     }
                 }
             )
@@ -154,7 +174,7 @@ fun TweakScheduleScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(text = uiState.selectedCourseTable?.name ?: actionSelectTable)
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                imageVector = vectorResource(Res.drawable.arrow_forward_24px),
                                 contentDescription = actionSelectTable,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -219,9 +239,9 @@ fun TweakScheduleScreen(
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 val verticalIcon = when (uiState.tweakMode) {
-                                    TweakMode.EXCHANGE -> Icons.Default.SyncAlt
-                                    TweakMode.OVERWRITE -> Icons.Default.DoubleArrow
-                                    TweakMode.MERGE -> Icons.Default.ArrowDownward
+                                    TweakMode.EXCHANGE -> vectorResource(Res.drawable.sync_alt_24px)
+                                    TweakMode.OVERWRITE -> vectorResource(Res.drawable.double_arrow_24px)
+                                    TweakMode.MERGE -> vectorResource(Res.drawable.arrow_downward_24px)
                                 }
 
                                 val rotationAngle = if (uiState.tweakMode != TweakMode.MERGE) 90f else 0f
@@ -274,7 +294,7 @@ private fun TweakModeSelector(currentMode: TweakMode, onModeSelected: (TweakMode
     Box {
         TextButton(onClick = { expanded = true }) {
             Text(text = label, style = MaterialTheme.typography.labelLarge)
-            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+            Icon(vectorResource(Res.drawable.arrow_drop_down_24px), contentDescription = null)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             TweakMode.entries.forEach { mode ->
@@ -292,9 +312,9 @@ private fun TweakModeSelector(currentMode: TweakMode, onModeSelected: (TweakMode
 @Composable
 private fun getTweakModeDisplayInfo(mode: TweakMode): Pair<ImageVector, String> {
     return when (mode) {
-        TweakMode.MERGE -> Icons.AutoMirrored.Filled.ArrowForward to stringResource(Res.string.tweak_mode_merge)
-        TweakMode.OVERWRITE -> Icons.Default.DoubleArrow to stringResource(Res.string.tweak_mode_overwrite)
-        TweakMode.EXCHANGE -> Icons.Default.SyncAlt to stringResource(Res.string.tweak_mode_exchange)
+        TweakMode.MERGE -> vectorResource(Res.drawable.arrow_forward_24px) to stringResource(Res.string.tweak_mode_merge)
+        TweakMode.OVERWRITE -> vectorResource(Res.drawable.double_arrow_24px) to stringResource(Res.string.tweak_mode_overwrite)
+        TweakMode.EXCHANGE -> vectorResource(Res.drawable.sync_alt_24px) to stringResource(Res.string.tweak_mode_exchange)
     }
 }
 

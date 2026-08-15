@@ -56,7 +56,6 @@ kotlin {
                 implementation(libs.compose.material3)
                 implementation(libs.compose.ui)
                 implementation(libs.compose.animation)
-                implementation(libs.compose.material.icons.extended)
                 implementation(libs.compose.components.resources)
                 implementation(libs.compose.ui.tooling.preview)
 
@@ -64,8 +63,6 @@ kotlin {
                 implementation(libs.androidx.lifecycle.viewmodel.compose)
                 implementation(libs.androidx.lifecycle.runtime.compose)
                 implementation(libs.androidx.navigation3.ui)
-                implementation(libs.androidx.navigationevent)
-                implementation(libs.androidx.navigationevent.compose)
                 implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 
                 // UI 补充库 (Coil & 开源许可)

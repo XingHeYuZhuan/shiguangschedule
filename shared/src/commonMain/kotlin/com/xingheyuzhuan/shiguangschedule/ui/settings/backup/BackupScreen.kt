@@ -14,11 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -61,9 +56,43 @@ import kotlinx.datetime.toLocalDateTime
 import okio.Buffer
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.a11y_back
+import shiguangschedule.shared.generated.resources.action_cancel
+import shiguangschedule.shared.generated.resources.action_confirm
+import shiguangschedule.shared.generated.resources.action_reset
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.backup_target_local_zip
+import shiguangschedule.shared.generated.resources.backup_target_webdav
+import shiguangschedule.shared.generated.resources.cloud_24px
+import shiguangschedule.shared.generated.resources.desc_backup_data
+import shiguangschedule.shared.generated.resources.desc_restore_data
+import shiguangschedule.shared.generated.resources.desc_webdav_connected
+import shiguangschedule.shared.generated.resources.desc_webdav_path_hint
+import shiguangschedule.shared.generated.resources.desc_webdav_unconfigured
+import shiguangschedule.shared.generated.resources.dialog_title_backup_target
+import shiguangschedule.shared.generated.resources.dialog_title_config_webdav
+import shiguangschedule.shared.generated.resources.dialog_title_restore_source
+import shiguangschedule.shared.generated.resources.download_24px
+import shiguangschedule.shared.generated.resources.error_stream_open_failed
+import shiguangschedule.shared.generated.resources.error_webdav_unconfigured
+import shiguangschedule.shared.generated.resources.item_backup_data
+import shiguangschedule.shared.generated.resources.item_backup_restore
+import shiguangschedule.shared.generated.resources.item_restore_data
+import shiguangschedule.shared.generated.resources.item_webdav_config
+import shiguangschedule.shared.generated.resources.label_webdav_account
+import shiguangschedule.shared.generated.resources.label_webdav_path
+import shiguangschedule.shared.generated.resources.label_webdav_pwd_empty
+import shiguangschedule.shared.generated.resources.label_webdav_pwd_saved
+import shiguangschedule.shared.generated.resources.label_webdav_url
+import shiguangschedule.shared.generated.resources.section_data_maintenance
+import shiguangschedule.shared.generated.resources.section_service_config
+import shiguangschedule.shared.generated.resources.title_loading
+import shiguangschedule.shared.generated.resources.toast_operation_failed
+import shiguangschedule.shared.generated.resources.toast_operation_success
+import shiguangschedule.shared.generated.resources.upload_24px
 import kotlin.time.Clock
 
 /**
@@ -142,7 +171,7 @@ fun BackupScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = stringResource(Res.string.a11y_back)
                         )
                     }
@@ -167,7 +196,7 @@ fun BackupScreen(
                 MenuActionItem(
                     title = stringResource(Res.string.item_backup_data),
                     subtitle = stringResource(Res.string.desc_backup_data),
-                    icon = Icons.Default.Upload,
+                    icon = vectorResource(Res.drawable.upload_24px),
                     enabled = !state.isBusy,
                     onClick = { showBackupTargetDialog = true }
                 )
@@ -178,7 +207,7 @@ fun BackupScreen(
                 MenuActionItem(
                     title = stringResource(Res.string.item_restore_data),
                     subtitle = stringResource(Res.string.desc_restore_data),
-                    icon = Icons.Default.Download,
+                    icon = vectorResource(Res.drawable.download_24px),
                     enabled = !state.isBusy,
                     onClick = { showRestoreTargetDialog = true }
                 )
@@ -192,7 +221,7 @@ fun BackupScreen(
                     } else {
                         stringResource(Res.string.desc_webdav_connected, state.baseUrl)
                     },
-                    icon = Icons.Default.Cloud,
+                    icon = vectorResource(Res.drawable.cloud_24px),
                     onClick = { showConfigDialog = true }
                 )
             }

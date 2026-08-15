@@ -75,7 +75,6 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.animation)
     implementation(libs.compose.ui.tooling.preview)
-    implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.components.resources)
     implementation(libs.androidx.datastore.core)
     implementation(libs.kotlinx.serialization.json)

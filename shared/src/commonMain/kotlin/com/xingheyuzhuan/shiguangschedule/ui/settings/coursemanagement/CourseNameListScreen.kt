@@ -15,13 +15,6 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,9 +44,27 @@ import com.xingheyuzhuan.shiguangschedule.navigation.AddEditCourseChannel
 import com.xingheyuzhuan.shiguangschedule.navigation.PresetCourseData
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.a11y_back
+import shiguangschedule.shared.generated.resources.a11y_cancel_selection
+import shiguangschedule.shared.generated.resources.a11y_delete
+import shiguangschedule.shared.generated.resources.a11y_enter_selection_mode
+import shiguangschedule.shared.generated.resources.a11y_exit_selection_mode
+import shiguangschedule.shared.generated.resources.action_add
+import shiguangschedule.shared.generated.resources.action_deselect_all
+import shiguangschedule.shared.generated.resources.action_select_all
+import shiguangschedule.shared.generated.resources.add_24px
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.check_24px
+import shiguangschedule.shared.generated.resources.close_24px
+import shiguangschedule.shared.generated.resources.delete_24px
+import shiguangschedule.shared.generated.resources.item_course_management
+import shiguangschedule.shared.generated.resources.menu_open_24px
+import shiguangschedule.shared.generated.resources.text_no_unique_courses_hint
+import shiguangschedule.shared.generated.resources.title_selected_items_count
+
 /**
  * 一级页面：展示所有不重复的课程名称列表 (Master View)。
  * 现使用两列网格 (LazyVerticalGrid)。
@@ -98,7 +109,7 @@ fun CourseNameListScreen(
                             }
                         }
                     ) {
-                        val icon = if (isSelectionMode) Icons.Filled.Close else Icons.AutoMirrored.Filled.ArrowBack
+                        val icon = if (isSelectionMode) vectorResource(Res.drawable.close_24px) else vectorResource(Res.drawable.arrow_back_24px)
                         val description = if (isSelectionMode) {
                             stringResource(Res.string.a11y_cancel_selection)
                         } else {
@@ -128,7 +139,7 @@ fun CourseNameListScreen(
                             enabled = totalCount > 0
                         ) {
                             val selectAllStringRes = if (isAllSelected) Res.string.action_deselect_all else Res.string.action_select_all
-                            Icon(Icons.Filled.Check, contentDescription = stringResource(selectAllStringRes))
+                            Icon(vectorResource(Res.drawable.check_24px), contentDescription = stringResource(selectAllStringRes))
                         }
                     }
 
@@ -148,7 +159,7 @@ fun CourseNameListScreen(
                             // 选中数量为 0 时禁用删除按钮
                             enabled = selectedCourseNames.isNotEmpty()
                         ) {
-                            Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.a11y_delete))
+                            Icon(vectorResource(Res.drawable.delete_24px), contentDescription = stringResource(Res.string.a11y_delete))
                         }
                     }
 
@@ -169,7 +180,7 @@ fun CourseNameListScreen(
                         } else {
                             Res.string.a11y_enter_selection_mode
                         }
-                        Icon(Icons.AutoMirrored.Filled.MenuOpen, contentDescription = stringResource(descriptionRes))
+                        Icon(vectorResource(Res.drawable.menu_open_24px), contentDescription = stringResource(descriptionRes))
                     }
                 }
             )
@@ -194,7 +205,7 @@ fun CourseNameListScreen(
                         }
                     }
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.action_add))
+                    Icon(vectorResource(Res.drawable.add_24px), contentDescription = stringResource(Res.string.action_add))
                 }
             }
         }
