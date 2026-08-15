@@ -83,24 +83,34 @@ fun ThemeSettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val settings = uiState.appSettings
 
+    val surfaceColor = MaterialTheme.colorScheme.surface
+
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = surfaceColor,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.theme_settings_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            vectorResource(Res.drawable.arrow_back_24px),
-                            contentDescription = stringResource(Res.string.a11y_back)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
+            Surface(
+                color = surfaceColor,
+                tonalElevation = 0.dp
+            ) {
+                TopAppBar(
+                    title = { Text(stringResource(Res.string.theme_settings_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                vectorResource(Res.drawable.arrow_back_24px),
+                                contentDescription = stringResource(Res.string.a11y_back)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
-            )
+            }
         }
     ) { padding ->
         Column(
