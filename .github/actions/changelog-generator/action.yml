@@ -3,14 +3,20 @@ description: 'Generates a formatted changelog from Git history.'
 
 inputs:
   version_title:
+    description: '版本标题 (例: v1.0.0 或 v2.0.0-rc1)'
     required: true
   previous_tag:
+    description: '手动指定的基准对比 Tag (可选，留空则由 Python 脚本自动推导)'
     required: false
     default: ''
+  is_prerelease:
+    description: '是否为预发布版本 (true/false)'
+    required: false
+    default: 'false'
 
 outputs:
   changelog_content:
-    description: "The generated Markdown content for the Release body."
+    description: "生成的 Markdown 格式更新日志内容"
     value: ${{ steps.generate_content.outputs.changelog_content }}
 
 runs:
@@ -20,50 +26,25 @@ runs:
       shell: bash
       run: git fetch --tags
 
-    - name: 📄 生成更新日志并设置输出
-      id: generate_content # <--- 关键修正：为 run 步骤添加 ID
+    - name: 生成更新日志并设置输出
+      id: generate_content
       shell: bash
       run: |
         VERSION_TITLE="${{ inputs.version_title }}"
         PREVIOUS_TAG="${{ inputs.previous_tag }}"
+        IS_PRERELEASE="${{ inputs.is_prerelease }}"
         
-        # --- 自动推导比较标签逻辑 (基于时间排序) ---
-        if [[ -z "$PREVIOUS_TAG" ]]; then
-            echo "未提供对比标签，开始自动推导（基于时间排序）..."
+        python "$GITHUB_ACTION_PATH/generate_changelog.py" "$VERSION_TITLE" "$PREVIOUS_TAG" "$IS_PRERELEASE"
         
-            if [[ "$VERSION_TITLE" == *"-dev"* ]]; then
-                # 【Dev 版本】：只列出包含 *-dev* 的标签，然后排除当前版本
-                PREVIOUS_TAG=$(git tag --list "*-dev*" --sort=-committerdate | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1) || true
-            else
-                # 【标准版本】：列出所有标签，使用 grep -v 排除 *-dev* 标签，然后排除当前版本
-                PREVIOUS_TAG=$(git tag --list --sort=-committerdate | grep -v -- "-dev" | grep -v --fixed-strings "$VERSION_TITLE" | head -n 1) || true
-            fi
-        
-            if [[ -n "$PREVIOUS_TAG" ]]; then
-                echo "自动推导的上一个标签为: $PREVIOUS_TAG"
-            else
-                echo "警告：未找到合适的上一个标签，将依赖Python脚本回退到仓库初始提交。"
-            fi
-        fi
-        # --- 自动推导逻辑结束 ---
-        
-        # 【新增调试代码】打印 Python 脚本的路径，用于排查问题
-        echo "DEBUG: GITHUB_ACTION_PATH is $GITHUB_ACTION_PATH"
-        
-        # 执行 Python 脚本
-        python $GITHUB_ACTION_PATH/generate_changelog.py "$VERSION_TITLE" "$PREVIOUS_TAG" 2>&1
-        
-        # 检查文件是否生成成功
-        if [ ! -f CHANGELOG.md ]; then
-          echo "警告：CHANGELOG.md 文件未生成，可能范围内没有有效提交。"
-          CHANGELOG_CONTENT=""
-        else
-          # 读取 CHANGELOG.md 文件内容
+        # 读取生成的 CHANGELOG.md 内容
+        if [ -f CHANGELOG.md ]; then
           CHANGELOG_CONTENT=$(cat CHANGELOG.md)
+        else
+          echo "警告：CHANGELOG.md 未生成，可能该范围内没有有效提交。"
+          CHANGELOG_CONTENT=""
         fi
         
-        # 【关键】将多行内容设置为 Action 的输出变量，使用 EOF 方式
-        # 设置内部步骤的输出 (steps.<step_id>.outputs.<output_name>)
+        # 输出给 GitHub Actions 上下文
         echo "changelog_content<<EOF" >> $GITHUB_OUTPUT
         echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT

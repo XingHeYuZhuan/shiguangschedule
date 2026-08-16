@@ -1,0 +1,167 @@
+package com.xingheyuzhuan.shiguangschedule.data.model
+
+import androidx.compose.ui.graphics.toArgb
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import org.jetbrains.compose.resources.StringResource
+import shiguangschedule.shared.generated.resources.*
+import com.xingheyuzhuan.shiguangschedule.ui.theme.Purple40
+import com.xingheyuzhuan.shiguangschedule.ui.theme.Purple80
+
+/**
+ * 上课时的自动化控制模式枚举
+ */
+enum class AutoControlMode(val value: String) {
+    /** 请勿打扰模式 */
+    DND("DND"),
+
+    /** 静音模式 */
+    SILENT("SILENT");
+
+    companion object {
+        /**
+         * 根据字符串获取对应的枚举值，如果匹配失败则返回默认的 DND 模式
+         */
+        fun fromString(value: String?): AutoControlMode {
+            return entries.find { it.value == value } ?: DND
+        }
+    }
+}
+
+/**
+ * 可选的启动页面枚举
+ */
+enum class StartScreen(val value: String, val labelRes: StringResource) {
+    /** 周课表 */
+    COURSE_SCHEDULE("COURSE_SCHEDULE", Res.string.nav_course_schedule),
+
+    /** 今日课表 */
+    TODAY_SCHEDULE("TODAY_SCHEDULE", Res.string.nav_today_schedule);
+
+    companion object {
+        fun fromString(value: String?): StartScreen {
+            return entries.find { it.value == value } ?: COURSE_SCHEDULE
+        }
+    }
+}
+
+/**
+ * 应用主题模式枚举
+ */
+enum class AppThemeMode(val value: String, val labelRes: StringResource) {
+    /** 跟随系统 */
+    FOLLOW_SYSTEM("FOLLOW_SYSTEM", Res.string.theme_follow_system),
+
+    /** 浅色模式 */
+    LIGHT("LIGHT", Res.string.theme_light),
+
+    /** 深色模式 */
+    DARK("DARK", Res.string.theme_dark);
+
+    companion object {
+        fun fromString(value: String?): AppThemeMode? {
+            return entries.find { it.value == value }
+        }
+    }
+}
+
+/**
+ * 应用全局设置业务模型（DataStore 专用）
+ * 集中管理业务字段、存储键 (Keys) 以及默认值。
+ */
+data class AppSettingsModel(
+    /** 当前正在使用的课表 ID */
+    val currentCourseTableId: String = "",
+
+    /** 是否开启上课前提醒 */
+    val reminderEnabled: Boolean = false,
+
+    /** 提前提醒的时间（分钟） */
+    val remindBeforeMinutes: Int = 15,
+
+    /** 需要跳过的日期集合 (例如: "2024-03-15") */
+    val skippedDates: Set<String> = emptySet(),
+
+    /** 自动化模式的总开关 */
+    val autoModeEnabled: Boolean = false,
+
+    /** 自动化控制的具体模式，限定为 [AutoControlMode] */
+    val autoControlMode: AutoControlMode = AutoControlMode.DND,
+
+    /**
+     * 兼容穿戴设备同步通知的开关
+     * true: 开启兼容模式（关闭 Ongoing，方便手环抓取）
+     * false: 关闭兼容模式（默认，使用 Android 16 实时更新特性）
+     */
+    val compatWearableSync: Boolean = false,
+
+    /** 是否显示非本周课程 */
+    val showNonCurrentWeekCourses: Boolean = false,
+
+    /** 应用启动时显示的页面 */
+    val startScreen: StartScreen = StartScreen.COURSE_SCHEDULE,
+
+    /** 应用主题模式 */
+    val themeMode: AppThemeMode = AppThemeMode.FOLLOW_SYSTEM,
+
+    /** 是否开启动态取色 (Material You) */
+    val useDynamicColor: Boolean = true,
+
+    /** 自定义浅色主题主色 */
+    val customLightPrimary: Long = Purple40.toArgb().toLong(),
+
+    /** 自定义深色主题主色 */
+    val customDarkPrimary: Long = Purple80.toArgb().toLong(),
+
+    /** 开发者功能总开关（默认关闭） */
+    val developerModeEnabled: Boolean = false,
+) {
+    /**
+     * 将 DataStore 的 Key 定义在伴生对象中。
+     * 这样在 Repository 中可以直接通过 AppSettingsModel.KEY_xxx 访问，
+     * 避免了修改一处逻辑需要动多个文件的问题。
+     */
+    companion object {
+        val KEY_CURRENT_COURSE_TABLE_ID = stringPreferencesKey("current_course_table_id")
+        val KEY_REMINDER_ENABLED = booleanPreferencesKey("reminder_enabled")
+        val KEY_REMIND_BEFORE_MINUTES = intPreferencesKey("remind_before_minutes")
+        val KEY_SKIPPED_DATES = stringSetPreferencesKey("skipped_dates")
+        val KEY_AUTO_MODE_ENABLED = booleanPreferencesKey("auto_mode_enabled")
+        val KEY_AUTO_CONTROL_MODE = stringPreferencesKey("auto_control_mode")
+        val KEY_COMPAT_WEARABLE_SYNC = booleanPreferencesKey("compat_wearable_sync")
+        val KEY_SHOW_NON_CURRENT_WEEK_COURSES = booleanPreferencesKey("show_non_current_week_courses")
+        val KEY_START_SCREEN = stringPreferencesKey("start_screen")
+        val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
+        val KEY_CUSTOM_LIGHT_PRIMARY = longPreferencesKey("custom_light_primary")
+        val KEY_CUSTOM_DARK_PRIMARY = longPreferencesKey("custom_dark_primary")
+        val KEY_DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
+
+        /**
+         * 从 Preferences 中解析出 AppSettingsModel
+         */
+        fun fromPreferences(prefs: Preferences, fallbackTableId: String): AppSettingsModel {
+            val d = AppSettingsModel() // 默认值模板
+            return AppSettingsModel(
+                currentCourseTableId = prefs[KEY_CURRENT_COURSE_TABLE_ID] ?: fallbackTableId.ifEmpty { d.currentCourseTableId },
+                reminderEnabled = prefs[KEY_REMINDER_ENABLED] ?: d.reminderEnabled,
+                remindBeforeMinutes = prefs[KEY_REMIND_BEFORE_MINUTES] ?: d.remindBeforeMinutes,
+                skippedDates = prefs[KEY_SKIPPED_DATES] ?: d.skippedDates,
+                autoModeEnabled = prefs[KEY_AUTO_MODE_ENABLED] ?: d.autoModeEnabled,
+                autoControlMode = AutoControlMode.fromString(prefs[KEY_AUTO_CONTROL_MODE]),
+                compatWearableSync = prefs[KEY_COMPAT_WEARABLE_SYNC] ?: d.compatWearableSync,
+                showNonCurrentWeekCourses = prefs[KEY_SHOW_NON_CURRENT_WEEK_COURSES] ?: d.showNonCurrentWeekCourses,
+                startScreen = prefs[KEY_START_SCREEN]?.let { StartScreen.fromString(it) } ?: d.startScreen,
+                themeMode = prefs[KEY_THEME_MODE]?.let { AppThemeMode.fromString(it) } ?: d.themeMode,
+                useDynamicColor = prefs[KEY_USE_DYNAMIC_COLOR] ?: d.useDynamicColor,
+                customLightPrimary = prefs[KEY_CUSTOM_LIGHT_PRIMARY] ?: d.customLightPrimary,
+                customDarkPrimary = prefs[KEY_CUSTOM_DARK_PRIMARY] ?: d.customDarkPrimary,
+                developerModeEnabled = prefs[KEY_DEVELOPER_MODE_ENABLED] ?: d.developerModeEnabled,
+            )
+        }
+    }
+}
