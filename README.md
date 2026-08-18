@@ -115,10 +115,10 @@
 
 
 ## Star 历史
-<a href="https://www.star-history.com/?repos=XingHeYuZhuan%2Fshiguangschedule&type=timeline&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=XingHeYuZhuan/shiguangschedule&type=timeline&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=XingHeYuZhuan/shiguangschedule&type=timeline&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=XingHeYuZhuan/shiguangschedule&type=timeline&legend=top-left" />
- </picture>
+<a href="https://star-history.dera.page/#XingHeYuZhuan/shiguangschedule&type=timeline&legend=top-left">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=XingHeYuZhuan/shiguangschedule&type=timeline&theme=dark&legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=XingHeYuZhuan/shiguangschedule&type=timeline&legend=top-left" />
+    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=XingHeYuZhuan/shiguangschedule&type=timeline&legend=top-left" />
+  </picture>
 </a>
