@@ -51,8 +51,8 @@ fun ShiguangScheduleTheme(
 fun ShiguangScheduleTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
-    customLightPrimary: Color = Purple40,
-    customDarkPrimary: Color = Purple80,
+    customLightPrimary: Color = DefaultThemeColor,
+    customDarkPrimary: Color = DefaultThemeColor,
     themeMode: AppThemeMode = AppThemeMode.FOLLOW_SYSTEM,
     content: @Composable () -> Unit
 ) {
