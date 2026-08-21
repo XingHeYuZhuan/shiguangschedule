@@ -68,9 +68,6 @@ import shiguangschedule.shared.generated.resources.dynamic_color_title
 import shiguangschedule.shared.generated.resources.light_primary_color
 import shiguangschedule.shared.generated.resources.refresh_24px
 import shiguangschedule.shared.generated.resources.theme_color_hint
-import shiguangschedule.shared.generated.resources.theme_dark
-import shiguangschedule.shared.generated.resources.theme_follow_system
-import shiguangschedule.shared.generated.resources.theme_light
 import shiguangschedule.shared.generated.resources.theme_mode_label
 import shiguangschedule.shared.generated.resources.theme_settings_title
 
@@ -252,20 +249,19 @@ private fun ThemeModeSelector(
     selectedMode: AppThemeMode,
     onModeSelected: (AppThemeMode) -> Unit
 ) {
-    val modes = listOf(
-        AppThemeMode.FOLLOW_SYSTEM to stringResource(Res.string.theme_follow_system),
-        AppThemeMode.LIGHT to stringResource(Res.string.theme_light),
-        AppThemeMode.DARK to stringResource(Res.string.theme_dark)
-    )
+    val modes = AppThemeMode.entries
 
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-        modes.forEachIndexed { index, (mode, label) ->
+        modes.forEachIndexed { index, mode ->
             SegmentedButton(
                 selected = selectedMode == mode,
                 onClick = { onModeSelected(mode) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size)
             ) {
-                Text(label, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = stringResource(mode.labelRes),
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }

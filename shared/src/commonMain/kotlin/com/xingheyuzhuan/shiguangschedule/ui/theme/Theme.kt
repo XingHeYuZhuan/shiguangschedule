@@ -38,6 +38,7 @@ fun ShiguangScheduleTheme(
             dynamicColor = settings.useDynamicColor,
             customLightPrimary = Color(settings.customLightPrimary),
             customDarkPrimary = Color(settings.customDarkPrimary),
+            themeMode = settings.themeMode,
             content = content
         )
     }
@@ -50,8 +51,9 @@ fun ShiguangScheduleTheme(
 fun ShiguangScheduleTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
-    customLightPrimary: Color = Purple40,
-    customDarkPrimary: Color = Purple80,
+    customLightPrimary: Color = DefaultThemeColor,
+    customDarkPrimary: Color = DefaultThemeColor,
+    themeMode: AppThemeMode = AppThemeMode.FOLLOW_SYSTEM,
     content: @Composable () -> Unit
 ) {
     val colorScheme = rememberColorScheme(
@@ -62,7 +64,11 @@ fun ShiguangScheduleTheme(
     )
 
     // 应用平台特定的窗口与系统栏外观控制
-    SetupPlatformThemeEffects(colorScheme = colorScheme, darkTheme = darkTheme)
+    SetupPlatformThemeEffects(
+        colorScheme = colorScheme,
+        darkTheme = darkTheme,
+        themeMode = themeMode
+    )
 
     MaterialTheme(
         colorScheme = colorScheme,
@@ -104,7 +110,8 @@ expect fun rememberColorScheme(
 @Composable
 expect fun SetupPlatformThemeEffects(
     colorScheme: ColorScheme,
-    darkTheme: Boolean
+    darkTheme: Boolean,
+    themeMode: AppThemeMode
 )
 
 /**

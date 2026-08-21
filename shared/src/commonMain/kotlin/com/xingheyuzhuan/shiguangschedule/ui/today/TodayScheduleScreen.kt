@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
-import com.xingheyuzhuan.shiguangschedule.ui.components.BottomNavigationBar
+import com.xingheyuzhuan.shiguangschedule.ui.components.AdaptiveNavigationScaffold
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -78,31 +78,30 @@ fun TodayScheduleScreen(
     val gridStyle by viewModel.gridStyle.collectAsState()
     val isDark = LocalIsDarkTheme.current
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(Res.string.title_today_schedule),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors()
-            )
-        },
-        bottomBar = {
-            BottomNavigationBar(
-                currentDestination = Destination.TodaySchedule,
-                onTabSelected = { dest -> onNavigate(dest) }
-            )
-        }
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            when (val state = uiState) {
-                is TodayUiState.Loading -> { /* 可放置圆圈加载 */ }
-                is TodayUiState.Success -> {
-                    TodayContent(state, gridStyle, isDark)
+    AdaptiveNavigationScaffold(
+        currentDestination = Destination.TodaySchedule,
+        onTabSelected = { dest -> onNavigate(dest) }
+    ) {
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(Res.string.title_today_schedule),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors()
+                )
+            }
+        ) { innerPadding ->
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+                when (val state = uiState) {
+                    is TodayUiState.Loading -> { /* 可放置圆圈加载 */ }
+                    is TodayUiState.Success -> {
+                        TodayContent(state, gridStyle, isDark)
+                    }
                 }
             }
         }

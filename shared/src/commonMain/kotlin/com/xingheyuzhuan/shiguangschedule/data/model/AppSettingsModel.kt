@@ -9,8 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import org.jetbrains.compose.resources.StringResource
 import shiguangschedule.shared.generated.resources.*
-import com.xingheyuzhuan.shiguangschedule.ui.theme.Purple40
-import com.xingheyuzhuan.shiguangschedule.ui.theme.Purple80
+import com.xingheyuzhuan.shiguangschedule.ui.theme.DefaultThemeColor
 
 /**
  * 上课时的自动化控制模式枚举
@@ -112,10 +111,10 @@ data class AppSettingsModel(
     val useDynamicColor: Boolean = true,
 
     /** 自定义浅色主题主色 */
-    val customLightPrimary: Long = Purple40.toArgb().toLong(),
+    val customLightPrimary: Long = DefaultThemeColor.toArgb().toLong(),
 
     /** 自定义深色主题主色 */
-    val customDarkPrimary: Long = Purple80.toArgb().toLong(),
+    val customDarkPrimary: Long = DefaultThemeColor.toArgb().toLong(),
 
     /** 开发者功能总开关（默认关闭） */
     val developerModeEnabled: Boolean = false,

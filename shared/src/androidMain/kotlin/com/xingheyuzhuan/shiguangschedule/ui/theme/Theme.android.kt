@@ -2,6 +2,7 @@ package com.xingheyuzhuan.shiguangschedule.ui.theme
 
 import android.app.Activity
 import android.os.Build
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -13,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.WindowCompat
+import com.xingheyuzhuan.shiguangschedule.data.model.AppThemeMode
 
 @Composable
 actual fun rememberColorScheme(
@@ -39,7 +41,8 @@ actual fun rememberColorScheme(
 @Composable
 actual fun SetupPlatformThemeEffects(
     colorScheme: ColorScheme,
-    darkTheme: Boolean
+    darkTheme: Boolean,
+    themeMode: AppThemeMode
 ) {
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -61,5 +64,6 @@ actual fun SetupPlatformThemeEffects(
     }
 }
 
+@get:ChecksSdkIntAtLeast(api = Build.VERSION_CODES.S)
 actual val supportsDynamicColor: Boolean
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
