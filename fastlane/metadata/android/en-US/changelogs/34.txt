@@ -1,0 +1,22 @@
+New Features
+- Introduced MaterialKolor dynamic theming and optimized theme/UI details
+
+Bug Fixes
+- Optimized WebView status bar adaptation and implemented soft keyboard auto-resize
+
+UI/UX Improvements
+- Improved dark/light mode switching experience
+- Refined semester end status display, replacing weeks-overrun with precise days-elapsed count
+
+Performance & Code Improvements
+- Migrated Material icons to local vector resources and removed related dependencies
+- Migrated offline resource initialization and share cache to shared module
+- Moved notification and settings sync to shared module with simplified SyncManager
+- Optimized sync management and notification permission interactions
+- Migrated UI to shared module for KMP support
+- Migrated model and proto configurations to shared module
+- Migrated database layer to KMP and upgraded to Room 3.0 Multiplatform
+- Migrated project architecture to Kotlin Multiplatform (KMP)
+- Migrated Git implementation to KGIT with optimized repository sync logic
+- Migrated dependency injection from Hilt to Koin
+- Migrated data layer and utility classes to shared module for KMP support

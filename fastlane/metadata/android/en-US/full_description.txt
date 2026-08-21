@@ -1,0 +1,17 @@
+Shiguang Schedule is an open-source schedule management tool designed for Chinese university students and educators. It supports one-click import of course data from various educational administration systems through adaptable scripts. Starting from version 2.x, the project has been migrated to the Compose Multiplatform framework and currently supports Android 8.0+.
+
+Key features include:
+
+Today & Weekly Schedule View: Swipe left or right to switch between weeks, long-press to adjust course block positions or heights
+
+Personalized Schedule Customization: Support for custom background images, adjustable cell height, corner radius, spacing, transparency, and customizable course block colors
+
+Dark Mode: Full interface and widgets with dark theme support
+
+Home Screen Widgets: Multiple widget options with next-day preview support
+
+Course Import & Export: JSON file import/export, ICS file export, and WebDAV cloud backup sync
+
+Course Reminders: Automatic Do Not Disturb or silent mode activation during class, with holiday data integration to prevent interruptions
+
+Multi-language Support: Simplified Chinese, Traditional Chinese, English
