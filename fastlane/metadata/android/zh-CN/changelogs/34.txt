@@ -1,22 +1,16 @@
-新增功能
-- 引入 MaterialKolor 动态配色并优化主题与 UI 细节
+新功能：
 
-Bug 修复
-- 优化 WebView 界面状态栏适配并实现软键盘自动避让
+引入 MaterialKolor 动态配色，优化主题与 UI 细节
 
-功能与体验优化
-- 优化深浅模式切换的 UI 体验
-- 优化学期结束状态显示，将超出周数改为更精确的已结束天数
+Bug 修复：
 
-性能与代码改进
-- 迁移 Material 图标至本地矢量资源并移除相关依赖
-- 迁移离线资源初始化与分享缓存至 shared
-- 将通知与设置同步移至 shared 并简化 SyncManager
-- 优化同步管理与通知权限交互
-- 将 UI 迁移至 shared 模块以支持 KMP
-- 将 model 与 proto 配置迁移至 shared
-- 迁移数据库层至 KMP 并升级 Room 3.0 Multiplatform
-- 迁移项目架构至 Kotlin Multiplatform (KMP)
-- 迁移 Git 实现至 KGIT 并优化仓库同步逻辑
-- 迁移依赖注入框架从 Hilt 至 Koin
-- 将数据层和工具类迁移至 shared 模块以支持 KMP
+优化 WebView 状态栏适配，实现软键盘自动避让
+
+体验优化：
+
+优化深色/浅色模式切换体验
+
+优化“学期结束”状态显示，将超出周数改为更精确的已结束天数
+
+完整更新日志：
+https://github.com/XingHeYuZhuan/shiguangschedule/releases/tag/v2.0.0
