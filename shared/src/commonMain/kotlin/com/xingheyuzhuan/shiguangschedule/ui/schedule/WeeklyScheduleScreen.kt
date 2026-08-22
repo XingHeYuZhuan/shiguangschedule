@@ -186,15 +186,17 @@ fun WeeklyScheduleScreen(
 
     val collapseFraction = scrollBehavior.state.collapsedFraction
 
+    val navHideFraction = if (floatingCourse != null) 1f else collapseFraction
+
     AdaptiveNavigationScaffold(
         currentDestination = Destination.CourseSchedule,
         onTabSelected = { dest -> onNavigate(dest) },
-        showNavigation = floatingCourse == null,
+        showNavigation = true,
         isTransparent = composedStyle.backgroundImagePath.isNotEmpty(),
         contentColor = customTextColor,
         navigationModifier = Modifier.graphicsLayer {
-            translationY = size.height * collapseFraction
-            alpha = 1f - collapseFraction
+            translationY = size.height * navHideFraction
+            alpha = 1f - navHideFraction
         },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
@@ -262,14 +264,14 @@ fun WeeklyScheduleScreen(
                 snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
             ) { scaffoldInnerPadding ->
 
-                val dynamicBottomPadding = remember(innerPadding, collapseFraction, floatingCourse) {
+                val dynamicBottomPadding = remember(innerPadding, navHideFraction, floatingCourse) {
                     if (floatingCourse != null) {
                         0.dp
                     } else {
                         val bottomBarHeight = innerPadding.calculateBottomPadding()
                         val systemWindowInsetBottom = scaffoldInnerPadding.calculateBottomPadding()
                         val baseBottom = systemWindowInsetBottom.coerceAtLeast(0.dp)
-                        baseBottom + (bottomBarHeight * (1f - collapseFraction))
+                        baseBottom + (bottomBarHeight * (1f - navHideFraction))
                     }
                 }
 
