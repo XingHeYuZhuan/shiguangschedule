@@ -1,8 +1,0 @@
-adapters:
-  - adapter_id: "SEU_01"
-    adapter_name: "东南大学网上办事大厅·我的课表（测试版）"
-    category: "BACHELOR_AND_ASSOCIATE"
-    asset_js_path: "seu_01.js"
-    import_url: "https://ehall.seu.edu.cn/appShow?appId=4770397878132218"
-    maintainer: "Codex 测试适配"
-    description: "测试版：通过办事大厅官方“学生课表”入口进入“我的课表”，切换到学期课表并执行导入；直接读取页面已显示的个人课表，不访问选课系统。"

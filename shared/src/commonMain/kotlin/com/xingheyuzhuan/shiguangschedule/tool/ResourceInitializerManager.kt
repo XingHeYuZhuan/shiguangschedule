@@ -14,7 +14,6 @@ import okio.use
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
-import school_index.SchoolIndex
 import shiguangschedule.shared.generated.resources.Res
 
 /**
@@ -47,6 +46,10 @@ class ResourceInitializerManager(
     @OptIn(ExperimentalResourceApi::class)
     suspend fun initializeOfflineRepo(forceOverwrite: Boolean = false): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
+            if (!forceOverwrite && fileSystem.exists(targetRepoDir / "index")) {
+                return@runCatching
+            }
+
             val zipBytes = Res.readBytes("files/offline_schools.zip")
             val tempZipFile = filesDir / "temp_offline_schools.zip"
 
@@ -57,11 +60,6 @@ class ResourceInitializerManager(
             try {
                 val zipFileSystem = fileSystem.openZip(tempZipFile)
 
-                if (!forceOverwrite && fileSystem.exists(targetRepoDir / "index")) {
-                    installBuiltInOverlay(zipFileSystem)
-                    return@runCatching
-                }
-
                 if (fileSystem.exists(targetRepoDir)) {
                     fileSystem.deleteRecursively(targetRepoDir)
                 }
@@ -70,49 +68,6 @@ class ResourceInitializerManager(
                 unzipDirectory(zipFileSystem, "/".toPath(), targetRepoDir)
             } finally {
                 fileSystem.delete(tempZipFile)
-            }
-        }
-    }
-
-    /**
-     * 升级安装时保留在线仓库，只覆盖随当前 App 发布的内置索引及其适配脚本。
-     */
-    private fun installBuiltInOverlay(zipFileSystem: FileSystem) {
-        val bundledIndexPath = "/index/builtin_school_index.pb".toPath()
-        if (!zipFileSystem.exists(bundledIndexPath)) return
-
-        val targetIndexPath = targetRepoDir / "index" / "builtin_school_index.pb"
-        copyZipFile(zipFileSystem, bundledIndexPath, targetIndexPath)
-
-        val builtInIndex = zipFileSystem.source(bundledIndexPath).use { source ->
-            SchoolIndex.ADAPTER.decode(source.buffer())
-        }
-        val resourceRoot = "/schools/resources".toPath()
-
-        builtInIndex.schools.forEach { school ->
-            school.adapters.forEach { adapter ->
-                val relativePath = "${school.resource_folder}/${adapter.asset_js_path}"
-                    .replace('\\', '/')
-                if (relativePath.startsWith('/') || relativePath.split('/').any { it == ".." }) {
-                    throw IllegalArgumentException("Illegal built-in resource path: $relativePath")
-                }
-                val sourcePath = resourceRoot / school.resource_folder / adapter.asset_js_path
-                if (!zipFileSystem.exists(sourcePath)) {
-                    throw IllegalStateException("Built-in adapter resource not found: $sourcePath")
-                }
-
-                val targetPath = targetRepoDir / "schools" / "resources" /
-                    school.resource_folder / adapter.asset_js_path
-                copyZipFile(zipFileSystem, sourcePath, targetPath)
-            }
-        }
-    }
-
-    private fun copyZipFile(zipFileSystem: FileSystem, sourcePath: Path, targetPath: Path) {
-        targetPath.parent?.let { fileSystem.createDirectories(it) }
-        zipFileSystem.source(sourcePath).use { source ->
-            fileSystem.sink(targetPath).buffer().use { sink ->
-                sink.writeAll(source)
             }
         }
     }
@@ -155,7 +110,13 @@ class ResourceInitializerManager(
                 fileSystem.createDirectories(destinationPath)
                 unzipDirectory(zipFileSystem, entry, destinationPath)
             } else {
-                copyZipFile(zipFileSystem, entry, destinationPath)
+                destinationPath.parent?.let { fileSystem.createDirectories(it) }
+
+                zipFileSystem.source(entry).use { source ->
+                    fileSystem.sink(destinationPath).buffer().use { sink ->
+                        sink.writeAll(source)
+                    }
+                }
             }
         }
     }

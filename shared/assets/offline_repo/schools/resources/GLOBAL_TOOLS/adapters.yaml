@@ -1,8 +1,0 @@
-adapters:
-  - adapter_id: "GENERAL_TOOL_01"
-    adapter_name: "组件测试"
-    category: "GENERAL_TOOL"
-    asset_js_path: "school.js"
-    import_url: ""
-    maintainer: "星河欲转"
-    description: "这是一个空网站，用于组件测试与演示模式"

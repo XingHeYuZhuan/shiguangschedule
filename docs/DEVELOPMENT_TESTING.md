@@ -6,7 +6,7 @@
 
 - 首选开发与验收目标：Android。
 - Desktop/iOS：存在工程和部分平台实现，但仍是适配中目标；当前入口未看到 Koin 初始化，不能作为开箱即用的验收平台。
-- 自动化测试现状：仓库没有 `*Test.kt` 或 `*Tests.kt` 文件。
+- 自动化测试现状：仓库暂未配置 Kotlin 测试源文件；本分支新增了 WebView 跨域请求的 Node 回归测试。
 - CI 现状：Android Build 工作流只在手动触发时构建签名 Release APK；没有自动执行单元测试、设备测试或静态检查。
 
 因此，“Gradle 构建通过”当前只能证明编译和打包，不等于业务行为已有回归覆盖。
@@ -125,7 +125,7 @@ iOS 共享 Framework 只能在 macOS 验证：
 - Android App 本地测试使用 JUnit 4。
 - Android 设备测试使用 AndroidX JUnit 与 Espresso。
 
-当前已有少量 `commonTest` 回归测试；继续补充时使用以下目录：
+`commonTest` 已配置 `kotlin.test` 依赖，但目前还没有 Kotlin 测试源文件；继续补充时使用以下目录：
 
 ```text
 shared/src/commonTest/kotlin/
@@ -225,7 +225,7 @@ git diff --check
 
 ## 7. 手工验收清单
 
-当前自动化覆盖为空，至少完成以下 Android 冒烟测试：
+当前自动化覆盖仍然有限，至少完成以下 Android 冒烟测试：
 
 ### 基础与数据
 
@@ -298,10 +298,11 @@ git diff --check
 文档编写时已完成以下静态核对：
 
 - 检查全部模块、构建脚本、版本目录、CI、Manifest、入口、共享数据层和 Android 后台链。
-- 确认仓库原先没有测试源文件；本分支新增了学校索引合并回归测试。
-- 确认本机仅有 JDK 25，未配置全局 Gradle；项目要求 JDK 21 Toolchain。
-- 两次尝试通过 Wrapper 下载 Gradle 9.7.1，均因当前网络连接/读取超时失败。
+- 确认本机使用 JDK 21，符合项目 Toolchain 要求。
+- `node tools/webview-request-interceptor-test/test-cross-origin.mjs` 执行通过。
+- `:shared:testAndroidHostTest` 执行通过。
+- `:androidApp:assembleDebug` 执行通过，并成功生成三个 ABI 的 Debug APK。
 
-因此本次环境未能实际执行 Gradle 编译、测试或 APK 构建。以上任务名来自当前 Gradle 配置和插件约定；首次在可联网的 JDK 21/Android SDK 环境中执行时，应先用 `tasks --all` 再确认一次。
+上述验证只能覆盖编译、共享测试任务和 WebView 请求拦截回归；账号登录、学校页面变化及 Android WebView 行为仍需通过真实环境验收。
 
 项目原理见 [项目原理与架构](PROJECT_ARCHITECTURE.md)。
