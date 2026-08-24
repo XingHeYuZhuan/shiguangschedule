@@ -21,7 +21,8 @@
    - compileSdk/targetSdk 37
    - minSdk 26
    - 对应 SDK Platform、Build Tools、Platform Tools
-4. 可访问 Google Maven、Maven Central、Gradle Plugin Portal 和 Gradle Distribution 的网络。
+4. Node.js 20 或更高版本，用于离线索引生成和 JavaScript 适配器回归测试。
+5. 可访问 Google Maven、Maven Central、Gradle Plugin Portal 和 Gradle Distribution 的网络。
 
 仅构建 iOS 时还需要 macOS、Xcode 和可用的 iOS Simulator；Windows/Linux 无法完成 Xcode App 构建。
 
@@ -53,6 +54,7 @@ git status --short
 可单独验证内置资源打包：
 
 ```powershell
+node tools/offline-repo/build-school-index.mjs
 .\gradlew.bat :shared:packSchoolsZip
 .\gradlew.bat :shared:exportLibraryDefinitions
 ```
@@ -132,6 +134,13 @@ shared/src/commonTest/kotlin/
 shared/src/jvmTest/kotlin/              # 仅在确有 JVM 专属测试时
 androidApp/src/test/kotlin/
 androidApp/src/androidTest/kotlin/
+```
+
+当前可直接运行的 JavaScript 回归测试：
+
+```powershell
+node tools/webview-request-interceptor-test/test-cross-origin.mjs
+node tools/seu-adapter-test/test-parser.mjs
 ```
 
 ### 5.2 建议优先补齐的共享单元测试
@@ -300,7 +309,9 @@ git diff --check
 - 检查全部模块、构建脚本、版本目录、CI、Manifest、入口、共享数据层和 Android 后台链。
 - 确认本机使用 JDK 21，符合项目 Toolchain 要求。
 - `node tools/webview-request-interceptor-test/test-cross-origin.mjs` 执行通过。
-- `:shared:testAndroidHostTest` 执行通过。
+- `node tools/seu-adapter-test/test-parser.mjs` 执行通过。
+- `:shared:testAndroidHostTest` 任务执行完成；当前为 `NO-SOURCE`，没有实际运行 Kotlin 测试用例。
+- `:androidApp:testDebugUnitTest` 任务执行完成；当前同样为 `NO-SOURCE`。
 - `:androidApp:assembleDebug` 执行通过，并成功生成三个 ABI 的 Debug APK。
 
 上述验证只能覆盖编译、共享测试任务和 WebView 请求拦截回归；账号登录、学校页面变化及 Android WebView 行为仍需通过真实环境验收。
