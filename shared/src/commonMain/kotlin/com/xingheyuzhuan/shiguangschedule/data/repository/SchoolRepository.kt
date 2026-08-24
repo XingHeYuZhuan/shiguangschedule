@@ -21,6 +21,42 @@ import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 
 /**
+ * 将随应用发布的适配器叠加到可在线更新的仓库索引上。
+ * 同 ID 的内置适配器优先，远程索引中的其他学校和适配器保持原顺序。
+ */
+internal fun mergeSchoolIndexes(primary: SchoolIndex, builtIn: SchoolIndex): SchoolIndex {
+    val schools = linkedMapOf<String, School>()
+    primary.schools.forEach { school -> schools[school.id] = school }
+
+    builtIn.schools.forEach { builtInSchool ->
+        val primarySchool = schools[builtInSchool.id]
+        if (primarySchool == null) {
+            schools[builtInSchool.id] = builtInSchool
+        } else {
+            val adapters = linkedMapOf<String, Adapter>()
+            primarySchool.adapters.forEach { adapter -> adapters[adapter.adapter_id] = adapter }
+            builtInSchool.adapters.forEach { adapter -> adapters[adapter.adapter_id] = adapter }
+
+            schools[builtInSchool.id] = School(
+                id = builtInSchool.id.ifBlank { primarySchool.id },
+                name = builtInSchool.name.ifBlank { primarySchool.name },
+                initial = builtInSchool.initial.ifBlank { primarySchool.initial },
+                resource_folder = builtInSchool.resource_folder.ifBlank { primarySchool.resource_folder },
+                adapters = adapters.values.toList(),
+                unknownFields = primarySchool.unknownFields
+            )
+        }
+    }
+
+    return SchoolIndex(
+        protocol_version = maxOf(primary.protocol_version, builtIn.protocol_version),
+        version_id = primary.version_id.ifBlank { builtIn.version_id },
+        schools = schools.values.toList(),
+        unknownFields = primary.unknownFields
+    )
+}
+
+/**
  * 学校数据仓库。
  * 职责：处理内部存储中 Protobuf 学校索引文件的读取与解析。
  */
@@ -42,7 +78,9 @@ class SchoolRepository(
      */
     private suspend fun loadIndex(): SchoolIndex? {
         return withContext(Dispatchers.IO) {
-            val internalPath = filesDir / "repo/index/school_index.pb"
+            val indexDirectory = filesDir / "repo/index"
+            val internalPath = indexDirectory / "school_index.pb"
+            val builtInPath = indexDirectory / "builtin_school_index.pb"
 
             if (!fileSystem.exists(internalPath)) {
                 println("错误：Protobuf 索引文件未找到: $internalPath")
@@ -50,9 +88,21 @@ class SchoolRepository(
             }
 
             try {
-                fileSystem.source(internalPath).use { source ->
-                    return@withContext SchoolIndex.ADAPTER.decode(source.buffer())
+                val primaryIndex = fileSystem.source(internalPath).use { source ->
+                    SchoolIndex.ADAPTER.decode(source.buffer())
                 }
+
+                if (!fileSystem.exists(builtInPath)) return@withContext primaryIndex
+
+                val builtInIndex = runCatching {
+                    fileSystem.source(builtInPath).use { source ->
+                        SchoolIndex.ADAPTER.decode(source.buffer())
+                    }
+                }.onFailure { error ->
+                    println("警告：内置学校索引解析失败，将仅使用远程索引: ${error.message}")
+                }.getOrNull()
+
+                if (builtInIndex == null) primaryIndex else mergeSchoolIndexes(primaryIndex, builtInIndex)
             } catch (e: Exception) {
                 e.printStackTrace()
                 null
