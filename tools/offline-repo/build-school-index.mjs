@@ -7,6 +7,10 @@ const repositoryRoot = path.resolve(here, "../..");
 const offlineRepoRoot = path.join(repositoryRoot, "shared/assets/offline_repo");
 const rootIndexPath = path.join(offlineRepoRoot, "index/root_index.yaml");
 const outputPath = path.join(offlineRepoRoot, "index/school_index.pb");
+// This index is the app-bundled bootstrap/overlay, not the remotely versioned
+// warehouse index. Keeping its version blank makes the output deterministic
+// and lets GitUpdater accept the first valid remote TIME_* index.
+const builtInVersionId = "";
 
 const categoryValues = Object.freeze({
     ADAPTER_CATEGORY_UNKNOWN: 0,
@@ -106,16 +110,10 @@ function encodeSchool(school) {
     ]);
 }
 
-function createVersionId() {
-    const now = new Date();
-    const digits = now.toISOString().replace(/[-:TZ.]/g, "");
-    return `TIME_${digits.slice(0, 14)}_${digits.slice(14, 17)}`;
-}
-
 const schools = parseObjectList(rootIndexPath, "schools");
 const schoolIndex = Buffer.concat([
     encodeInt(1, 2),
-    encodeString(2, createVersionId()),
+    encodeString(2, builtInVersionId),
     ...schools.map((school) => encodeBytes(3, encodeSchool(school)))
 ]);
 
