@@ -22,6 +22,19 @@ val JS_INTERCEPT_POST = """
         }
     }
 
+    // The internal request-id header is not a CORS-safelisted header. Adding it
+    // to a cross-origin request triggers a preflight that many academic systems
+    // (including SEU's HTTP page -> HTTPS API flow) reject. Only requests that
+    // the native interceptor can safely replay as same-origin may carry it.
+    function isSameOriginTarget(url) {
+        if (!url) return false;
+        try {
+            return new URL(url, window.location.href).origin === window.location.origin;
+        } catch (e) {
+            return false;
+        }
+    }
+
     // --- 1. XMLHttpRequest Interception ---
     var oldOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function(method, url) {
@@ -47,7 +60,7 @@ val JS_INTERCEPT_POST = """
     var oldSend = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.send = function(body) {
         try {
-            if (this._method && this._method.toUpperCase() !== 'GET' && body) {
+            if (this._method && this._method.toUpperCase() !== 'GET' && body && isSameOriginTarget(this._url)) {
                 var id = 'xhr_' + Date.now() + '_' + Math.random().toString(36).substr(2);
                 var contentType = (this._headers && (this._headers['Content-Type'] || this._headers['content-type'])) || '';
                 
@@ -93,8 +106,11 @@ val JS_INTERCEPT_POST = """
                 if (!method) method = 'GET';
 
                 var body = options.body;
+                var requestUrl = typeof input === 'string'
+                    ? input
+                    : (input && typeof input === 'object' ? input.url : '');
 
-                if (method.toUpperCase() !== 'GET' && body) {
+                if (method.toUpperCase() !== 'GET' && body && isSameOriginTarget(requestUrl)) {
                     var id = 'fetch_' + Date.now() + '_' + Math.random().toString(36).substr(2);
                     var contentType = '';
                     

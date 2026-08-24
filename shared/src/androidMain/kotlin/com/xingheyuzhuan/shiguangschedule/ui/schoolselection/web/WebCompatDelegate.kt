@@ -76,8 +76,11 @@ class WebCompatDelegate(private val webView: WebView) {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 original.onPageStarted(view, url, favicon)
                 view?.let { wv ->
-                    // 早期注入 JS_INTERCEPT_POST 拦截网络请求
-                    wv.evaluateJavascript(JS_INTERCEPT_POST, null)
+                    // POST 接管只服务于桌面模式。移动模式下原生 WebView 网络栈不会
+                    // 消费内部 X-WebView-Post-Id，请求携带它反而会触发跨源预检。
+                    if (isDesktopModeProvider()) {
+                        wv.evaluateJavascript(JS_INTERCEPT_POST, null)
+                    }
                 }
             }
 
@@ -85,12 +88,10 @@ class WebCompatDelegate(private val webView: WebView) {
                 original.onPageFinished(view, url)
 
                 view?.let { wv ->
-                    wv.evaluateJavascript(JS_INTERCEPT_POST, null)
-
                     if (isDesktopModeProvider()) {
                         injectDesktopViewportFix(wv)
                     }
-                    wv.injectAllJavaScript()
+                    wv.injectAllJavaScript(isDesktopModeProvider())
                 }
             }
 
@@ -142,8 +143,10 @@ class WebCompatDelegate(private val webView: WebView) {
     }
 }
 
-/** 统一注入 Bridge 初始化与 POST 拦截 JS */
-internal fun WebView.injectAllJavaScript() {
+/** 注入 Bridge；仅在桌面模式下启用由原生层配套处理的 POST 拦截。 */
+internal fun WebView.injectAllJavaScript(enablePostInterception: Boolean) {
     evaluateJavascript(JS_BRIDGE_INIT, null)
-    evaluateJavascript(JS_INTERCEPT_POST, null)
+    if (enablePostInterception) {
+        evaluateJavascript(JS_INTERCEPT_POST, null)
+    }
 }
