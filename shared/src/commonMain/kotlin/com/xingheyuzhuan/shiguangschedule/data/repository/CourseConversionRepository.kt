@@ -164,7 +164,7 @@ class CourseConversionRepository(
                     customStartTime = jsonCourse.customStartTime,
                     customEndTime = jsonCourse.customEndTime,
                     colorInt = courseIndex,
-                    remark = null
+                    remark = jsonCourse.remark?.take(300)
                 )
             )
 
