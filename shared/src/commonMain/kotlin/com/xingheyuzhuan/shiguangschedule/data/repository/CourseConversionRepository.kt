@@ -1,8 +1,10 @@
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
 import androidx.room3.Transaction
+import androidx.room3.withWriteTransaction
 import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.MainAppDatabase
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeek
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
@@ -30,6 +32,7 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 @Single
 class CourseConversionRepository(
+    private val mainAppDatabase: MainAppDatabase,
     private val courseDao: CourseDao,
     private val courseWeekDao: CourseWeekDao,
     private val timeSlotDao: TimeSlotDao,
@@ -186,7 +189,6 @@ class CourseConversionRepository(
      * 2. 时间段数据（timeSlots）：仅在 JSON 包含有效数据时覆盖，否则保留本地现状。
      * 3. 配置信息（config）：仅在 JSON 包含有效数据时覆盖，且会保留本地的 showWeekends 设置。
      */
-    @Transaction
     suspend fun importCourseTableFromJson(
         tableId: String,
         courseTableJsonModel: CourseTableImportModel
@@ -196,9 +198,6 @@ class CourseConversionRepository(
 
         val currentStyle = styleSettingsRepository.styleFlow.first()
         val colorSize = currentStyle.courseColorMaps.size
-
-        // 处理课程数据（始终清空原有课程）
-        courseDao.deleteCoursesByTableId(tableId)
 
         val courseEntities = ArrayList<Course>(courseTableJsonModel.courses.size)
         val courseWeekEntities = mutableListOf<CourseWeek>()
@@ -245,41 +244,43 @@ class CourseConversionRepository(
             }
         }
 
-        // 处理时间段数据（仅在有数据时覆盖）
-        val jsonTimeSlots = courseTableJsonModel.timeSlots
-        if (!jsonTimeSlots.isNullOrEmpty()) {
-            timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
+        mainAppDatabase.withWriteTransaction {
+            // 课程、节次和学期配置必须作为一个整体更新，任一写入失败时全部回滚。
+            courseDao.deleteCoursesByTableId(tableId)
 
-            val timeSlotEntities = jsonTimeSlots.map { jsonTimeSlot ->
-                TimeSlot(
-                    number = jsonTimeSlot.number,
-                    startTime = jsonTimeSlot.startTime,
-                    endTime = jsonTimeSlot.endTime,
-                    courseTableId = tableId,
-                    alias = jsonTimeSlot.alias?.take(5)
-                )
+            val jsonTimeSlots = courseTableJsonModel.timeSlots
+            if (!jsonTimeSlots.isNullOrEmpty()) {
+                timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
+
+                val timeSlotEntities = jsonTimeSlots.map { jsonTimeSlot ->
+                    TimeSlot(
+                        number = jsonTimeSlot.number,
+                        startTime = jsonTimeSlot.startTime,
+                        endTime = jsonTimeSlot.endTime,
+                        courseTableId = tableId,
+                        alias = jsonTimeSlot.alias?.take(5)
+                    )
+                }
+                timeSlotDao.insertAll(timeSlotEntities)
             }
-            timeSlotDao.insertAll(timeSlotEntities)
-        }
 
-        // 统一执行课程数据插入
-        if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
-        if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
+            if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
+            if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
 
-        // 处理配置数据
-        val configJson = courseTableJsonModel.config
-        if (configJson != null) {
-            val currentConfig = appSettingsRepository.getCourseConfigOnce(tableId)
-            val updatedConfig = CourseTableConfig(
-                courseTableId = tableId,
-                showWeekends = currentConfig?.showWeekends ?: false,
-                semesterStartDate = configJson.semesterStartDate,
-                semesterTotalWeeks = configJson.semesterTotalWeeks,
-                defaultClassDuration = configJson.defaultClassDuration,
-                defaultBreakDuration = configJson.defaultBreakDuration,
-                firstDayOfWeek = configJson.firstDayOfWeek
-            )
-            appSettingsRepository.insertOrUpdateCourseConfig(updatedConfig)
+            val configJson = courseTableJsonModel.config
+            if (configJson != null) {
+                val currentConfig = appSettingsRepository.getCourseConfigOnce(tableId)
+                val updatedConfig = CourseTableConfig(
+                    courseTableId = tableId,
+                    showWeekends = currentConfig?.showWeekends ?: false,
+                    semesterStartDate = configJson.semesterStartDate,
+                    semesterTotalWeeks = configJson.semesterTotalWeeks,
+                    defaultClassDuration = configJson.defaultClassDuration,
+                    defaultBreakDuration = configJson.defaultBreakDuration,
+                    firstDayOfWeek = configJson.firstDayOfWeek
+                )
+                appSettingsRepository.insertOrUpdateCourseConfig(updatedConfig)
+            }
         }
     }
 

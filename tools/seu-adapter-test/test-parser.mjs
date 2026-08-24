@@ -35,6 +35,13 @@ assert.equal(adapter.parseApiCourse({
     KCM: "非法星期", SKXQ: "NaN", KSJC: "1", JSJC: "2", ZCBH: "1"
 }), null, "non-numeric weekdays should be skipped");
 
+const fallbackCourses = adapter.buildCoursesFromDescriptors([
+    { name: "可解析课程", teacher: "教师", detail: "1-2周,星期一,第1-2节,教一-101" },
+    { name: "异常课程", teacher: "教师", detail: "缺少星期与节次" }
+]);
+assert.equal(fallbackCourses.length, 1, "one malformed DOM row must not abort the page fallback");
+assert.equal(fallbackCourses[0].name, "可解析课程");
+
 assert.deepEqual(adapter.parseTimeSlots([
     { DM: "2", KSSJ: "8:50", JSSJ: "9:35", SFSY: "1" },
     { DM: "1", KSSJ: "8:00", JSSJ: "8:45", SFSY: "1" },
@@ -61,5 +68,28 @@ assert.deepEqual(adapter.deriveCalendarFromCourses([
     semesterStartDate: "2026-08-24",
     semesterTotalWeeks: 4
 });
+
+const importResult = {
+    courses: [{ name: "测试课程" }],
+    timeSlots: [{ number: 1, startTime: "08:00", endTime: "08:45" }],
+    calendar: { semesterStartDate: "2026-08-24", semesterTotalWeeks: 18 }
+};
+let savedCourseTable;
+await adapter.saveImport({
+    saveImportedCourseTable: async (jsonString) => {
+        savedCourseTable = JSON.parse(jsonString);
+        return true;
+    }
+}, importResult);
+assert.deepEqual(savedCourseTable, {
+    courses: importResult.courses,
+    timeSlots: importResult.timeSlots,
+    config: importResult.calendar
+}, "course data must be handed to native in one atomic import request");
+await assert.rejects(
+    () => adapter.saveImport({}, importResult),
+    /不支持安全的整表导入/,
+    "legacy three-step saving must not be used because it can leave partial data"
+);
 
 console.log("SEU adapter parser tests passed");

@@ -120,14 +120,20 @@
 
     function buildCoursesFromDescriptors(descriptors) {
         const seen = new Set();
-        return descriptors.map((descriptor) => {
-            const parsed = parseScheduleDetail(descriptor.detail);
-            return {
-                name: normalizeText(descriptor.name), teacher: normalizeText(descriptor.teacher),
-                position: parsed.position, day: parsed.day, startSection: parsed.startSection,
-                endSection: parsed.endSection, weeks: parsed.weeks, isCustomTime: false,
-                remark: parsed.remark || null
-            };
+        return descriptors.flatMap((descriptor) => {
+            try {
+                const parsed = parseScheduleDetail(descriptor.detail);
+                return [{
+                    name: normalizeText(descriptor.name), teacher: normalizeText(descriptor.teacher),
+                    position: parsed.position, day: parsed.day, startSection: parsed.startSection,
+                    endSection: parsed.endSection, weeks: parsed.weeks, isCustomTime: false,
+                    remark: parsed.remark || null
+                }];
+            } catch (error) {
+                console.warn(`[${ADAPTER_NAME}] 跳过无法解析的课程条目`, descriptor,
+                    error && error.message ? error.message : error);
+                return [];
+            }
         }).filter((course) => {
             if (!course.name) return false;
             const key = [course.name, course.teacher, course.position, course.day,
@@ -295,11 +301,17 @@
     }
 
     async function saveImport(bridge, result) {
-        if (result.calendar && typeof bridge.saveCourseConfig === "function") {
-            await bridge.saveCourseConfig(JSON.stringify(result.calendar));
+        if (typeof bridge.saveImportedCourseTable !== "function") {
+            throw new Error("当前应用版本不支持安全的整表导入，请升级应用后重试");
         }
-        if (!await bridge.savePresetTimeSlots(JSON.stringify(result.timeSlots))) throw new Error("应用未能保存节次时间");
-        if (!await bridge.saveImportedCourses(JSON.stringify(result.courses))) throw new Error("应用未能保存课程数据");
+        const courseTable = {
+            courses: result.courses,
+            timeSlots: result.timeSlots,
+            config: result.calendar
+        };
+        if (!await bridge.saveImportedCourseTable(JSON.stringify(courseTable))) {
+            throw new Error("应用未能保存课表数据");
+        }
     }
 
     async function runImportFlow() {
@@ -340,7 +352,7 @@
         parseWeekday, parseWeekText, parseWeeksFromSkzc, parseSections, parseScheduleDetail,
         buildCoursesFromDescriptors, buildCoursesFromDocument, parseSemesterRow,
         parseApiCourse, parseApiCourses, parseTimeSlots, parseCalendar, deriveCalendarFromCourses,
-        normalizeTime,
+        normalizeTime, saveImport,
         timeSlots: SEU_TIME_SLOTS, endpoints: ENDPOINTS, runImportFlow
     });
     if (!root.__SHIGUANG_TEST_MODE__) runImportFlow();

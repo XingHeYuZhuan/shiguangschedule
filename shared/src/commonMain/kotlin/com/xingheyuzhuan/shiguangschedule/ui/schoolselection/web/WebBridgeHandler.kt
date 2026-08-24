@@ -67,6 +67,10 @@ class WebBridgeHandler(
                     savePresetTimeSlots(it.timeSlotsJsonString, callbackId)
                 }
 
+                "saveImportedCourseTable" -> parsePayload<SaveCourseTablePayload>(message.payload)?.let {
+                    saveImportedCourseTable(it.courseTableJsonString, callbackId)
+                }
+
                 "notifyTaskCompletion" -> notifyTaskCompletion()
             }
         } catch (e: Exception) {
@@ -221,6 +225,38 @@ class WebBridgeHandler(
                 }.onFailure { e ->
                     ToastManager.show("课程导入失败: ${e.message}")
                     if (callbackId != null) rejectJsPromise(callbackId, "课程导入失败: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * 原子导入课程、节次和学期配置。
+     */
+    fun saveImportedCourseTable(courseTableJsonString: String, callbackId: String? = null) {
+        coroutineScope.launch(Dispatchers.Default) {
+            val tableId = importTableId
+            if (tableId == null) {
+                coroutineScope.launch(Dispatchers.Main) {
+                    ToastManager.show("导入失败：未选择课表。")
+                    if (callbackId != null) rejectJsPromise(callbackId, "课表选择已取消。")
+                }
+                return@launch
+            }
+
+            val result = runCatching {
+                val importedCourseTable =
+                    json.decodeFromString<CourseImportExport.CourseTableImportModel>(courseTableJsonString)
+                courseConversionRepository.importCourseTableFromJson(tableId, importedCourseTable)
+            }
+
+            coroutineScope.launch(Dispatchers.Main) {
+                result.onSuccess {
+                    ToastManager.show("课表导入成功！课程、节次和学期配置已更新。")
+                    if (callbackId != null) resolveJsPromise(callbackId, "true")
+                }.onFailure { e ->
+                    ToastManager.show("课表导入失败: ${e.message}")
+                    if (callbackId != null) rejectJsPromise(callbackId, "课表导入失败: ${e.message}")
                 }
             }
         }

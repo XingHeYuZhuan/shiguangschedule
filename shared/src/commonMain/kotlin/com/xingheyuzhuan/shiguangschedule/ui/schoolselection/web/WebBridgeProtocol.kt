@@ -68,6 +68,11 @@ data class SaveTimeSlotsPayload(
     val timeSlotsJsonString: String
 )
 
+@Serializable
+data class SaveCourseTablePayload(
+    val courseTableJsonString: String
+)
+
 // =========================================================================
 // Helper 工具函数
 // =========================================================================
@@ -199,6 +204,13 @@ val JS_BRIDGE_INIT = """
                 var id = 'cb_' + (++callbackCounter) + '_' + Date.now();
                 callbacks[id] = { resolve: resolve, reject: reject };
                 postMessageToNative('savePresetTimeSlots', { timeSlotsJsonString: timeSlotsJsonString }, id);
+            });
+        },
+        saveImportedCourseTable: function(courseTableJsonString) {
+            return new Promise(function(resolve, reject) {
+                var id = 'cb_' + (++callbackCounter) + '_' + Date.now();
+                callbacks[id] = { resolve: resolve, reject: reject };
+                postMessageToNative('saveImportedCourseTable', { courseTableJsonString: courseTableJsonString }, id);
             });
         }
     };
