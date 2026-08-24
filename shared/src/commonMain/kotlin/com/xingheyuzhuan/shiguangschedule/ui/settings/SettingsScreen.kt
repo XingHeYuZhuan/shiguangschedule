@@ -119,7 +119,11 @@ fun SettingsScreen(
             topBar = {
                 CenterAlignedTopAppBar(
                     title = { Text(stringResource(Res.string.title_schedule_settings)) },
-                    scrollBehavior = scrollBehavior
+                    scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        scrolledContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
             }
         ) { innerPadding ->
