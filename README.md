@@ -89,6 +89,11 @@
 2. 提交 Pull Request，等待审核合并(main分支已经开启分支保护,提交需要提交到dev分支)。
 3. 如有问题或建议，欢迎在 GitHub 提交 Issue 或加入社区讨论。
 
+## 开发文档
+
+- [项目原理与架构](docs/PROJECT_ARCHITECTURE.md)
+- [开发与测试流程](docs/DEVELOPMENT_TESTING.md)
+
 ## 相关链接
 
 - 项目主页：[https://github.com/XingHeYuZhuan/shiguangschedule](https://github.com/XingHeYuZhuan/shiguangschedule)
