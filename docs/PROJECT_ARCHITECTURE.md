@@ -191,17 +191,17 @@ sequenceDiagram
     participant DB as Room
 
     Build->>Build: packSchoolsZip 打包 offline_repo
-    App->>App: 解压到 files/repo
-    Index->>Index: Wire 解码 school_index.pb
+    App->>App: 首次解压，升级时覆盖内置叠加层
+    Index->>Index: Wire 解码并合并主索引/内置索引
     Index-->>Web: 学校、适配器、URL、JS 路径
-    Web->>Bridge: saveImportedCourses/config/timeSlots
+    Web->>Bridge: saveImportedCourseTable
     Bridge->>Repo: 解析并校验 JSON
-    Repo->>DB: 写入课程、周次、时间段、配置
+    Repo->>DB: 单一写事务导入课程、周次、时间段、配置
 ```
 
-`school_index.proto` 定义协议版本、学校、适配器类别、脚本路径与入口 URL。构建时 `packSchoolsZip` 把 `shared/assets/offline_repo` 打包成 Compose Resource；首次启动时解压到应用私有目录。`SchoolRepository` 只读取当前生效的 `school_index.pb`，不会合并另一份内置索引。Release 构建会先清理仓库中的离线学校目录，再从 `shiguang_warehouse` 获取发布索引和资源；应用运行后也可通过 `GitUpdater` 更新这些文件，并拒绝高于客户端支持版本的协议。
+`school_index.proto` 定义协议版本、学校、适配器类别、脚本路径与入口 URL。构建时 `packSchoolsZip` 把 `shared/assets/offline_repo` 打包成 Compose Resource；首次启动解压到应用私有目录，升级安装则保留已下载的仓库并覆盖新版 App 内置适配脚本。Release 构建把仓库内索引保存为 `builtin_school_index.pb`，再从 `shiguang_warehouse` 获取可更新的主索引和资源。`SchoolRepository` 以主索引为基础合并内置索引，因此 `GitUpdater` 更新远程索引后仍会保留随 App 发布的适配器，同时拒绝高于客户端支持版本的协议。
 
-WebView 注入 Promise 风格的 JS Bridge。适配脚本可以请求 Toast/Alert/Prompt/单选框，并分别提交课程、课表配置和预设时间段。Native 侧负责 JSON 解码、时间合法性检查、颜色分配和 Room 写入。
+WebView 注入 Promise 风格的 JS Bridge。适配脚本可以请求 Toast/Alert/Prompt/单选框，并通过 `saveImportedCourseTable` 一次提交课程、课表配置和预设时间段。Native 侧负责 JSON 解码、时间合法性检查、颜色分配，并在同一 Room 写事务中完成整表替换；任一写入失败会整体回滚。
 
 ## 9. Android 后台链路
 

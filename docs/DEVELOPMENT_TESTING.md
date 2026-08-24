@@ -6,8 +6,8 @@
 
 - 首选开发与验收目标：Android。
 - Desktop/iOS：存在工程和部分平台实现，但仍是适配中目标；当前入口未看到 Koin 初始化，不能作为开箱即用的验收平台。
-- 自动化测试现状：仓库暂未配置 Kotlin 测试源文件；本分支新增了 WebView 跨域请求的 Node 回归测试。
-- CI 现状：Android Build 工作流只在手动触发时构建签名 Release APK；没有自动执行单元测试、设备测试或静态检查。
+- 自动化测试现状：`commonTest` 覆盖内置/远程学校索引合并及旧内置索引迁移；Node 测试覆盖 WebView 跨域请求与 SEU 课表解析、整表导入协议。
+- CI 现状：普通 PR 会自动校验内置索引可复现性、运行 Node/共享测试并构建 Debug APK；Android Build 工作流仍只在手动触发时构建签名 Release APK。设备测试需要人工执行。
 
 因此，“Gradle 构建通过”当前只能证明编译和打包，不等于业务行为已有回归覆盖。
 
@@ -127,7 +127,7 @@ iOS 共享 Framework 只能在 macOS 验证：
 - Android App 本地测试使用 JUnit 4。
 - Android 设备测试使用 AndroidX JUnit 与 Espresso。
 
-`commonTest` 已配置 `kotlin.test` 依赖，但目前还没有 Kotlin 测试源文件；继续补充时使用以下目录：
+`commonTest` 当前包含内置/远程学校索引合并及旧内置索引迁移测试；继续补充时使用以下目录：
 
 ```text
 shared/src/commonTest/kotlin/
@@ -142,6 +142,15 @@ androidApp/src/androidTest/kotlin/
 node tools/webview-request-interceptor-test/test-cross-origin.mjs
 node tools/seu-adapter-test/test-parser.mjs
 ```
+
+内置学校索引必须保持确定性且使用空版本号，避免抢占远程仓库的 `TIME_*` 版本。修改索引 YAML 后执行：
+
+```powershell
+node tools/offline-repo/build-school-index.mjs
+git diff -- shared/assets/offline_repo/index/school_index.pb
+```
+
+生成后的 `school_index.pb` 需要与 YAML 一并提交；PR Checks 会重新生成并用 `git diff --exit-code` 验证二者一致。
 
 ### 5.2 建议优先补齐的共享单元测试
 
@@ -265,13 +274,24 @@ git diff --check
 
 ## 8. CI 与发布流程
 
+### PR Checks
+
+`.github/workflows/pr-check.yml` 在目标分支为 `dev` 的 PR 上自动执行：
+
+1. 重新生成内置学校索引并确认提交产物完全一致。
+2. 运行 WebView 跨域请求与 SEU 适配器 Node 回归测试。
+3. 运行 `:shared:testAndroidHostTest` 和 Android App 单元测试。
+4. 构建 Debug APK，验证共享代码、资源打包和 Android 集成。
+
+该工作流不使用签名密钥，也不能替代真实学校账号与 Android WebView 实机验收。
+
 ### Android Build
 
 `.github/workflows/android-build.yml` 是手动工作流：
 
-1. 清理仓库内置教务资源目录。
-2. 从 `shiguang_warehouse` 的 `index-pb-release` 获取 `school_index.pb`。
-3. 稀疏拉取 `main/resources`，并移除 `adapters.yaml`。
+1. 将仓库内索引保存为 `builtin_school_index.pb`，同时备份内置适配脚本。
+2. 从 `shiguang_warehouse` 的 `index-pb-release` 获取可在线更新的主 `school_index.pb`。
+3. 稀疏拉取 `main/resources`，再叠加仓库内置资源，最后移除仅用于编译索引的 `adapters.yaml`。
 4. 生成贡献者数据。
 5. 配置 JDK 21 和 Gradle 缓存。
 6. 解码 Release Keystore，通过 Gradle 注入签名参数运行根任务 `assembleRelease`。
@@ -296,7 +316,7 @@ git diff --check
 建议按优先级补齐：
 
 1. 继续为周次、布局、导入校验和 Widget 展开扩充 `commonTest` 基线。
-2. 新增普通 PR CI，至少运行 `:shared:testAndroidHostTest`、Android 单元测试和 `assembleDebug`。
+2. 继续扩充 PR CI 的共享、Android 单元测试与导入边界覆盖。
 3. 在 Release Build 中先运行测试，再进行签名打包。
 4. 增加 Room migration instrumentation test，覆盖已有 schema 3→4→5。
 5. 明确 Desktop/iOS 支持策略；若继续支持，为其补齐 Koin 启动和最小冒烟构建。
@@ -310,10 +330,10 @@ git diff --check
 - 确认本机使用 JDK 21，符合项目 Toolchain 要求。
 - `node tools/webview-request-interceptor-test/test-cross-origin.mjs` 执行通过。
 - `node tools/seu-adapter-test/test-parser.mjs` 执行通过。
-- `:shared:testAndroidHostTest` 任务执行完成；当前为 `NO-SOURCE`，没有实际运行 Kotlin 测试用例。
+- `:shared:testAndroidHostTest` 执行通过，运行了内置/远程学校索引合并及旧内置索引迁移测试。
 - `:androidApp:testDebugUnitTest` 任务执行完成；当前同样为 `NO-SOURCE`。
 - `:androidApp:assembleDebug` 执行通过，并成功生成三个 ABI 的 Debug APK。
 
-上述验证只能覆盖编译、共享测试任务和 WebView 请求拦截回归；账号登录、学校页面变化及 Android WebView 行为仍需通过真实环境验收。
+上述验证覆盖编译、索引合并、SEU 数据解析与 WebView 请求拦截回归；账号登录、学校页面变化及 Android WebView 行为仍需通过真实环境验收。
 
 项目原理见 [项目原理与架构](PROJECT_ARCHITECTURE.md)。
