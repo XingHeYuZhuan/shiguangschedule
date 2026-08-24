@@ -1,0 +1,10 @@
+schools:
+  - id: "GLOBAL_TOOLS"
+    name: "通用工具与服务"
+    initial: "G"
+    resource_folder: "GLOBAL_TOOLS"
+
+  - id: "SEU"
+    name: "东南大学"
+    initial: "D"
+    resource_folder: "SEU"
