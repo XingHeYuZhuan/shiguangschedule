@@ -36,6 +36,22 @@ internal fun shouldReplaceLegacyBundledPrimary(
 }
 
 /**
+ * 直接从源码构建的安装包只有 school_index.pb，没有 Release 工作流额外生成的
+ * builtin_school_index.pb。首次解压时补一份不可被在线更新覆盖的内置索引，确保
+ * 后续 GitUpdater 替换主索引后仍能叠加随 App 发布的适配器。
+ */
+internal fun ensureBuiltInIndexInstalled(
+    fileSystem: FileSystem,
+    indexDirectory: Path
+) {
+    val primaryPath = indexDirectory / "school_index.pb"
+    val builtInPath = indexDirectory / "builtin_school_index.pb"
+    if (!fileSystem.exists(builtInPath) && fileSystem.exists(primaryPath)) {
+        fileSystem.copy(primaryPath, builtInPath)
+    }
+}
+
+/**
  * 资源与缓存初始化管理器。
  *
  * 负责应用启动时的静态离线资源解压校验，以及过期的分享与下载临时缓存清理。
@@ -86,6 +102,7 @@ class ResourceInitializerManager(
                 fileSystem.createDirectories(targetRepoDir)
 
                 unzipDirectory(zipFileSystem, "/".toPath(), targetRepoDir)
+                ensureBuiltInIndexInstalled(fileSystem, targetRepoDir / "index")
             } finally {
                 fileSystem.delete(tempZipFile)
             }

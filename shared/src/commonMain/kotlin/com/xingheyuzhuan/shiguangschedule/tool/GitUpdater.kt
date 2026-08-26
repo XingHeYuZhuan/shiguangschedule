@@ -12,6 +12,20 @@ import org.koin.core.annotation.Single
 import school_index.SchoolIndex
 
 /**
+ * 内置索引声明的脚本由当前 App 版本负责提供，在线仓库同步不得用同路径文件覆盖。
+ */
+internal fun builtInAdapterResourcePaths(index: SchoolIndex): Set<String> = buildSet {
+    index.schools.forEach { school ->
+        school.adapters.forEach { adapter ->
+            val resourcePath = "${school.resource_folder}/${adapter.asset_js_path}"
+                .replace('\\', '/')
+                .trimStart('/')
+            if (resourcePath.isNotBlank()) add(resourcePath)
+        }
+    }
+}
+
+/**
  * 单行对齐进度监听器
  */
 private class LogProgressMonitor(
@@ -146,10 +160,16 @@ class GitUpdater(
             }
 
             val tempFiles = mutableListOf<Pair<Path, Path>>()
+            val protectedBuiltInResources = readSchoolIndex(
+                indexFileTargetDir / "builtin_school_index.pb"
+            )?.let(::builtInAdapterResourcePaths).orEmpty()
+
             fileSystem.listRecursively(sourceResourcesDir).forEach { sourcePath ->
                 if (fileSystem.metadata(sourcePath).isRegularFile) {
                     if (sourcePath.name.equals("adapters.yaml", ignoreCase = true)) return@forEach
                     val relativeSegments = sourcePath.segments.drop(sourceResourcesDir.segments.size)
+                    val relativeResourcePath = relativeSegments.joinToString("/")
+                    if (relativeResourcePath in protectedBuiltInResources) return@forEach
                     val relativePath = relativeSegments.fold("".toPath()) { acc, segment -> acc / segment }
                     val targetPath = schoolsFileTargetDir / resourcesPath / relativePath
                     tempFiles.add(Pair(sourcePath, targetPath))

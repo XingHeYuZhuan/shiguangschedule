@@ -111,6 +111,14 @@ kotlin {
             implementation(libs.ktor.client.cio)
         }
 
+        named("androidHostTest") {
+            dependencies {
+                implementation(libs.junit)
+                implementation(libs.androidx.test.core)
+                implementation(libs.robolectric)
+            }
+        }
+
         jvmMain.dependencies {
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.ktor.client.cio)
@@ -123,6 +131,7 @@ kotlin {
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.okio.fakefilesystem)
         }
     }
 }
