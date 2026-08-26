@@ -4,5 +4,27 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>shiguangschedule</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSCalendarsUsageDescription</key>
+	<string>用于将课程表同步到系统日历。</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>用于连接局域网中的 WebDAV 备份服务。</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_webdav._tcp</string>
+	</array>
 </dict>
 </plist>

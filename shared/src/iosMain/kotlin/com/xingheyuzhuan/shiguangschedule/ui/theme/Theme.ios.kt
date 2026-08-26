@@ -1,19 +1,21 @@
 package com.xingheyuzhuan.shiguangschedule.ui.theme
 
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import com.xingheyuzhuan.shiguangschedule.data.model.AppThemeMode
 import platform.UIKit.UIApplication
+import platform.UIKit.UIColor
 import platform.UIKit.UIStatusBarStyleDarkContent
 import platform.UIKit.UIStatusBarStyleLightContent
 import platform.UIKit.UIUserInterfaceStyle
 import platform.UIKit.UIWindow
 import platform.UIKit.UIWindowScene
 import platform.UIKit.setStatusBarStyle
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
 
 @Composable
 actual fun rememberColorScheme(
@@ -22,11 +24,10 @@ actual fun rememberColorScheme(
     customLightPrimary: Color,
     customDarkPrimary: Color
 ): ColorScheme {
-    return if (darkTheme) {
-        darkColorScheme(primary = customDarkPrimary)
-    } else {
-        lightColorScheme(primary = customLightPrimary)
-    }
+    return rememberMaterialKolorScheme(
+        darkTheme = darkTheme,
+        seedColor = if (darkTheme) customDarkPrimary else customLightPrimary
+    )
 }
 
 @Composable
@@ -36,30 +37,46 @@ actual fun SetupPlatformThemeEffects(
     themeMode: AppThemeMode
 ) {
     SideEffect {
-        val uiStyle = when (themeMode) {
-            AppThemeMode.FOLLOW_SYSTEM -> UIUserInterfaceStyle.UIUserInterfaceStyleUnspecified
-            AppThemeMode.LIGHT -> UIUserInterfaceStyle.UIUserInterfaceStyleLight
-            AppThemeMode.DARK -> UIUserInterfaceStyle.UIUserInterfaceStyleDark
-        }
+        dispatch_async(dispatch_get_main_queue()) {
+            val style = if (darkTheme) {
+                UIStatusBarStyleLightContent
+            } else {
+                UIStatusBarStyleDarkContent
+            }
+            UIApplication.sharedApplication.setStatusBarStyle(style, animated = true)
 
-        val style = if (darkTheme) {
-            UIStatusBarStyleLightContent
-        } else {
-            UIStatusBarStyleDarkContent
-        }
+            val interfaceStyle: UIUserInterfaceStyle = when (themeMode) {
+                AppThemeMode.FOLLOW_SYSTEM -> UIUserInterfaceStyle.UIUserInterfaceStyleUnspecified
+                AppThemeMode.LIGHT -> UIUserInterfaceStyle.UIUserInterfaceStyleLight
+                AppThemeMode.DARK -> UIUserInterfaceStyle.UIUserInterfaceStyleDark
+            }
 
-        UIApplication.sharedApplication.connectedScenes.forEach { scene ->
-            (scene as? UIWindowScene)?.windows?.forEach { window ->
-                (window as? UIWindow)?.let { win ->
-                    win.overrideUserInterfaceStyle = uiStyle
-                    win.rootViewController?.setNeedsStatusBarAppearanceUpdate()
-                }
+            keyWindow()?.let { window ->
+                window.overrideUserInterfaceStyle = interfaceStyle
+                window.backgroundColor = colorScheme.background.toUIColor()
             }
         }
-
-        @Suppress("DEPRECATION")
-        UIApplication.sharedApplication.setStatusBarStyle(style, animated = true)
     }
+}
+
+private fun keyWindow(): UIWindow? {
+    val windowScene = UIApplication.sharedApplication.connectedScenes
+        .firstOrNull { it is UIWindowScene } as? UIWindowScene
+
+    return windowScene?.windows
+        .orEmpty()
+        .mapNotNull { it as? UIWindow }
+        .firstOrNull { it.isKeyWindow() }
+}
+
+private fun Color.toUIColor(): UIColor {
+    val argb = toArgb()
+    return UIColor.colorWithRed(
+        red = ((argb shr 16) and 0xFF) / 255.0,
+        green = ((argb shr 8) and 0xFF) / 255.0,
+        blue = (argb and 0xFF) / 255.0,
+        alpha = ((argb ushr 24) and 0xFF) / 255.0
+    )
 }
 
 actual val supportsDynamicColor: Boolean = false
