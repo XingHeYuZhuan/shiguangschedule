@@ -84,7 +84,7 @@ fun ShiguangScheduleTheme(
 fun rememberMaterialKolorScheme(
     darkTheme: Boolean,
     seedColor: Color,
-    style: PaletteStyle = PaletteStyle.Expressive
+    style: PaletteStyle = PaletteStyle.TonalSpot
 ): ColorScheme {
     return rememberDynamicColorScheme(
         seedColor = seedColor,
