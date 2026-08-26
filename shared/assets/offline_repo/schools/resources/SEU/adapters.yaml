@@ -4,5 +4,5 @@ adapters:
     category: "BACHELOR_AND_ASSOCIATE"
     asset_js_path: "seu_01.js"
     import_url: "https://ehall.seu.edu.cn/appShow?appId=6226841127248448"
-    maintainer: "拾光课程表"
+    maintainer: "Ming"
     description: "通过办事大厅个人课表应用完成认证后，只读查询学期、节次和本科个人课表数据，并自动配置开学日期。"
