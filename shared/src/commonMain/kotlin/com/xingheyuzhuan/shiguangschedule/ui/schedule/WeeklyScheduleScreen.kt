@@ -4,9 +4,13 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -39,6 +44,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -188,6 +194,8 @@ fun WeeklyScheduleScreen(
 
     val navHideFraction = if (floatingCourse != null) 1f else collapseFraction
 
+    val systemNavigationBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
     AdaptiveNavigationScaffold(
         currentDestination = Destination.CourseSchedule,
         onTabSelected = { dest -> onNavigate(dest) },
@@ -195,11 +203,23 @@ fun WeeklyScheduleScreen(
         isTransparent = composedStyle.backgroundImagePath.isNotEmpty(),
         contentColor = customTextColor,
         navigationModifier = Modifier.graphicsLayer {
-            translationY = size.height * navHideFraction
+            val insetPx = systemNavigationBarInset.toPx()
+            translationY = (size.height + insetPx) * navHideFraction
             alpha = 1f - navHideFraction
         },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
+        val animatedBottomBarHeight = remember(innerPadding, navHideFraction, floatingCourse, systemNavigationBarInset) {
+            if (floatingCourse != null) {
+                0.dp
+            } else {
+                val rawBarHeight = (innerPadding.calculateBottomPadding() - systemNavigationBarInset).coerceAtLeast(0.dp)
+                rawBarHeight * (1f - navHideFraction)
+            }
+        }
+
+        val totalBottomOffset = systemNavigationBarInset + animatedBottomBarHeight
+
         Box(modifier = Modifier.fillMaxSize()) {
             if (composedStyle.backgroundImagePath.isNotEmpty()) {
                 AsyncImage(
@@ -215,6 +235,7 @@ fun WeeklyScheduleScreen(
                     .fillMaxSize()
                     .nestedScroll(scrollBehavior.nestedScrollConnection),
                 containerColor = Color.Transparent,
+                contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
                 topBar = {
                     CenterAlignedTopAppBar(
                         title = {
@@ -261,19 +282,15 @@ fun WeeklyScheduleScreen(
                         scrollBehavior = scrollBehavior
                     )
                 },
-                snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+                snackbarHost = {
+                    SnackbarHost(
+                        hostState = snackbarHostState,
+                        modifier = Modifier.padding(bottom = totalBottomOffset)
+                    )
+                }
             ) { scaffoldInnerPadding ->
 
-                val dynamicBottomPadding = remember(innerPadding, navHideFraction, floatingCourse) {
-                    if (floatingCourse != null) {
-                        0.dp
-                    } else {
-                        val bottomBarHeight = innerPadding.calculateBottomPadding()
-                        val systemWindowInsetBottom = scaffoldInnerPadding.calculateBottomPadding()
-                        val baseBottom = systemWindowInsetBottom.coerceAtLeast(0.dp)
-                        baseBottom + (bottomBarHeight * (1f - navHideFraction))
-                    }
-                }
+                val dynamicBottomPadding = scaffoldInnerPadding.calculateBottomPadding() + totalBottomOffset
 
                 HorizontalPager(
                     state = pagerState,
@@ -484,7 +501,7 @@ fun WeeklyScheduleScreen(
                 onCancelClick = { viewModel.exitFloatingMode() },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp)
+                    .padding(bottom = 24.dp + systemNavigationBarInset)
             )
         }
     }
