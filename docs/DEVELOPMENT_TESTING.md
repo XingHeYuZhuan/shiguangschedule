@@ -6,7 +6,7 @@
 
 - 首选开发与验收目标：Android。
 - Desktop/iOS：存在工程和部分平台实现，但仍是适配中目标；当前入口未看到 Koin 初始化，不能作为开箱即用的验收平台。
-- 自动化测试现状：`commonTest` 覆盖内置/远程学校索引合并及旧内置索引迁移；Node 测试覆盖 WebView 跨域请求与 SEU 课表解析、整表导入协议。
+- 自动化测试现状：Android Host Test 覆盖内置/远程学校索引合并、首次安装的内置索引固化、旧内置索引迁移、在线更新保护内置脚本及整表导入失败后的 Room 事务回滚；Node 测试覆盖 WebView 跨域请求与 SEU 课表解析、回退学期配置和整表导入协议。
 - CI 现状：普通 PR 会自动校验内置索引可复现性、运行 Node/共享测试并构建 Debug APK；Android Build 工作流仍只在手动触发时构建签名 Release APK。设备测试需要人工执行。
 
 因此，“Gradle 构建通过”当前只能证明编译和打包，不等于业务行为已有回归覆盖。
@@ -127,10 +127,11 @@ iOS 共享 Framework 只能在 macOS 验证：
 - Android App 本地测试使用 JUnit 4。
 - Android 设备测试使用 AndroidX JUnit 与 Espresso。
 
-`commonTest` 当前包含内置/远程学校索引合并及旧内置索引迁移测试；继续补充时使用以下目录：
+当前共享测试包含内置/远程学校索引合并、首次安装与在线更新时的内置资源保护、旧内置索引迁移，以及 Android Host Test 中的整表导入事务回滚测试；继续补充时使用以下目录：
 
 ```text
 shared/src/commonTest/kotlin/
+shared/src/androidHostTest/kotlin/       # 需要 Android Context/Room/Robolectric 的主机测试
 shared/src/jvmTest/kotlin/              # 仅在确有 JVM 专属测试时
 androidApp/src/test/kotlin/
 androidApp/src/androidTest/kotlin/
@@ -330,7 +331,7 @@ git diff --check
 - 确认本机使用 JDK 21，符合项目 Toolchain 要求。
 - `node tools/webview-request-interceptor-test/test-cross-origin.mjs` 执行通过。
 - `node tools/seu-adapter-test/test-parser.mjs` 执行通过。
-- `:shared:testAndroidHostTest` 执行通过，运行了内置/远程学校索引合并及旧内置索引迁移测试。
+- `:shared:testAndroidHostTest` 执行通过，运行了内置/远程学校索引合并、首次安装与在线更新资源保护、旧内置索引迁移及整表导入失败回滚测试。
 - `:androidApp:testDebugUnitTest` 任务执行完成；当前同样为 `NO-SOURCE`。
 - `:androidApp:assembleDebug` 执行通过，并成功生成三个 ABI 的 Debug APK。
 

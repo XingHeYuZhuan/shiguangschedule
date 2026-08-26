@@ -199,7 +199,7 @@ sequenceDiagram
     Repo->>DB: 单一写事务导入课程、周次、时间段、配置
 ```
 
-`school_index.proto` 定义协议版本、学校、适配器类别、脚本路径与入口 URL。构建时 `packSchoolsZip` 把 `shared/assets/offline_repo` 打包成 Compose Resource；首次启动解压到应用私有目录，升级安装则保留已下载的仓库并覆盖新版 App 内置适配脚本。Release 构建把仓库内索引保存为 `builtin_school_index.pb`，再从 `shiguang_warehouse` 获取可更新的主索引和资源。`SchoolRepository` 以主索引为基础合并内置索引，因此 `GitUpdater` 更新远程索引后仍会保留随 App 发布的适配器，同时拒绝高于客户端支持版本的协议。
+`school_index.proto` 定义协议版本、学校、适配器类别、脚本路径与入口 URL。构建时 `packSchoolsZip` 把 `shared/assets/offline_repo` 打包成 Compose Resource；首次启动解压到应用私有目录，并在直接源码构建中把包内主索引固化为内置索引，升级安装则保留已下载的仓库并覆盖新版 App 内置适配脚本。Release 构建把仓库内索引保存为 `builtin_school_index.pb`，再从 `shiguang_warehouse` 获取可更新的主索引和资源。`SchoolRepository` 以主索引为基础合并内置索引，`GitUpdater` 同步时跳过内置索引声明的同路径脚本，因此远程更新后仍会保留随 App 发布的适配器，同时拒绝高于客户端支持版本的协议。
 
 WebView 注入 Promise 风格的 JS Bridge。适配脚本可以请求 Toast/Alert/Prompt/单选框，并通过 `saveImportedCourseTable` 一次提交课程、课表配置和预设时间段。Native 侧负责 JSON 解码、时间合法性检查、颜色分配，并在同一 Room 写事务中完成整表替换；任一写入失败会整体回滚。
 
