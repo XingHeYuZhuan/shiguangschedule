@@ -69,6 +69,25 @@ assert.deepEqual(adapter.deriveCalendarFromCourses([
     semesterTotalWeeks: 4
 });
 
+assert.deepEqual(adapter.parseManualCalendar("2026-08-24", "18"), {
+    semesterStartDate: "2026-08-24",
+    semesterTotalWeeks: 18
+});
+assert.throws(() => adapter.parseManualCalendar("2026-02-30", "18"), /不是有效日期/);
+assert.throws(() => adapter.parseManualCalendar("2026-08-24", "0"), /1 到 30/);
+
+const promptAnswers = ["2026-08-24", "18"];
+const fallbackCalendar = await adapter.requestFallbackCalendar({
+    showPrompt: async () => promptAnswers.shift()
+});
+assert.deepEqual(fallbackCalendar, {
+    semesterStartDate: "2026-08-24",
+    semesterTotalWeeks: 18
+}, "page fallback must collect a complete semester configuration before saving");
+assert.equal(await adapter.requestFallbackCalendar({
+    showPrompt: async () => null
+}), null, "cancelling fallback configuration must cancel the import");
+
 const importResult = {
     courses: [{ name: "测试课程" }],
     timeSlots: [{ number: 1, startTime: "08:00", endTime: "08:45" }],

@@ -279,6 +279,53 @@
         return startDate ? { semesterStartDate: startDate, semesterTotalWeeks: totalWeeks || 20 } : null;
     }
 
+    function parseManualCalendar(startDateValue, totalWeeksValue) {
+        const startDate = normalizeText(startDateValue);
+        const match = startDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) throw new Error("学期开始日期必须使用 YYYY-MM-DD 格式");
+
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+        const parsedDate = new Date(Date.UTC(year, month - 1, day));
+        if (parsedDate.getUTCFullYear() !== year || parsedDate.getUTCMonth() !== month - 1 ||
+            parsedDate.getUTCDate() !== day) {
+            throw new Error("学期开始日期不是有效日期");
+        }
+
+        const totalWeeksText = normalizeText(totalWeeksValue);
+        const totalWeeks = Number(totalWeeksText);
+        if (!/^\d+$/.test(totalWeeksText) || !Number.isInteger(totalWeeks) || totalWeeks < 1 || totalWeeks > 30) {
+            throw new Error("学期总周数必须是 1 到 30 之间的整数");
+        }
+
+        return { semesterStartDate: startDate, semesterTotalWeeks: totalWeeks };
+    }
+
+    async function requestFallbackCalendar(bridge) {
+        if (!bridge || typeof bridge.showPrompt !== "function") {
+            throw new Error("无法自动识别学期日期，且当前应用不支持手工补充学期配置");
+        }
+
+        const startDate = await bridge.showPrompt(
+            "补充学期开始日期",
+            "未能从学校页面自动识别学期配置。请输入第 1 周周一的日期（YYYY-MM-DD）；取消将不会写入课表。",
+            "",
+            "(function(value){if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return '请输入 YYYY-MM-DD 格式的日期';var p=value.split('-').map(Number),d=new Date(Date.UTC(p[0],p[1]-1,p[2]));return d.getUTCFullYear()===p[0]&&d.getUTCMonth()===p[1]-1&&d.getUTCDate()===p[2]?'':'请输入有效日期';})"
+        );
+        if (startDate == null) return null;
+
+        const totalWeeks = await bridge.showPrompt(
+            "补充学期总周数",
+            "请输入本学期总周数（1-30）；取消将不会写入课表。",
+            "20",
+            "(function(value){return /^\\d+$/.test(value)&&Number(value)>=1&&Number(value)<=30?'':'请输入 1 到 30 之间的整数';})"
+        );
+        if (totalWeeks == null) return null;
+
+        return parseManualCalendar(startDate, totalWeeks);
+    }
+
     async function importFromApi(bridge) {
         const semester = await selectSemester(bridge);
         if (!semester) return null;
@@ -333,6 +380,14 @@
                 toast("接口读取失败，已改用页面中显示的课表");
             }
             if (!result) return false;
+            if (!result.calendar) {
+                const calendar = await requestFallbackCalendar(bridge);
+                if (!calendar) {
+                    toast("已取消导入，原课表未发生变化");
+                    return false;
+                }
+                result = { ...result, calendar };
+            }
             await saveImport(bridge, result);
             toast(`成功从${result.source}导入 ${result.courses.length} 个课程时段`);
             const sync = bridgeSync();
@@ -352,7 +407,7 @@
         parseWeekday, parseWeekText, parseWeeksFromSkzc, parseSections, parseScheduleDetail,
         buildCoursesFromDescriptors, buildCoursesFromDocument, parseSemesterRow,
         parseApiCourse, parseApiCourses, parseTimeSlots, parseCalendar, deriveCalendarFromCourses,
-        normalizeTime, saveImport,
+        normalizeTime, parseManualCalendar, requestFallbackCalendar, saveImport,
         timeSlots: SEU_TIME_SLOTS, endpoints: ENDPOINTS, runImportFlow
     });
     if (!root.__SHIGUANG_TEST_MODE__) runImportFlow();
