@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -113,13 +114,17 @@ fun SettingsScreen(
     AdaptiveNavigationScaffold(
         currentDestination = Destination.Settings,
         onTabSelected = { dest -> onNavigate(dest) }
-    ) {
+    ) { navPadding ->
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
                 CenterAlignedTopAppBar(
                     title = { Text(stringResource(Res.string.title_schedule_settings)) },
-                    scrollBehavior = scrollBehavior
+                    scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        scrolledContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
             }
         ) { innerPadding ->
@@ -156,7 +161,10 @@ fun SettingsScreen(
                         .padding(innerPadding)
                         .padding(horizontal = SETTING_PADDING),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(SECTION_SPACING)
+                    verticalArrangement = Arrangement.spacedBy(SECTION_SPACING),
+                    contentPadding = PaddingValues(
+                        bottom = navPadding.calculateBottomPadding()
+                    )
                 ) {
                     item {
                         GeneralSettingsSection(

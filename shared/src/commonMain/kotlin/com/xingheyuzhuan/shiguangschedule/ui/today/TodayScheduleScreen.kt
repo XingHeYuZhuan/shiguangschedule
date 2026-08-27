@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -81,7 +82,7 @@ fun TodayScheduleScreen(
     AdaptiveNavigationScaffold(
         currentDestination = Destination.TodaySchedule,
         onTabSelected = { dest -> onNavigate(dest) }
-    ) {
+    ) { navPadding ->
         Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
@@ -100,7 +101,7 @@ fun TodayScheduleScreen(
                 when (val state = uiState) {
                     is TodayUiState.Loading -> { /* 可放置圆圈加载 */ }
                     is TodayUiState.Success -> {
-                        TodayContent(state, gridStyle, isDark)
+                        TodayContent(state, gridStyle, isDark, navPadding)
                     }
                 }
             }
@@ -112,7 +113,8 @@ fun TodayScheduleScreen(
 fun TodayContent(
     state: TodayUiState.Success,
     gridStyle: ScheduleGridStyle,
-    isDark: Boolean
+    isDark: Boolean,
+    navPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     val currentTime = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time }
 
@@ -196,6 +198,9 @@ fun TodayContent(
             LazyColumn(
                 state = scrollState,
                 modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(
+                    bottom = navPadding.calculateBottomPadding() + 16.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 itemsIndexed(state.courses) { _, model ->

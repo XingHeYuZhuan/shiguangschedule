@@ -6,15 +6,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,6 +37,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
@@ -73,6 +80,10 @@ fun StyleSettingsScreen(
 
     var loadedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var showCropper by remember { mutableStateOf(false) }
+
+    // 获取底部系统导航栏高度及 Card 背景颜色
+    val navigationBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val cardContainerColor = CardDefaults.cardColors().containerColor
 
     // 1. 对接全局统一的平台资源管理器
     val fileManager = rememberFileManager(
@@ -170,7 +181,20 @@ fun StyleSettingsScreen(
                 Column(modifier = contentModifier) {
                     previewContent(Modifier.fillMaxWidth().weight(0.45f))
                     Card(
-                        modifier = Modifier.fillMaxWidth().weight(0.55f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(0.55f)
+                            .drawWithContent {
+                                drawContent()
+                                val navBarPx = navigationBarHeight.toPx()
+                                if (navBarPx > 0) {
+                                    drawRect(
+                                        color = cardContainerColor,
+                                        topLeft = Offset(0f, size.height),
+                                        size = Size(size.width, navBarPx)
+                                    )
+                                }
+                            },
                         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                     ) {
                         SettingsListContent(

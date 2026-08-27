@@ -50,7 +50,8 @@ data class MergedCourseBlock(
     val courses: List<CourseWithWeeks>,
     val needsProportionalRendering: Boolean = false,
     val isVisualDemoted: Boolean = false,
-    val nonActiveRanges: List<Pair<Float, Float>> = emptyList()
+    val nonActiveRanges: List<Pair<Float, Float>> = emptyList(),
+    val clusterCourses: List<CourseWithWeeks> = emptyList()
 )
 
 data class WeeklyScheduleUiState(
@@ -707,6 +708,11 @@ class WeeklyScheduleViewModel (
                     itemToColumnIndex[item] = assignedIndex
                 }
 
+                val sortedClusterCourses = cluster.sortedWith(
+                    compareBy<NormalizedCourse> { it.start }
+                        .thenBy { itemToColumnIndex[it] ?: 0 }
+                ).map { it.raw }
+
                 val totalSubColumns = columnEnds.size
 
                 for (item in cluster) {
@@ -722,7 +728,8 @@ class WeeklyScheduleViewModel (
                             courses = listOf(cw),
                             needsProportionalRendering = (mode == ScheduleModeProto.TIME_24H_MODE) || cw.course.isCustomTime,
                             isVisualDemoted = !isCurrentWeekActive,
-                            nonActiveRanges = listOf(myColumnIndex.toFloat() to totalSubColumns.toFloat())
+                            nonActiveRanges = listOf(myColumnIndex.toFloat() to totalSubColumns.toFloat()),
+                            clusterCourses = sortedClusterCourses
                         )
                     )
                 }
