@@ -7,9 +7,15 @@ struct WidgetSurface<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        content
-            .containerBackground(for: .widget) { Color(.systemBackground) }
-            .widgetURL(appURL)
+        if #available(iOS 17.0, *) {
+            content
+                .containerBackground(for: .widget) { Color(.systemBackground) }
+                .widgetURL(appURL)
+        } else {
+            content
+                .background(Color(.systemBackground))
+                .widgetURL(appURL)
+        }
     }
 }
 
