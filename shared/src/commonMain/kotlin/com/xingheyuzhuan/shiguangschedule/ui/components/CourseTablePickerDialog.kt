@@ -183,7 +183,7 @@ fun CourseTablePickerDialog(
                 }
                 Spacer(modifier = Modifier.weight(1f))
 
-                Button(
+                TextButton(
                     onClick = onDismissRequest,
                     modifier = Modifier.padding(end = 8.dp)
                 ) {
@@ -223,7 +223,7 @@ fun CourseTablePickerDialog(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                Button(onClick = {
                     if (newTableName.isNotBlank()) {
                         deps.createNewCourseTable(newTableName)
 
