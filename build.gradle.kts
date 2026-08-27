@@ -13,3 +13,12 @@ plugins {
     alias(libs.plugins.aboutLibraries) apply false
     alias(libs.plugins.wire) apply false
 }
+
+allprojects {
+    configurations.all {
+        exclude(group = "io.opencensus", module = "opencensus-api")
+        exclude(group = "io.opencensus", module = "opencensus-proto")
+        exclude(group = "io.opentelemetry", module = "opentelemetry-api")
+        exclude(group = "io.opentelemetry", module = "opentelemetry-context")
+    }
+}

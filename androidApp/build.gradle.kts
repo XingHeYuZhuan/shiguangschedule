@@ -91,13 +91,6 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 }
 
-configurations.all {
-    exclude(group = "io.opencensus", module = "opencensus-api")
-    exclude(group = "io.opencensus", module = "opencensus-proto")
-    exclude(group = "io.opentelemetry", module = "opentelemetry-api")
-    exclude(group = "io.opentelemetry", module = "opentelemetry-context")
-}
-
 androidComponents {
     onVariants { variant ->
         val buildType = variant.buildType ?: ""
