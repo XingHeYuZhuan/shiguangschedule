@@ -233,10 +233,10 @@
     <string name="label_table_name">課表名稱</string>
     <string name="text_no_tables_hint">目前沒有課表，點選右下角按鈕新增。</string>
     <string name="toast_switch_table_success">已切換到課表: %1$s</string>
-    <string name="toast_add_table_success">課表 \'%1$s\' 已新增</string>
+    <string name="toast_add_table_success">課表 '%1$s' 已新增</string>
     <string name="dialog_title_edit_table">編輯課表名稱</string>
     <string name="toast_edit_table_success">課表名稱已更新</string>
-    <string name="dialog_text_confirm_delete">您確定要刪除課表 \'%1$s\' 嗎？此操作無法復原。</string>
+    <string name="dialog_text_confirm_delete">您確定要刪除課表 '%1$s' 嗎？此操作無法復原。</string>
     <string name="toast_delete_table_success">%1$s 已刪除</string>
     <string name="toast_delete_last_table_failed">不能刪除最後一個課表</string>
     <string name="a11y_current_table">目前課表</string>
@@ -262,7 +262,7 @@
     <string name="toast_class_duration_positive">課程時長必須大於0分鐘</string>
     <string name="label_break_duration_minutes">課間休息 (分鐘)</string>
     <string name="toast_break_duration_non_negative">休息時長不能為負</string>
-    <string name="text_no_time_slots_hint">目前沒有時間段。點選右上角 \'+\' 新增。</string>
+    <string name="text_no_time_slots_hint">目前沒有時間段。點選右上角 '+' 新增。</string>
     <string name="toast_slot_removed_unsaved">時間段已從清單移除，請點選儲存以更新資料庫</string>
     <string name="time_slot_section_number">第 %1$s 節</string>
     <string name="a11y_delete_time_slot">刪除時間段</string>

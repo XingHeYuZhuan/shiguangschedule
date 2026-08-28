@@ -234,10 +234,10 @@
     <string name="label_table_name">课表名称</string>
     <string name="text_no_tables_hint">暂无课表，点击右下角按钮添加。</string>
     <string name="toast_switch_table_success">已切换到课表: %1$s</string>
-    <string name="toast_add_table_success">课表 \'%1$s\' 已添加</string>
+    <string name="toast_add_table_success">课表 '%1$s' 已添加</string>
     <string name="dialog_title_edit_table">编辑课表名称</string>
     <string name="toast_edit_table_success">课表名称已更新</string>
-    <string name="dialog_text_confirm_delete">您确定要删除课表 \'%1$s\' 吗？此操作无法撤销。</string>
+    <string name="dialog_text_confirm_delete">您确定要删除课表 '%1$s' 吗？此操作无法撤销。</string>
     <string name="toast_delete_table_success">%1$s 已删除</string>
     <string name="toast_delete_last_table_failed">不能删除最后一个课表</string>
     <string name="a11y_current_table">当前课表</string>
@@ -263,7 +263,7 @@
     <string name="toast_class_duration_positive">课程时长必须大于0分钟</string>
     <string name="label_break_duration_minutes">课间休息 (分钟)</string>
     <string name="toast_break_duration_non_negative">休息时长不能为负</string>
-    <string name="text_no_time_slots_hint">当前没有时间段。点击右上角 \'+\' 添加。</string>
+    <string name="text_no_time_slots_hint">当前没有时间段。点击右上角 '+' 添加。</string>
     <string name="toast_slot_removed_unsaved">时间段已从列表移除，请点击保存以更新数据库</string>
     <string name="time_slot_section_number">第 %1$s 节</string>
     <string name="a11y_delete_time_slot">删除时间段</string>
