@@ -54,7 +54,7 @@ object ListVerticalNativeRenderer {
             it.date == tomorrowStr && !it.is_skipped
         }.sortedBy { it.start_time }
 
-        val weekDaysArray = context.resources.getStringArray(R.array.week_days_full_names)
+        val weekDaysArray = context.resources.getStringArray(R.array.week_days_names)
         val dayOfWeekStr = weekDaysArray[today.dayOfWeek.value - 1]
 
         when {

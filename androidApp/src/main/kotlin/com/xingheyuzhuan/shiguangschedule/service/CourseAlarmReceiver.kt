@@ -142,10 +142,19 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
         val nm = context.getSystemService<NotificationManager>() ?: return
 
         val alertTitle = context.getString(R.string.notification_title_course_alert)
-        val posLabel = context.getString(R.string.label_position)
-        val teacherLabel = context.getString(R.string.label_teacher)
         val closeActionText = context.getString(R.string.action_close)
         val liveStatusText = context.getString(R.string.notification_live_status_preparing)
+
+        val formattedPosition = context.getString(R.string.course_position_prefix, position)
+        val formattedTeacher = if (teacher.isNotBlank()) {
+            context.getString(R.string.course_teacher_prefix, teacher)
+        } else null
+
+        val bigTextContent = if (formattedTeacher != null) {
+            "$formattedPosition\n$formattedTeacher"
+        } else {
+            formattedPosition
+        }
 
         if (nm.getNotificationChannel(NOTIFICATION_CHANNEL_ID) == null) {
             val channel = NotificationChannel(
@@ -170,13 +179,13 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
 
         val bigTextStyle = NotificationCompat.BigTextStyle()
             .setBigContentTitle(name)
-            .bigText("$posLabel: $position\n$teacherLabel: $teacher")
+            .bigText(bigTextContent)
 
         val builder = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
             .setContentTitle(name)
-            .setContentText("$posLabel: $position")
+            .setContentText(formattedPosition)
             .setSubText(alertTitle)
             .setStyle(bigTextStyle)
 

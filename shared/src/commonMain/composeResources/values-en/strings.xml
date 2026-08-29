@@ -31,7 +31,7 @@
     <string name="nav_today_schedule">Today</string>
     <string name="nav_course_schedule">Schedule</string>
     <string name="nav_settings">Settings</string>
-    <string name="title_today_schedule">Today\'s schedule</string>
+    <string name="title_today_schedule">Today's schedule</string>
     <string name="text_no_courses_today">No courses today</string>
     <string name="title_vacation_until_start">Vacation (%1$s days left)</string>
     <string name="title_semester_not_set">Please set semester start date</string>
@@ -110,8 +110,8 @@
     <string name="notification_channel_desc_course_alert">Course reminder notifications</string>
     <string name="notification_title_course_alert">Class reminder</string>
     <string name="item_auto_mode">Auto mode during class</string>
-    <string name="text_auto_mode_dependency">Requires \"Course reminders\" to be enabled</string>
-    <string name="toast_enable_reminder_first">Please enable \"Course reminders\" first</string>
+    <string name="text_auto_mode_dependency">Requires "Course reminders" to be enabled</string>
+    <string name="toast_enable_reminder_first">Please enable "Course reminders" first</string>
     <string name="alarm_option_none">No reminder</string>
     <string name="alarm_option_on_time">On time</string>
     <string name="notification_live_status_preparing">Pre-class</string>
@@ -125,7 +125,7 @@
     <string name="widget_name_list_vertical">Vertical Course List 4xN</string>
     <string name="widget_tomorrow_course_preview">Tomorrow</string>
     <string name="widget_no_courses_tomorrow">No courses tomorrow</string>
-    <string name="widget_today_courses_finished">Today\'s classes ended.</string>
+    <string name="widget_today_courses_finished">Today's classes ended.</string>
     <string name="widget_vacation_expecting">Looking forward to new semester</string>
     <string name="widget_remaining_courses_format_today">%1$d courses left today</string>
     <string name="widget_remaining_courses_format_tomorrow">%1$d courses tomorrow</string>
@@ -183,7 +183,7 @@
     <string name="action_close">Close</string>
     <string name="toast_notification_permission_denied">Notification permission denied, cannot receive course reminders.</string>
     <string name="item_compat_wearable_sync">Wearable Sync Compatibility</string>
-    <string name="desc_compat_wearable_sync">Android 16\'s dynamic notification updates conflict with some wearable sync apps. Enabling this will improve compatibility but disable real-time "Ongoing" update effects.</string>
+    <string name="desc_compat_wearable_sync">Android 16's dynamic notification updates conflict with some wearable sync apps. Enabling this will improve compatibility but disable real-time "Ongoing" update effects.</string>
     
     <!-- Settings Options -->
     <string name="title_schedule_settings">Schedule settings</string>
@@ -233,10 +233,10 @@
     <string name="label_table_name">Schedule name</string>
     <string name="text_no_tables_hint">No schedules yet, tap the button below to add one.</string>
     <string name="toast_switch_table_success">Switched to schedule: %1$s</string>
-    <string name="toast_add_table_success">Schedule \'%1$s\' added</string>
+    <string name="toast_add_table_success">Schedule '%1$s' added</string>
     <string name="dialog_title_edit_table">Edit schedule name</string>
     <string name="toast_edit_table_success">Schedule name updated</string>
-    <string name="dialog_text_confirm_delete">Are you sure you want to delete schedule \'%1$s\'? This cannot be undone.</string>
+    <string name="dialog_text_confirm_delete">Are you sure you want to delete schedule '%1$s'? This cannot be undone.</string>
     <string name="toast_delete_table_success">%1$s deleted</string>
     <string name="toast_delete_last_table_failed">Cannot delete the last schedule</string>
     <string name="a11y_current_table">Current schedule</string>
@@ -262,7 +262,7 @@
     <string name="toast_class_duration_positive">Class duration must be greater than 0 minutes</string>
     <string name="label_break_duration_minutes">Break duration (minutes)</string>
     <string name="toast_break_duration_non_negative">Break duration cannot be negative</string>
-    <string name="text_no_time_slots_hint">No time periods yet. Tap the \'+\' icon to add one.</string>
+    <string name="text_no_time_slots_hint">No time periods yet. Tap the '+' icon to add one.</string>
     <string name="toast_slot_removed_unsaved">Time period removed from list, tap save to update database</string>
     <string name="time_slot_section_number">Period %1$s</string>
     <string name="a11y_delete_time_slot">Delete time period</string>
@@ -318,7 +318,7 @@
     <string name="item_developer_options">Developer Options</string>
     <string name="section_sync">Sync</string>
     <string name="item_sync_to_system_calendar">Sync to System Calendar</string>
-    <string name="desc_sync_to_system_calendar">Sync the current schedule to your phone\\\'s system calendar with one click</string>
+    <string name="desc_sync_to_system_calendar">Sync the current schedule to your phone's system calendar with one click</string>
     <string name="toast_sync_calendar_success">Synced successfully</string>
     <string name="error_sync_calendar_failed">Sync failed. Please check calendar permissions.</string>
     <string name="title_more_options">More</string>
@@ -392,7 +392,7 @@
     <string name="text_no_detailed_description">No detailed description.</string>
     <string name="label_contributor_unknown">Unknown</string>
     <string name="label_contributor_format">Contributor: %1$s</string>
-    <string name="text_no_adapter_for_category_school">No adapter available for this school in \"%1$s\" category.</string>
+    <string name="text_no_adapter_for_category_school">No adapter available for this school in "%1$s" category.</string>
     <string name="title_enter_url">Enter URL</string>
     <string name="a11y_cancel_editing">Cancel editing</string>
     <string name="placeholder_enter_url_full">Enter URL (https://...)</string>
@@ -408,7 +408,7 @@
     <string name="item_devtools_debug">DevTools web debugging</string>
     <string name="a11y_devtools">DevTools</string>
     <string name="toast_devtools_enabled_format">DevTools web debugging %1$s.</string>
-    <string name="text_import_guide">Please log in to the academic system and navigate to a page showing the schedule before importing. Tap \"More\" for additional options</string>
+    <string name="text_import_guide">Please log in to the academic system and navigate to a page showing the schedule before importing. Tap "More" for additional options</string>
     <string name="action_execute_import">Execute import</string>
     <string name="toast_no_script_manual_import">This adapter has no script, please import manually.</string>
     <string name="dialog_title_select_table_for_import">Select a schedule to import courses</string>
@@ -532,7 +532,7 @@
     <string name="custom_color_title">Custom Primary Color</string>
     <string name="light_primary_color">Light Primary Color</string>
     <string name="dark_primary_color">Dark Primary Color</string>
-    <string name="theme_color_hint">Note: After changing this color, the system will use it as a seed color to recalculate the entire app\\\'s color scheme.</string>
+    <string name="theme_color_hint">Note: After changing this color, the system will use it as a seed color to recalculate the entire app's color scheme.</string>
     <string name="label_page_text_color">Schedule text color</string>
     <string name="widget_course_remaining_count">%1$d left</string>
 
