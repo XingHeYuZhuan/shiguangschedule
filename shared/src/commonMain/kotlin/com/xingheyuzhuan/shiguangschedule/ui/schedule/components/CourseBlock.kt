@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,6 +24,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,6 +38,9 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
+import org.jetbrains.compose.resources.stringResource
+import shiguangschedule.shared.generated.resources.Res
+import shiguangschedule.shared.generated.resources.a11y_course_overlap_count
 
 @Composable
 fun CourseBlock(
@@ -42,7 +49,8 @@ fun CourseBlock(
     style: ScheduleGridStyleComposed,
     timeSlots: List<TimeSlot>,
     modifier: Modifier = Modifier,
-    isFloating: Boolean = false // 标记当前块是否处于长按选中/悬浮状态
+    isFloating: Boolean = false, // 标记当前块是否处于长按选中/悬浮状态
+    overlapCount: Int = 1
 ) {
     val course = courseWrapper.course
     val isDarkTheme = LocalIsDarkTheme.current
@@ -195,6 +203,28 @@ fun CourseBlock(
                         drawRect(brush = brush)
                     }
             )
+        }
+
+        if (overlapCount > 0) {
+            val overlapDescription = stringResource(Res.string.a11y_course_overlap_count, overlapCount)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .semantics { contentDescription = overlapDescription },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = overlapCount.toString(),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    maxLines = 1
+                )
+            }
         }
     }
 }

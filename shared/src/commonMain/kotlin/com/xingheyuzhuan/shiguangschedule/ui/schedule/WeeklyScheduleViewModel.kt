@@ -51,7 +51,8 @@ data class MergedCourseBlock(
     val needsProportionalRendering: Boolean = false,
     val isVisualDemoted: Boolean = false,
     val nonActiveRanges: List<Pair<Float, Float>> = emptyList(),
-    val clusterCourses: List<CourseWithWeeks> = emptyList()
+    val clusterCourses: List<CourseWithWeeks> = emptyList(),
+    val overlapCount: Int = 0
 )
 
 data class WeeklyScheduleUiState(
@@ -81,6 +82,16 @@ private data class NormalizedCourse(
     val start: Float,
     val end: Float
 )
+
+private fun NormalizedCourse.logicalKey(): String {
+    val course = raw.course
+    val timeKey = if (course.isCustomTime) {
+        "${course.customStartTime}|${course.customEndTime}"
+    } else {
+        "${course.startSection}|${course.endSection}"
+    }
+    return "${course.name}|${course.day}|$timeKey"
+}
 
 /**
  * 辅助函数：获取当前系统时区的当前日期
@@ -539,75 +550,107 @@ class WeeklyScheduleViewModel (
     ) {
         viewModelScope.launch {
             try {
-                val state = _uiState.value
-                val mode = state.style.toComposedStyle().scheduleMode
-                val slots = state.timeSlots
-                val currentWeek = state.weekIndexInPager ?: state.currentWeekNumber ?: return@launch
+                persistCourseTimeByGesture(courseId, targetDay, startSection, endSection)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                onComplete()
+            }
+        }
+    }
 
-                val currentSettings = appSettingsRepository.getAppSettingsOnce()
-                val tableId = currentSettings.currentCourseTableId
-                if (tableId.isBlank()) return@launch
-
-                val allCoursesWithWeeks = courseTableRepository.getCoursesWithWeeksByTableId(tableId).firstOrNull() ?: return@launch
-                val targetWrapper = allCoursesWithWeeks.find { it.course.id == courseId } ?: return@launch
-                val originalCourse = targetWrapper.course
-
-                val updatedCourseForTime = if (mode == ScheduleModeProto.TIME_24H_MODE) {
-                    val newStartTime = gridScaleToTime(startSection, slots, mode)
-                    val newEndTime = gridScaleToTime(endSection, slots, mode)
-
-                    originalCourse.copy(
-                        day = targetDay,
-                        isCustomTime = true,
-                        customStartTime = newStartTime.formatToHHmm(),
-                        customEndTime = newEndTime.formatToHHmm(),
-                        startSection = (startSection.toInt() + 1).coerceIn(1, 24),
-                        endSection = (endSection.toInt() + 1).coerceIn(1, 24)
-                    )
-                } else {
-                    val newStartSection = (startSection.toInt() + 1).coerceIn(1, slots.size)
-                    val newEndSection = endSection.toInt().coerceIn(1, slots.size)
-                    if (newStartSection > newEndSection) return@launch
-
-                    originalCourse.copy(
-                        day = targetDay,
-                        isCustomTime = false,
-                        customStartTime = null,
-                        customEndTime = null,
-                        startSection = newStartSection,
-                        endSection = newEndSection
-                    )
-                }
-                val isNoPositionChange = originalCourse.day == updatedCourseForTime.day &&
-                        originalCourse.startSection == updatedCourseForTime.startSection &&
-                        originalCourse.endSection == updatedCourseForTime.endSection &&
-                        originalCourse.customStartTime == updatedCourseForTime.customStartTime &&
-                        originalCourse.customEndTime == updatedCourseForTime.customEndTime
-
-                if (isNoPositionChange) {
-                    return@launch
-                }
-
-                val isSingleWeek = targetWrapper.weeks.size <= 1
-
-                if (isSingleWeek) {
-                    val weekNumbers = targetWrapper.weeks.map { it.weekNumber }
-                    courseTableRepository.upsertCourse(updatedCourseForTime, weekNumbers)
-                } else {
-                    val remainingWeeks = targetWrapper.weeks
-                        .map { it.weekNumber }
-                        .filter { it != currentWeek }
-                    courseTableRepository.upsertCourse(originalCourse, remainingWeeks)
-
-                    val clonedNewId = Uuid.random().toString()
-                    val finalClonedCourse = updatedCourseForTime.copy(id = clonedNewId)
-                    courseTableRepository.upsertCourse(finalClonedCourse, listOf(currentWeek))
+    /**
+     * 将同一逻辑课程下的所有数据库记录一起应用手势调课。
+     */
+    fun updateCoursesTimeByGesture(
+        courseIds: List<String>,
+        targetDay: Int,
+        startSection: Float,
+        endSection: Float,
+        onComplete: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            try {
+                courseIds.forEach { courseId ->
+                    persistCourseTimeByGesture(courseId, targetDay, startSection, endSection)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
                 onComplete()
             }
+        }
+    }
+
+    private suspend fun persistCourseTimeByGesture(
+        courseId: String,
+        targetDay: Int,
+        startSection: Float,
+        endSection: Float
+    ) {
+        val state = _uiState.value
+        val mode = state.style.toComposedStyle().scheduleMode
+        val slots = state.timeSlots
+        val currentWeek = state.weekIndexInPager ?: state.currentWeekNumber ?: return
+
+        val currentSettings = appSettingsRepository.getAppSettingsOnce()
+        val tableId = currentSettings.currentCourseTableId
+        if (tableId.isBlank()) return
+
+        val allCoursesWithWeeks = courseTableRepository.getCoursesWithWeeksByTableId(tableId).firstOrNull() ?: return
+        val targetWrapper = allCoursesWithWeeks.find { it.course.id == courseId } ?: return
+        val originalCourse = targetWrapper.course
+
+        val updatedCourseForTime = if (mode == ScheduleModeProto.TIME_24H_MODE) {
+            val newStartTime = gridScaleToTime(startSection, slots, mode)
+            val newEndTime = gridScaleToTime(endSection, slots, mode)
+
+            originalCourse.copy(
+                day = targetDay,
+                isCustomTime = true,
+                customStartTime = newStartTime.formatToHHmm(),
+                customEndTime = newEndTime.formatToHHmm(),
+                startSection = (startSection.toInt() + 1).coerceIn(1, 24),
+                endSection = (endSection.toInt() + 1).coerceIn(1, 24)
+            )
+        } else {
+            val newStartSection = (startSection.toInt() + 1).coerceIn(1, slots.size)
+            val newEndSection = endSection.toInt().coerceIn(1, slots.size)
+            if (newStartSection > newEndSection) return
+
+            originalCourse.copy(
+                day = targetDay,
+                isCustomTime = false,
+                customStartTime = null,
+                customEndTime = null,
+                startSection = newStartSection,
+                endSection = newEndSection
+            )
+        }
+        val isNoPositionChange = originalCourse.day == updatedCourseForTime.day &&
+                originalCourse.startSection == updatedCourseForTime.startSection &&
+                originalCourse.endSection == updatedCourseForTime.endSection &&
+                originalCourse.customStartTime == updatedCourseForTime.customStartTime &&
+                originalCourse.customEndTime == updatedCourseForTime.customEndTime
+
+        if (isNoPositionChange) {
+            return
+        }
+
+        val isSingleWeek = targetWrapper.weeks.size <= 1
+
+        if (isSingleWeek) {
+            val weekNumbers = targetWrapper.weeks.map { it.weekNumber }
+            courseTableRepository.upsertCourse(updatedCourseForTime, weekNumbers)
+        } else {
+            val remainingWeeks = targetWrapper.weeks
+                .map { it.weekNumber }
+                .filter { it != currentWeek }
+            courseTableRepository.upsertCourse(originalCourse, remainingWeeks)
+
+            val clonedNewId = Uuid.random().toString()
+            val finalClonedCourse = updatedCourseForTime.copy(id = clonedNewId)
+            courseTableRepository.upsertCourse(finalClonedCourse, listOf(currentWeek))
         }
     }
 
@@ -689,10 +732,14 @@ class WeeklyScheduleViewModel (
             }
 
             for (cluster in currentClusters) {
+                val logicalGroups = cluster.groupBy { it.logicalKey() }.values.toList()
                 val columnEnds = mutableListOf<Float>()
-                val itemToColumnIndex = mutableMapOf<NormalizedCourse, Int>()
+                val groupToColumnIndex = mutableMapOf<Int, Int>()
+                val itemToGroupIndex = mutableMapOf<NormalizedCourse, Int>()
 
-                for (item in cluster) {
+                logicalGroups.forEachIndexed { groupIndex, group ->
+                    group.forEach { itemToGroupIndex[it] = groupIndex }
+                    val item = group.first()
                     var assignedIndex = -1
                     for (i in columnEnds.indices) {
                         if (columnEnds[i] <= item.start + 0.01f) {
@@ -705,31 +752,36 @@ class WeeklyScheduleViewModel (
                         columnEnds.add(item.end)
                         assignedIndex = columnEnds.size - 1
                     }
-                    itemToColumnIndex[item] = assignedIndex
+                    groupToColumnIndex[groupIndex] = assignedIndex
                 }
 
                 val sortedClusterCourses = cluster.sortedWith(
                     compareBy<NormalizedCourse> { it.start }
-                        .thenBy { itemToColumnIndex[it] ?: 0 }
+                        .thenBy { itemToGroupIndex[it] ?: 0 }
                 ).map { it.raw }
 
                 val totalSubColumns = columnEnds.size
+                val overlapCount = (logicalGroups.size - 1).coerceAtLeast(0)
 
-                for (item in cluster) {
+                logicalGroups.forEachIndexed { groupIndex, group ->
+                    val item = group.first()
                     val cw = item.raw
-                    val isCurrentWeekActive = cw.weeks.any { it.weekNumber == currentWeek }
-                    val myColumnIndex = itemToColumnIndex[item] ?: 0
+                    val isCurrentWeekActive = group.any {
+                        it.raw.weeks.any { week -> week.weekNumber == currentWeek }
+                    }
+                    val myColumnIndex = groupToColumnIndex[groupIndex] ?: 0
 
                     result.add(
                         MergedCourseBlock(
                             day = day,
                             startSection = (item.start - 1f).coerceIn(0f, maxSection),
                             endSection = (item.end - 1f).coerceIn(0f, maxSection),
-                            courses = listOf(cw),
+                            courses = group.map { it.raw },
                             needsProportionalRendering = (mode == ScheduleModeProto.TIME_24H_MODE) || cw.course.isCustomTime,
                             isVisualDemoted = !isCurrentWeekActive,
                             nonActiveRanges = listOf(myColumnIndex.toFloat() to totalSubColumns.toFloat()),
-                            clusterCourses = sortedClusterCourses
+                            clusterCourses = sortedClusterCourses,
+                            overlapCount = overlapCount
                         )
                     )
                 }

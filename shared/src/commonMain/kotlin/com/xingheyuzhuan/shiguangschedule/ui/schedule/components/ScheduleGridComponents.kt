@@ -60,6 +60,7 @@ interface ISingleSchedulable {
     val endSection: Float
     val courseWrapper: CourseWithWeeks
     val parentBlock: MergedCourseBlock
+    val overlapCount: Int get() = 0
 }
 
 /**
@@ -468,7 +469,8 @@ fun calculateSingleSchedulables(
                     override val startSection = block.startSection
                     override val endSection = block.endSection
                     override val courseWrapper = course
-                    override val parentBlock = block.copy(courses = listOf(course))
+                    override val parentBlock = block
+                    override val overlapCount = block.overlapCount
                 })
             }
         }

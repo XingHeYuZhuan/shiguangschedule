@@ -81,8 +81,8 @@ shared/src/commonMain/kotlin/com/xingheyuzhuan/shiguangschedule/data/model/Cours
 ### 1. 周课表重叠角标
 
 - 在 `MergedCourseBlock` 和 `ISingleSchedulable` 上增加重叠数量字段。
-- 在 `CourseBlock` 右上角绘制纯数字角标，只显示被折叠的课程数量，例如“2”。
-- 数量大于 1 时显示；只有一个逻辑课程时不显示。
+- 在 `CourseBlock` 右上角绘制纯数字角标，只显示被折叠的课程数量，例如“1”表示另有 1 门课。
+- 数量大于 0 时显示；只有一个逻辑课程时不显示。
 - 角标补充无障碍描述，例如“另有 2 门课程”。
 
 ### 2. 重叠课程弹窗

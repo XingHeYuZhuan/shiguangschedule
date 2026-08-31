@@ -99,7 +99,7 @@ data class AppSettingsModel(
     val compatWearableSync: Boolean = false,
 
     /** 是否显示非本周课程 */
-    val showNonCurrentWeekCourses: Boolean = false,
+    val showNonCurrentWeekCourses: Boolean = true,
 
     /** 应用启动时显示的页面 */
     val startScreen: StartScreen = StartScreen.COURSE_SCHEDULE,

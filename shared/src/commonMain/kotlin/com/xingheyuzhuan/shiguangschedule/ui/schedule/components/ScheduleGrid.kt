@@ -220,6 +220,7 @@ fun ScheduleGrid(
                                     style = style,
                                     timeSlots = viewState.timeSlots,
                                     isFloating = isExpanded,
+                                    overlapCount = item.overlapCount,
                                     modifier = if (isExpanded) {
                                         if (!item.parentBlock.isVisualDemoted) {
                                             Modifier.pointerInput(item, state.gridWidthPx) {

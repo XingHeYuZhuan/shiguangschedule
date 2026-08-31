@@ -437,15 +437,13 @@ fun WeeklyScheduleScreen(
                             ) {
                                 val currentWeek = uiState.weekIndexInPager ?: 0
                                 if (currentWeek in 1..uiState.totalWeeks) {
-                                    block.courses.firstOrNull()?.course?.id?.let { courseId ->
-                                        coroutineScope.launch {
-                                            viewModel.updateCourseTimeByGesture(
-                                                courseId = courseId,
-                                                targetDay = newDay,
-                                                startSection = newStartSection,
-                                                endSection = newEndSection
-                                            )
-                                        }
+                                    coroutineScope.launch {
+                                        viewModel.updateCoursesTimeByGesture(
+                                            courseIds = block.courses.map { it.course.id },
+                                            targetDay = newDay,
+                                            startSection = newStartSection,
+                                            endSection = newEndSection
+                                        )
                                     }
                                 } else {
                                     coroutineScope.launch { snackbarHostState.showSnackbar(snackbarMsg) }
@@ -459,15 +457,13 @@ fun WeeklyScheduleScreen(
                             ) {
                                 val currentWeek = uiState.weekIndexInPager ?: 0
                                 if (currentWeek in 1..uiState.totalWeeks) {
-                                    block.courses.firstOrNull()?.course?.id?.let { courseId ->
-                                        coroutineScope.launch {
-                                            viewModel.updateCourseTimeByGesture(
-                                                courseId = courseId,
-                                                targetDay = block.day,
-                                                startSection = newStart,
-                                                endSection = newEnd
-                                            )
-                                        }
+                                    coroutineScope.launch {
+                                        viewModel.updateCoursesTimeByGesture(
+                                            courseIds = block.courses.map { it.course.id },
+                                            targetDay = block.day,
+                                            startSection = newStart,
+                                            endSection = newEnd
+                                        )
                                     }
                                 } else {
                                     coroutineScope.launch { snackbarHostState.showSnackbar(snackbarMsg) }
@@ -544,6 +540,26 @@ fun WeeklyScheduleScreen(
             onEditClick = { courseId ->
                 selectedBlockForDetail = null
                 onNavigate(Destination.AddEditCourse(courseId = courseId))
+            },
+            onAddClick = {
+                val currentWeek = uiState.weekIndexInPager ?: uiState.currentWeekNumber ?: 1
+                val templateCourse = selectedBlockForDetail!!.courses.firstOrNull()?.course
+                val presetData = if (templateCourse != null) {
+                    PresetCourseData(
+                        day = templateCourse.day,
+                        startSection = templateCourse.startSection,
+                        endSection = templateCourse.endSection,
+                        isCustomTime = templateCourse.isCustomTime,
+                        customStartTime = templateCourse.customStartTime,
+                        customEndTime = templateCourse.customEndTime,
+                        presetWeeks = setOf(currentWeek)
+                    )
+                } else {
+                    PresetCourseData(presetWeeks = setOf(currentWeek))
+                }
+                AddEditCourseChannel.sendEvent(presetData)
+                selectedBlockForDetail = null
+                onNavigate(Destination.AddEditCourse())
             }
         )
     }

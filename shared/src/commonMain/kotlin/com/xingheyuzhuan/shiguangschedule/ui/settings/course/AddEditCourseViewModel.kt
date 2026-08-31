@@ -262,13 +262,14 @@ class AddEditCourseViewModel(
             if (state.name.isBlank()) return@launch
 
             val tableId = state.currentCourseTableId.orEmpty()
-            val currentSchemeDbIds = state.schemes.mapNotNull { it.dbId }.toSet()
+            val normalizedSchemes = normalizeCourseSchemes(state.name, state.schemes)
+            val currentSchemeDbIds = normalizedSchemes.mapNotNull { it.dbId }.toSet()
 
             (originalDbIds - currentSchemeDbIds).forEach { idToRemove ->
                 courseTableRepository.deleteCourse(createEmptyCourseForDelete(idToRemove, tableId))
             }
 
-            state.schemes.forEach { scheme ->
+            normalizedSchemes.forEach { scheme ->
                 val course = Course(
                     id = scheme.dbId ?: Uuid.random().toString(),
                     courseTableId = tableId,

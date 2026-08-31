@@ -42,6 +42,8 @@
     <string name="toast_delete_success">刪除成功</string>
     <string name="title_edit_course">編輯課程</string>
     <string name="title_add_course">新增課程</string>
+    <string name="action_add_course_at_slot">新增同節次課程</string>
+    <string name="a11y_course_overlap_count">另有 %1$d 門課程</string>
     <string name="label_course_name">課程名稱*</string>
     <string name="toast_name_empty">課程名稱不能為空</string>
     <string name="label_teacher">教師</string>

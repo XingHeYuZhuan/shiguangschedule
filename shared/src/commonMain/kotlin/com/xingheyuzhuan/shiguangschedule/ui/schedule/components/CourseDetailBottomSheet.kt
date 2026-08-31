@@ -19,6 +19,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -51,6 +52,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringArrayResource
@@ -60,6 +62,8 @@ import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_edit
 import shiguangschedule.shared.generated.resources.action_double_week
 import shiguangschedule.shared.generated.resources.action_single_week
+import shiguangschedule.shared.generated.resources.action_add_course_at_slot
+import shiguangschedule.shared.generated.resources.add_24px
 import shiguangschedule.shared.generated.resources.calendar_today_24px
 import shiguangschedule.shared.generated.resources.class_24px
 import shiguangschedule.shared.generated.resources.edit_24px
@@ -78,14 +82,32 @@ import kotlin.math.roundToInt
 @Immutable
 private data class CourseDetailUIModel(
     val id: String,
+    val logicalKey: String,
     val name: String,
     val teacher: String,
     val position: String,
     val weeksDisplayStr: String,
+    val variants: List<CourseDetailVariant> = emptyList(),
     val dayStr: String,
     val timeStr: String,
     val remark: String?
 )
+
+@Immutable
+private data class CourseDetailVariant(
+    val teacher: String,
+    val position: String,
+    val weeksDisplayStr: String
+)
+
+private fun logicalCourseKey(course: Course): String {
+    val timeKey = if (course.isCustomTime) {
+        "${course.customStartTime}|${course.customEndTime}"
+    } else {
+        "${course.startSection}|${course.endSection}"
+    }
+    return "${course.name}|${course.day}|$timeKey"
+}
 
 /**
  * 课程详情底部弹窗组件
@@ -95,7 +117,8 @@ private data class CourseDetailUIModel(
 fun CourseDetailBottomSheet(
     block: MergedCourseBlock,
     onDismissRequest: () -> Unit,
-    onEditClick: (String) -> Unit
+    onEditClick: (String) -> Unit,
+    onAddClick: () -> Unit
 ) {
     val rawCoursesList = remember(block) {
         block.clusterCourses.ifEmpty { block.courses }
@@ -107,31 +130,49 @@ fun CourseDetailBottomSheet(
     val singleLabel = stringResource(Res.string.action_single_week)
     val doubleLabel = stringResource(Res.string.action_double_week)
 
-    val uiModels = remember(block) {
-        rawCoursesList.map { wrapper ->
-            val course = wrapper.course
-            val dayStr = weekDaysFullNames.getOrNull(course.day - 1) ?: ""
-            val timeStr = if (course.isCustomTime) {
-                "${course.customStartTime} - ${course.customEndTime}"
-            } else {
-                "${course.startSection ?: 0}-${course.endSection ?: 0} $sectionSuffix"
-            }
+    val uiModels = remember(rawCoursesList, weekDaysFullNames, sectionSuffix, singleLabel, doubleLabel) {
+        rawCoursesList.groupBy { logicalCourseKey(it.course) }.values.map { group ->
+            val sortedGroup = group.sortedWith(
+                compareBy { it.weeks.map { week -> week.weekNumber }.minOrNull() ?: 0 }
+            )
+            val representative = sortedGroup.first().course
+            val allWeeks = sortedGroup
+                .flatMap { it.weeks.map { week -> week.weekNumber } }
+                .distinct()
+                .sorted()
+
             CourseDetailUIModel(
-                id = course.id,
-                name = course.name,
-                teacher = course.teacher,
-                position = course.position,
-                weeksDisplayStr = formatWeeks(wrapper.weeks.map { it.weekNumber }, singleLabel, doubleLabel),
-                dayStr = dayStr,
-                timeStr = timeStr,
-                remark = course.remark
+                id = representative.id,
+                logicalKey = logicalCourseKey(representative),
+                name = representative.name,
+                teacher = representative.teacher,
+                position = representative.position,
+                weeksDisplayStr = formatWeeks(allWeeks, singleLabel, doubleLabel),
+                variants = sortedGroup.map { wrapper ->
+                    CourseDetailVariant(
+                        teacher = wrapper.course.teacher,
+                        position = wrapper.course.position,
+                        weeksDisplayStr = formatWeeks(
+                            wrapper.weeks.map { it.weekNumber },
+                            singleLabel,
+                            doubleLabel
+                        )
+                    )
+                },
+                dayStr = weekDaysFullNames.getOrNull(representative.day - 1) ?: "",
+                timeStr = if (representative.isCustomTime) {
+                    "${representative.customStartTime} - ${representative.customEndTime}"
+                } else {
+                    "${representative.startSection ?: 0}-${representative.endSection ?: 0} $sectionSuffix"
+                },
+                remark = representative.remark
             )
         }
     }
 
-    val clickedCourseId = block.courses.firstOrNull()?.course?.id
+    val clickedCourseKey = block.courses.firstOrNull()?.course?.let { logicalCourseKey(it) }
     val initialPageIndex = remember(block) {
-        val index = uiModels.indexOfFirst { it.id == clickedCourseId }
+        val index = uiModels.indexOfFirst { it.logicalKey == clickedCourseKey }
         if (index >= 0) index else 0
     }
 
@@ -234,6 +275,16 @@ fun CourseDetailBottomSheet(
                         .fillMaxWidth()
                         .padding(top = 36.dp, bottom = 0.dp)
                 )
+            }
+            Button(
+                onClick = onAddClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, top = 16.dp)
+            ) {
+                Icon(vectorResource(Res.drawable.add_24px), contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(Res.string.action_add_course_at_slot))
             }
         }
     }
@@ -366,12 +417,34 @@ private fun CourseDetailItemContent(
                 Text(model.name, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
             }
 
-            if (model.teacher.isNotBlank()) {
-                DetailItem(personIcon, model.teacher)
+            val hasMixedVariants = model.variants.any {
+                it.teacher != model.variants.first().teacher || it.position != model.variants.first().position
             }
+            if (hasMixedVariants) {
+                model.variants.forEach { variant ->
+                    val detail = buildString {
+                        if (variant.teacher.isNotBlank()) append(variant.teacher)
+                        if (variant.position.isNotBlank()) {
+                            if (isNotEmpty()) append(" · ")
+                            append(variant.position)
+                        }
+                        if (variant.weeksDisplayStr.isNotEmpty()) {
+                            if (isNotEmpty()) append(" · ")
+                            append(variant.weeksDisplayStr)
+                        }
+                    }
+                    if (detail.isNotEmpty()) {
+                        DetailItem(personIcon, detail)
+                    }
+                }
+            } else {
+                if (model.teacher.isNotBlank()) {
+                    DetailItem(personIcon, model.teacher)
+                }
 
-            if (model.position.isNotBlank()) {
-                DetailItem(locationIcon, model.position)
+                if (model.position.isNotBlank()) {
+                    DetailItem(locationIcon, model.position)
+                }
             }
 
             if (model.weeksDisplayStr.isNotEmpty()) {

@@ -42,6 +42,8 @@
     <string name="toast_delete_success">Deleted successfully</string>
     <string name="title_edit_course">Edit course</string>
     <string name="title_add_course">Add course</string>
+    <string name="action_add_course_at_slot">Add course at this time</string>
+    <string name="a11y_course_overlap_count">Additional %1$d courses</string>
     <string name="label_course_name">Course name*</string>
     <string name="toast_name_empty">Course name cannot be empty</string>
     <string name="label_teacher">Instructor</string>
