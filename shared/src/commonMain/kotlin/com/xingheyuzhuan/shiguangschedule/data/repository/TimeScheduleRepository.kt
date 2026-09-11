@@ -202,7 +202,7 @@ class TimeScheduleRepository(
     suspend fun saveExclusiveTimeTable(timeTable: TimeTable, timeSlots: List<TimeSlot>) {
         database.withWriteTransaction {
             timeTableDao.insertOrUpdate(timeTable)
-            timeSlotDao.deleteAllTimeSlotsByTimeTableId(timeTable.id)
+            timeSlotDao.deleteTimeSlotsGreaterThan(timeTable.id, timeSlots.size)
             if (timeSlots.isNotEmpty()) {
                 timeSlotDao.insertAll(timeSlots)
             }

@@ -221,19 +221,12 @@ fun SingleScheduleEditScreen(
                             }
                             viewModel.onDefaultDurationChange(localDefaultClassDuration, localDefaultBreakDuration)
 
-                            sortedAndNumberedSlots.forEachIndexed { idx, slot ->
-                                if (idx < uiState.slots.size) {
-                                    viewModel.updateSlot(idx, slot)
-                                } else {
-                                    viewModel.addSlot()
-                                    viewModel.updateSlot(idx, slot)
-                                }
-                            }
-                            while (uiState.slots.size > sortedAndNumberedSlots.size) {
-                                viewModel.removeSlot(uiState.slots.lastIndex)
-                            }
-
-                            viewModel.save()
+                            viewModel.saveWithData(
+                                newName = localName,
+                                classDuration = localDefaultClassDuration,
+                                breakDuration = localDefaultBreakDuration,
+                                slots = sortedAndNumberedSlots
+                            )
                         },
                         enabled = isNameValid
                     ) {

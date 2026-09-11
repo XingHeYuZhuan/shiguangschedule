@@ -281,66 +281,30 @@ class SingleScheduleEditViewModel(
         }
     }
 
-    fun updateSlot(index: Int, newSlot: TimeSlot) {
-        _uiState.update { state ->
-            val updatedSlots = state.slots.toMutableList().apply {
-                if (index in indices) {
-                    this[index] = newSlot
-                } else {
-                    add(newSlot)
-                }
-            }
-            state.copy(slots = updatedSlots)
-        }
-    }
-
-    fun addSlot() {
-        _uiState.update { state ->
-            val nextNumber = (state.slots.maxOfOrNull { it.number } ?: 0) + 1
-            val newSlot = TimeSlot(
-                timeTableId = currentTargetId,
-                number = nextNumber,
-                startTime = "08:00",
-                endTime = "08:45",
-                alias = null
-            )
-            state.copy(slots = state.slots + newSlot)
-        }
-    }
-
-    fun removeSlot(index: Int) {
-        _uiState.update { state ->
-            val updatedSlots = state.slots.toMutableList().apply {
-                if (index in indices) removeAt(index)
-            }
-            val reindexedSlots = updatedSlots.mapIndexed { idx, slot ->
-                slot.copy(number = idx + 1)
-            }
-            state.copy(slots = reindexedSlots)
-        }
-    }
-
     fun clearError() {
         _uiState.update { it.copy(errorMsg = null) }
     }
 
-    fun save() {
+    fun saveWithData(
+        newName: String,
+        classDuration: Int,
+        breakDuration: Int,
+        slots: List<TimeSlot>
+    ) {
         viewModelScope.launch {
-            val currentState = uiState.value
             val currentCourseTableId = appSettingsRepository.getAppSettings().first().currentCourseTableId
-
-            val slotsToSave = currentState.slots.map { it.copy(timeTableId = currentTargetId) }
+            val slotsToSave = slots.map { it.copy(timeTableId = currentTargetId) }
 
             val timeTable = TimeTable(
                 id = currentTargetId,
-                name = if (currentState.isPublic) currentState.name.trim().ifBlank { null } else null,
+                name = if (isPublic) newName.trim().ifBlank { null } else null,
                 createdAt = Clock.System.now().toEpochMilliseconds(),
-                defaultClassDuration = currentState.defaultClassDuration,
-                defaultBreakDuration = currentState.defaultBreakDuration
+                defaultClassDuration = classDuration,
+                defaultBreakDuration = breakDuration
             )
 
             runCatching {
-                if (currentState.isPublic) {
+                if (isPublic) {
                     timeScheduleRepository.savePublicTimeTable(timeTable, slotsToSave)
                 } else {
                     timeScheduleRepository.saveExclusiveTimeTable(timeTable, slotsToSave)

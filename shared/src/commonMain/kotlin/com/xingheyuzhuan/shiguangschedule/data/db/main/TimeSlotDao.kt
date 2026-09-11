@@ -54,4 +54,10 @@ interface TimeSlotDao {
      */
     @Query("DELETE FROM time_slots WHERE timeTableId = :timeTableId")
     suspend fun deleteAllTimeSlotsByTimeTableId(timeTableId: String)
+
+    /**
+     * 根据作息表 ID 删除节次编号大于 maxNumber 的时间段。
+     */
+    @Query("DELETE FROM time_slots WHERE timeTableId = :timeTableId AND number > :maxNumber")
+    suspend fun deleteTimeSlotsGreaterThan(timeTableId: String, maxNumber: Int)
 }
