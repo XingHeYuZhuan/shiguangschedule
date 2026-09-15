@@ -54,8 +54,6 @@ class AppSettingsRepository(
         showWeekends = false,
         semesterStartDate = null,
         semesterTotalWeeks = 20,
-        defaultClassDuration = 45,
-        defaultBreakDuration = 10,
         firstDayOfWeek = DayOfWeek.MONDAY.isoDayNumber
     )
 

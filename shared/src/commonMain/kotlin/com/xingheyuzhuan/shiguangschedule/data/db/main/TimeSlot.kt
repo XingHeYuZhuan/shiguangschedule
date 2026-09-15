@@ -5,28 +5,26 @@ import androidx.room3.ForeignKey
 import androidx.room3.Index
 
 /**
- * Room 实体类，代表“时间段”数据表。
- * 存储每节课的节次编号和对应的开始/结束时间。
+ * Room 实体类，代表“节次时间段”数据表。
+ * 纯粹存储时间节点，与具体的 TimeTable 绑定。
  */
 @Entity(
     tableName = "time_slots",
-    // 外键约束，关联 CourseTable
     foreignKeys = [
         ForeignKey(
-            entity = CourseTable::class,
+            entity = TimeTable::class,
             parentColumns = ["id"],
-            childColumns = ["courseTableId"],
+            childColumns = ["timeTableId"],
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["courseTableId"])],
-    // 联合主键，以确保同一个课表中节次编号是唯一的
-    primaryKeys = ["number", "courseTableId"]
+    indices = [Index(value = ["timeTableId"])],
+    primaryKeys = ["timeTableId", "number"]
 )
 data class TimeSlot(
-    val number: Int, // 节次编号作为主键的一部分
-    val startTime: String, // 开始时间，例如 "08:00"
-    val endTime: String, // 结束时间，例如 "08:45"
-    val courseTableId: String, //对应的课表id
-    val alias: String? = null // 时间段别名（可选）,如果为 null，则 UI 层面通常直接显示数字编号
+    val timeTableId: String, // 对应的 TimeTable ID（专属作息即为 courseTableId）
+    val number: Int,         // 第几节课 (1, 2, 3...)
+    val startTime: String,   // 开始时间 "08:00"
+    val endTime: String,     // 结束时间 "08:45"
+    val alias: String? = null // 时间段别名（可选，如 "早自习"）
 )

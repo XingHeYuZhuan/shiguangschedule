@@ -285,9 +285,14 @@ fun AddEditCourseScreen(
             ColorPickerBottomSheet(
                 colorMaps = uiState.courseColorMaps,
                 selectedIndex = activeScheme.colorIndex,
+                showApplyToAllOption = uiState.schemes.size > 1,
                 onDismissRequest = { showColorSelectorDialog = false },
-                onConfirm = { index: Int ->
-                    viewModel.updateScheme(activeScheme.id) { it.copy(colorIndex = index) }
+                onConfirm = { index: Int, applyToAll: Boolean ->
+                    if (applyToAll) {
+                        viewModel.updateAllSchemesColor(index)
+                    } else {
+                        viewModel.updateScheme(activeScheme.id) { it.copy(colorIndex = index) }
+                    }
                     showColorSelectorDialog = false
                 }
             )

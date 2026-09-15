@@ -32,9 +32,5 @@ data class CourseTableConfig(
     val showWeekends: Boolean = false, // 是否在课表视图中显示周末（周六、周日）
     val semesterStartDate: String? = null, // 学期开始日期（格式为 "yyyy-MM-dd"），用于计算当前周数
     val semesterTotalWeeks: Int = 20, // 本学期的总周数，用于定义学期范围
-
-    val defaultClassDuration: Int = 45, // 创建该课表内时间段时，默认的上课时长，单位：分钟
-    val defaultBreakDuration: Int = 10, // 创建该课表内时间段时，默认的下课休息时长，单位：分钟
-
     val firstDayOfWeek: Int = DayOfWeek.MONDAY.isoDayNumber // 该课表计算周数时，一周的起始日（1=周一，7=周日）
 )

@@ -31,7 +31,7 @@
     <string name="nav_today_schedule">Today</string>
     <string name="nav_course_schedule">Schedule</string>
     <string name="nav_settings">Settings</string>
-    <string name="title_today_schedule">Today\'s schedule</string>
+    <string name="title_today_schedule">Today's schedule</string>
     <string name="text_no_courses_today">No courses today</string>
     <string name="title_vacation_until_start">Vacation (%1$s days left)</string>
     <string name="title_semester_not_set">Please set semester start date</string>
@@ -110,8 +110,8 @@
     <string name="notification_channel_desc_course_alert">Course reminder notifications</string>
     <string name="notification_title_course_alert">Class reminder</string>
     <string name="item_auto_mode">Auto mode during class</string>
-    <string name="text_auto_mode_dependency">Requires \"Course reminders\" to be enabled</string>
-    <string name="toast_enable_reminder_first">Please enable \"Course reminders\" first</string>
+    <string name="text_auto_mode_dependency">Requires "Course reminders" to be enabled</string>
+    <string name="toast_enable_reminder_first">Please enable "Course reminders" first</string>
     <string name="alarm_option_none">No reminder</string>
     <string name="alarm_option_on_time">On time</string>
     <string name="notification_live_status_preparing">Pre-class</string>
@@ -125,7 +125,7 @@
     <string name="widget_name_list_vertical">Vertical Course List 4xN</string>
     <string name="widget_tomorrow_course_preview">Tomorrow</string>
     <string name="widget_no_courses_tomorrow">No courses tomorrow</string>
-    <string name="widget_today_courses_finished">Today\'s classes ended.</string>
+    <string name="widget_today_courses_finished">Today's classes ended.</string>
     <string name="widget_vacation_expecting">Looking forward to new semester</string>
     <string name="widget_remaining_courses_format_today">%1$d courses left today</string>
     <string name="widget_remaining_courses_format_tomorrow">%1$d courses tomorrow</string>
@@ -183,7 +183,7 @@
     <string name="action_close">Close</string>
     <string name="toast_notification_permission_denied">Notification permission denied, cannot receive course reminders.</string>
     <string name="item_compat_wearable_sync">Wearable Sync Compatibility</string>
-    <string name="desc_compat_wearable_sync">Android 16\'s dynamic notification updates conflict with some wearable sync apps. Enabling this will improve compatibility but disable real-time "Ongoing" update effects.</string>
+    <string name="desc_compat_wearable_sync">Android 16's dynamic notification updates conflict with some wearable sync apps. Enabling this will improve compatibility but disable real-time "Ongoing" update effects.</string>
     
     <!-- Settings Options -->
     <string name="title_schedule_settings">Schedule settings</string>
@@ -213,8 +213,6 @@
     <string name="desc_course_conversion">Supports file, academic affairs import and sync</string>
     <string name="desc_notification_settings">Manage course reminder notifications</string>
     <string name="desc_manage_course_tables">Manage multiple schedules, switch or delete</string>
-    <string name="item_time_slot_customization">Custom time periods</string>
-    <string name="desc_time_slot_customization">Edit course time period settings</string>
     <string name="item_more_options">More</string>
     <string name="desc_more_options">Additional information and options</string>
     <string name="a11y_more_options">More options</string>
@@ -233,10 +231,10 @@
     <string name="label_table_name">Schedule name</string>
     <string name="text_no_tables_hint">No schedules yet, tap the button below to add one.</string>
     <string name="toast_switch_table_success">Switched to schedule: %1$s</string>
-    <string name="toast_add_table_success">Schedule \'%1$s\' added</string>
+    <string name="toast_add_table_success">Schedule '%1$s' added</string>
     <string name="dialog_title_edit_table">Edit schedule name</string>
     <string name="toast_edit_table_success">Schedule name updated</string>
-    <string name="dialog_text_confirm_delete">Are you sure you want to delete schedule \'%1$s\'? This cannot be undone.</string>
+    <string name="dialog_text_confirm_delete">Are you sure you want to delete schedule '%1$s'? This cannot be undone.</string>
     <string name="toast_delete_table_success">%1$s deleted</string>
     <string name="toast_delete_last_table_failed">Cannot delete the last schedule</string>
     <string name="a11y_current_table">Current schedule</string>
@@ -262,7 +260,7 @@
     <string name="toast_class_duration_positive">Class duration must be greater than 0 minutes</string>
     <string name="label_break_duration_minutes">Break duration (minutes)</string>
     <string name="toast_break_duration_non_negative">Break duration cannot be negative</string>
-    <string name="text_no_time_slots_hint">No time periods yet. Tap the \'+\' icon to add one.</string>
+    <string name="text_no_time_slots_hint">No time periods yet. Tap the '+' icon to add one.</string>
     <string name="toast_slot_removed_unsaved">Time period removed from list, tap save to update database</string>
     <string name="time_slot_section_number">Period %1$s</string>
     <string name="a11y_delete_time_slot">Delete time period</string>
@@ -318,7 +316,7 @@
     <string name="item_developer_options">Developer Options</string>
     <string name="section_sync">Sync</string>
     <string name="item_sync_to_system_calendar">Sync to System Calendar</string>
-    <string name="desc_sync_to_system_calendar">Sync the current schedule to your phone\\\'s system calendar with one click</string>
+    <string name="desc_sync_to_system_calendar">Sync the current schedule to your phone's system calendar with one click</string>
     <string name="toast_sync_calendar_success">Synced successfully</string>
     <string name="error_sync_calendar_failed">Sync failed. Please check calendar permissions.</string>
     <string name="title_more_options">More</string>
@@ -392,7 +390,7 @@
     <string name="text_no_detailed_description">No detailed description.</string>
     <string name="label_contributor_unknown">Unknown</string>
     <string name="label_contributor_format">Contributor: %1$s</string>
-    <string name="text_no_adapter_for_category_school">No adapter available for this school in \"%1$s\" category.</string>
+    <string name="text_no_adapter_for_category_school">No adapter available for this school in "%1$s" category.</string>
     <string name="title_enter_url">Enter URL</string>
     <string name="a11y_cancel_editing">Cancel editing</string>
     <string name="placeholder_enter_url_full">Enter URL (https://...)</string>
@@ -408,7 +406,7 @@
     <string name="item_devtools_debug">DevTools web debugging</string>
     <string name="a11y_devtools">DevTools</string>
     <string name="toast_devtools_enabled_format">DevTools web debugging %1$s.</string>
-    <string name="text_import_guide">Please log in to the academic system and navigate to a page showing the schedule before importing. Tap \"More\" for additional options</string>
+    <string name="text_import_guide">Please log in to the academic system and navigate to a page showing the schedule before importing. Tap "More" for additional options</string>
     <string name="action_execute_import">Execute import</string>
     <string name="toast_no_script_manual_import">This adapter has no script, please import manually.</string>
     <string name="dialog_title_select_table_for_import">Select a schedule to import courses</string>
@@ -532,7 +530,7 @@
     <string name="custom_color_title">Custom Primary Color</string>
     <string name="light_primary_color">Light Primary Color</string>
     <string name="dark_primary_color">Dark Primary Color</string>
-    <string name="theme_color_hint">Note: After changing this color, the system will use it as a seed color to recalculate the entire app\\\'s color scheme.</string>
+    <string name="theme_color_hint">Note: After changing this color, the system will use it as a seed color to recalculate the entire app's color scheme.</string>
     <string name="label_page_text_color">Schedule text color</string>
     <string name="widget_course_remaining_count">%1$d left</string>
 
@@ -571,4 +569,39 @@
     <string name="backup_target_webdav">WebDAV Cloud Sync</string>
     <string name="backup_target_local_zip">Local ZIP File</string>
 
+    <string name="action_copy">Copy</string>
+    <string name="error_name_cannot_be_empty">Name cannot be empty</string>
+    <string name="title_edit_public_schedule">Edit Public Schedule</string>
+    <string name="title_edit_exclusive_schedule">Edit Exclusive Schedule</string>
+    <string name="label_schedule_scheme_name">Schedule Scheme Name</string>
+    <string name="title_add_combo_schedule">Add Combo Schedule</string>
+    <string name="title_edit_combo_schedule">Edit Combo Schedule</string>
+    <string name="label_combo_schedule_name">Combo Schedule Name</string>
+    <string name="label_base_schedule">Base Schedule (used when rules are not active)</string>
+    <string name="option_exclusive_schedule">Course-Exclusive Schedule</string>
+    <string name="option_unnamed_schedule">Unnamed Schedule</string>
+    <string name="option_select_base_schedule">Select Base Schedule</string>
+    <string name="title_rule_list_by_date">Rule Switch List (by Date Range)</string>
+    <string name="action_add_time_range_rule">Add Time Range Rule</string>
+    <string name="label_applied_schedule">Applied Schedule</string>
+    <string name="option_select_schedule_table">Select Schedule Table</string>
+    <string name="label_effective_date_range">Effective Date Range</string>
+    <string name="error_rule_date_overlap">Warning: This rule's time range overlaps with other rules!</string>
+    <string name="a11y_delete_rule">Delete Rule</string>
+    <string name="dialog_title_select_effective_date_range">Select Rule Effective Date Range</string>
+    <string name="msg_please_create_public_schedule_first">Please create at least one public schedule first</string>
+    <string name="title_schedule_management">Schedule Scheme Management</string>
+    <string name="a11y_add_schedule_scheme">Add Scheme</string>
+    <string name="action_add_public_schedule">Add Public Schedule</string>
+    <string name="action_add_combo_schedule">Add Combo Schedule</string>
+    <string name="a11y_delete_selected">Delete Selected</string>
+    <string name="a11y_edit_schedule">Edit Scheme</string>
+    <string name="dialog_msg_confirm_delete_schedules">Are you sure you want to delete the selected %1$d schedule scheme(s)? This action cannot be undone.</string>
+    <string name="title_exclusive_schedule">Course-Exclusive Schedule</string>
+    <string name="follow_course_table">Follow Course Table</string>
+    <string name="schedule_type_exclusive">Course-Exclusive</string>
+    <string name="schedule_type_public">Public</string>
+    <string name="schedule_type_combo">Combo</string>
+    <string name="desc_schedule_management">Supports public schedules and combined schedules</string>
+    <string name="action_apply_to_all_schemes">Apply to all schemes</string>
 </resources>

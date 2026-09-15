@@ -10,6 +10,7 @@
     <string name="a11y_edit">编辑</string>
     <string name="a11y_back">返回</string>
     <string name="action_add">添加</string>
+    <string name="action_copy">复制</string>
     <string name="action_next_step">下一步</string>
     <string name="title_loading">加载中...</string>
     <string name="text_error">错误</string>
@@ -26,6 +27,7 @@
     <string name="label_recent_visit">最近访问</string>
     <string name="action_reset">重置</string>
     <string name="floating_course_hint">已挂起，左右滑周点击空白处放下</string>
+    <string name="error_name_cannot_be_empty">名称不能为空</string>
 
     <!-- 主界面及今日课表 -->
     <string name="nav_today_schedule">今日课表</string>
@@ -71,6 +73,7 @@
     <string name="label_start_time">开始时间</string>
     <string name="label_end_time">结束时间</string>
     <string name="label_remark">备注</string>
+    <string name="action_apply_to_all_schemes">应用到所有方案</string>
 
     <!-- 课程相关 -->
     <string name="course_time_description">时间: 第%1$s-%2$s节 (%3$s-%4$s)</string>
@@ -214,8 +217,6 @@
     <string name="desc_course_conversion">支持文件、教务导入及同步功能</string>
     <string name="desc_notification_settings">管理您的课程提醒通知</string>
     <string name="desc_manage_course_tables">管理多份课程表，可切换、删除</string>
-    <string name="item_time_slot_customization">自定义时间段</string>
-    <string name="desc_time_slot_customization">编辑您的课程时间段设置</string>
     <string name="item_more_options">更多</string>
     <string name="desc_more_options">提供我们的更多信息</string>
     <string name="a11y_more_options">更多选项</string>
@@ -234,10 +235,10 @@
     <string name="label_table_name">课表名称</string>
     <string name="text_no_tables_hint">暂无课表，点击右下角按钮添加。</string>
     <string name="toast_switch_table_success">已切换到课表: %1$s</string>
-    <string name="toast_add_table_success">课表 \'%1$s\' 已添加</string>
+    <string name="toast_add_table_success">课表 '%1$s' 已添加</string>
     <string name="dialog_title_edit_table">编辑课表名称</string>
     <string name="toast_edit_table_success">课表名称已更新</string>
-    <string name="dialog_text_confirm_delete">您确定要删除课表 \'%1$s\' 吗？此操作无法撤销。</string>
+    <string name="dialog_text_confirm_delete">您确定要删除课表 '%1$s' 吗？此操作无法撤销。</string>
     <string name="toast_delete_table_success">%1$s 已删除</string>
     <string name="toast_delete_last_table_failed">不能删除最后一个课表</string>
     <string name="a11y_current_table">当前课表</string>
@@ -253,7 +254,7 @@
     <string name="a11y_not_selected">未选中</string>
     <string name="label_weeks_format">周次: %1$s</string>
 
-    <!-- 时间段管理 -->
+    <!-- 作息时间管理 -->
     <string name="title_time_slot_management">时间段管理</string>
     <string name="a11y_add_time_slot">添加时间段</string>
     <string name="a11y_save_all_settings">保存所有设置</string>
@@ -263,7 +264,7 @@
     <string name="toast_class_duration_positive">课程时长必须大于0分钟</string>
     <string name="label_break_duration_minutes">课间休息 (分钟)</string>
     <string name="toast_break_duration_non_negative">休息时长不能为负</string>
-    <string name="text_no_time_slots_hint">当前没有时间段。点击右上角 \'+\' 添加。</string>
+    <string name="text_no_time_slots_hint">当前没有时间段。点击右上角 '+' 添加。</string>
     <string name="toast_slot_removed_unsaved">时间段已从列表移除，请点击保存以更新数据库</string>
     <string name="time_slot_section_number">第 %1$s 节</string>
     <string name="a11y_delete_time_slot">删除时间段</string>
@@ -279,6 +280,42 @@
     <string name="toast_slot_added_unsaved">时间段已添加至列表，请点击保存以更新数据库</string>
     <string name="label_time_slot_alias">别名(可选)</string>
     <string name="toast_time_conflict">选择的时间超出了前后课时限制范围</string>
+    <string name="title_edit_public_schedule">编辑公共作息</string>
+    <string name="title_edit_exclusive_schedule">编辑专属作息</string>
+    <string name="label_schedule_scheme_name">作息方案名称</string>
+
+    <!-- 组合作息与规则编辑 -->
+    <string name="title_add_combo_schedule">新增组合作息</string>
+    <string name="title_edit_combo_schedule">编辑组合作息</string>
+    <string name="label_combo_schedule_name">组合作息名称</string>
+    <string name="label_base_schedule">基准作息时间（规则不生效时自动使用）</string>
+    <string name="option_exclusive_schedule">课表专属作息</string>
+    <string name="option_unnamed_schedule">未命名作息</string>
+    <string name="option_select_base_schedule">选择基准作息</string>
+    <string name="title_rule_list_by_date">规则切换列表（按日期范围）</string>
+    <string name="action_add_time_range_rule">添加时间段规则</string>
+    <string name="label_applied_schedule">应用作息</string>
+    <string name="option_select_schedule_table">选择作息表</string>
+    <string name="label_effective_date_range">生效日期范围</string>
+    <string name="error_rule_date_overlap">警告：此规则的时间段与其它规则存在重叠！</string>
+    <string name="a11y_delete_rule">删除规则</string>
+    <string name="dialog_title_select_effective_date_range">选择规则生效日期范围</string>
+    <string name="msg_please_create_public_schedule_first">请先创建至少一个公共作息方案</string>
+
+    <!-- 作息方案管理 -->
+    <string name="title_schedule_management">作息方案管理</string>
+    <string name="desc_schedule_management">支持公共作息和组合作息</string>
+    <string name="a11y_add_schedule_scheme">新增方案</string>
+    <string name="action_add_public_schedule">新增公共作息</string>
+    <string name="action_add_combo_schedule">新增组合作息</string>
+    <string name="a11y_delete_selected">删除选中项</string>
+    <string name="a11y_edit_schedule">编辑方案</string>
+    <string name="dialog_msg_confirm_delete_schedules">确定要删除选中的 %1$d 项作息方案吗？此操作无法撤销。</string>
+    <string name="title_exclusive_schedule">课表专属作息</string>
+    <string name="follow_course_table">跟随课表</string>
+    <string name="schedule_type_exclusive">课表专属</string>
+    <string name="schedule_type_public">公共作息</string>
+    <string name="schedule_type_combo">组合作息</string>
 
     <!-- 课表导入/导出 -->
     <string name="title_conversion">课表导入/导出</string>

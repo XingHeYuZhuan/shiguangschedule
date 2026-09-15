@@ -10,7 +10,7 @@ import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.StyleSettingsRepository
-import com.xingheyuzhuan.shiguangschedule.data.repository.TimeSlotRepository
+import com.xingheyuzhuan.shiguangschedule.data.repository.TimeScheduleRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +32,7 @@ class TodayScheduleViewModel(
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository,
     private val styleSettingsRepository: StyleSettingsRepository,
-    private val timeSlotRepository: TimeSlotRepository
+    private val timeScheduleRepository: TimeScheduleRepository
 ) : ViewModel() {
 
     companion object {
@@ -54,7 +54,7 @@ class TodayScheduleViewModel(
             combine(
                 appSettingsRepository.calculateCurrentWeekFromDb(),
                 appSettingsRepository.getCourseTableConfigFlow(tableId),
-                timeSlotRepository.getTimeSlotsByCourseTableId(tableId)
+                timeScheduleRepository.observeEffectiveTimeSlots(tableId, today)
             ) { weekIndex: Int?, config: CourseTableConfig?, timeSlots: List<TimeSlot> ->
 
                 val startDate = config?.semesterStartDate?.let {

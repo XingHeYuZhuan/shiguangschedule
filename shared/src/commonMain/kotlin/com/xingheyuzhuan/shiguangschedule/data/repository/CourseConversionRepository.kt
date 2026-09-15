@@ -4,10 +4,12 @@ import androidx.room3.Transaction
 import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTimeBinding
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeek
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeTable
 import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.CourseConfigJsonModel
 import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.CourseTableExportModel
 import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.CourseTableImportModel
@@ -21,6 +23,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.koin.core.annotation.Single
 import kotlin.random.Random
+import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -34,7 +37,8 @@ class CourseConversionRepository(
     private val courseWeekDao: CourseWeekDao,
     private val timeSlotDao: TimeSlotDao,
     private val appSettingsRepository: AppSettingsRepository,
-    private val styleSettingsRepository: StyleSettingsRepository
+    private val styleSettingsRepository: StyleSettingsRepository,
+    private val timeScheduleRepository: TimeScheduleRepository
 ) {
     private val timeRegex = Regex("^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$")
 
@@ -177,13 +181,20 @@ class CourseConversionRepository(
 
         if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
         if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
+
+        // 导入时将当前课表的绑定作息重置为基础的（专属作息）
+        timeScheduleRepository.bindCourseTableToTimeSchedule(
+            courseTableId = tableId,
+            targetType = CourseTimeBinding.TargetType.SINGLE,
+            targetId = tableId
+        )
     }
 
     /**
      * 从一个完整的 JSON 模型导入课表数据。
      * 逻辑说明：
      * 1. 课程数据（courses）：始终清空并重新导入。
-     * 2. 时间段数据（timeSlots）：仅在 JSON 包含有效数据时覆盖，否则保留本地现状。
+     * 2. 时间段数据（timeSlots）：仅在 JSON 包含有效数据时覆盖专属作息（timeTableId = tableId），否则保留本地现状。
      * 3. 配置信息（config）：仅在 JSON 包含有效数据时覆盖，且会保留本地的 showWeekends 设置。
      */
     @Transaction
@@ -245,29 +256,43 @@ class CourseConversionRepository(
             }
         }
 
-        // 处理时间段数据（仅在有数据时覆盖）
+        // 统一执行课程数据插入
+        if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
+        if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
+
+        // 处理时间段数据与基础作息时长配置交互
+        val existingTimeTable = timeScheduleRepository.getTimeTableById(tableId).first()
+        val configJson = courseTableJsonModel.config
+
+        val newClassDuration = configJson?.defaultClassDuration ?: existingTimeTable?.defaultClassDuration ?: 45
+        val newBreakDuration = configJson?.defaultBreakDuration ?: existingTimeTable?.defaultBreakDuration ?: 10
+
+        val timeTableToSave = TimeTable(
+            id = tableId,
+            name = null,
+            createdAt = existingTimeTable?.createdAt ?: Clock.System.now().toEpochMilliseconds(),
+            defaultClassDuration = newClassDuration,
+            defaultBreakDuration = newBreakDuration
+        )
+
         val jsonTimeSlots = courseTableJsonModel.timeSlots
         if (!jsonTimeSlots.isNullOrEmpty()) {
-            timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
-
             val timeSlotEntities = jsonTimeSlots.map { jsonTimeSlot ->
                 TimeSlot(
                     number = jsonTimeSlot.number,
                     startTime = jsonTimeSlot.startTime,
                     endTime = jsonTimeSlot.endTime,
-                    courseTableId = tableId,
+                    timeTableId = tableId,
                     alias = jsonTimeSlot.alias?.take(5)
                 )
             }
-            timeSlotDao.insertAll(timeSlotEntities)
+            timeScheduleRepository.saveExclusiveTimeTable(timeTableToSave, timeSlotEntities)
+        } else {
+            val currentSlots = timeSlotDao.getTimeSlotsOnceByTimeTableId(tableId)
+            timeScheduleRepository.saveExclusiveTimeTable(timeTableToSave, currentSlots)
         }
 
-        // 统一执行课程数据插入
-        if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
-        if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
-
         // 处理配置数据
-        val configJson = courseTableJsonModel.config
         if (configJson != null) {
             val currentConfig = appSettingsRepository.getCourseConfigOnce(tableId)
             val updatedConfig = CourseTableConfig(
@@ -275,16 +300,21 @@ class CourseConversionRepository(
                 showWeekends = currentConfig?.showWeekends ?: false,
                 semesterStartDate = configJson.semesterStartDate,
                 semesterTotalWeeks = configJson.semesterTotalWeeks,
-                defaultClassDuration = configJson.defaultClassDuration,
-                defaultBreakDuration = configJson.defaultBreakDuration,
                 firstDayOfWeek = configJson.firstDayOfWeek
             )
             appSettingsRepository.insertOrUpdateCourseConfig(updatedConfig)
         }
+
+        // 导入时将当前课表的绑定作息重置为基础的（专属作息）
+        timeScheduleRepository.bindCourseTableToTimeSchedule(
+            courseTableId = tableId,
+            targetType = CourseTimeBinding.TargetType.SINGLE,
+            targetId = tableId
+        )
     }
 
     /**
-     * 导入预设时间段
+     * 导入预设时间段（直接存入专属作息）
      */
     @Transaction
     suspend fun importTimeSlots(
@@ -298,10 +328,10 @@ class CourseConversionRepository(
                 number = jsonModel.number,
                 startTime = jsonModel.startTime,
                 endTime = jsonModel.endTime,
-                courseTableId = tableId
+                timeTableId = tableId
             )
         }
-        timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
+        timeSlotDao.deleteAllTimeSlotsByTimeTableId(tableId)
         if (timeSlotEntities.isNotEmpty()) {
             timeSlotDao.insertAll(timeSlotEntities)
         }
@@ -322,8 +352,6 @@ class CourseConversionRepository(
             showWeekends = currentConfig?.showWeekends ?: false,
             semesterStartDate = configJsonModel.semesterStartDate,
             semesterTotalWeeks = configJsonModel.semesterTotalWeeks,
-            defaultClassDuration = configJsonModel.defaultClassDuration,
-            defaultBreakDuration = configJsonModel.defaultBreakDuration,
             firstDayOfWeek = configJsonModel.firstDayOfWeek
         )
 
@@ -361,7 +389,8 @@ class CourseConversionRepository(
             )
         }
 
-        val timeSlots = timeSlotDao.getTimeSlotsByCourseTableId(tableId).first()
+        // 读取当前专属作息的时间段
+        val timeSlots = timeSlotDao.getTimeSlotsByTimeTableId(tableId).first()
         val exportTimeSlots = timeSlots.map { timeSlot ->
             TimeSlotJsonModel(
                 number = timeSlot.number,
@@ -374,11 +403,14 @@ class CourseConversionRepository(
         val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
         val configToExport = courseConfig ?: CourseTableConfig(courseTableId = tableId)
 
+        // 读取当前专属作息（基准时间）的时长配置
+        val exclusiveTimeTable = timeScheduleRepository.getTimeTableById(tableId).first()
+
         val exportConfig = CourseConfigJsonModel(
             semesterStartDate = configToExport.semesterStartDate,
             semesterTotalWeeks = configToExport.semesterTotalWeeks,
-            defaultClassDuration = configToExport.defaultClassDuration,
-            defaultBreakDuration = configToExport.defaultBreakDuration,
+            defaultClassDuration = exclusiveTimeTable?.defaultClassDuration ?: 45,
+            defaultBreakDuration = exclusiveTimeTable?.defaultBreakDuration ?: 10,
             firstDayOfWeek = configToExport.firstDayOfWeek
         )
 
@@ -394,7 +426,6 @@ class CourseConversionRepository(
      */
     suspend fun exportToIcsString(tableId: String, alarmMinutes: Int?): String? {
         val courses = courseDao.getCoursesWithWeeksByTableId(tableId).first()
-        val timeSlots = timeSlotDao.getTimeSlotsByCourseTableId(tableId).first()
 
         val appSettings = appSettingsRepository.getAppSettingsOnce()
         val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
@@ -408,7 +439,9 @@ class CourseConversionRepository(
 
         return IcsExportTool.generateIcsFileContent(
             courses = courses,
-            timeSlots = timeSlots,
+            getTimeSlotsForDate = { date ->
+                timeScheduleRepository.getEffectiveTimeSlotsOnce(tableId, date)
+            },
             semesterStartDate = semesterStartDate,
             semesterTotalWeeks = courseConfig.semesterTotalWeeks,
             firstDayOfWeekInt = courseConfig.firstDayOfWeek,
@@ -426,7 +459,6 @@ class CourseConversionRepository(
         if (currentTableId.isEmpty()) return true
 
         val courses = courseDao.getCoursesWithWeeksByTableId(currentTableId).first()
-        val timeSlots = timeSlotDao.getTimeSlotsByCourseTableId(currentTableId).first()
         val alarmMinutes = appSettings.remindBeforeMinutes
         val courseConfig = appSettingsRepository.getCourseConfigOnce(currentTableId)
 
@@ -440,7 +472,9 @@ class CourseConversionRepository(
 
         return CalendarAccountManager.syncCurrentTableToSystemCalendar(
             courses = courses,
-            timeSlots = timeSlots,
+            getTimeSlotsForDate = { date ->
+                timeScheduleRepository.getEffectiveTimeSlotsOnce(currentTableId, date)
+            },
             semesterStartDate = semesterStartDate,
             semesterTotalWeeks = courseConfig.semesterTotalWeeks,
             firstDayOfWeekInt = courseConfig.firstDayOfWeek,

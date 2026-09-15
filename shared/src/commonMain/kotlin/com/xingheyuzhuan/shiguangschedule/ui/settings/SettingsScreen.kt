@@ -6,8 +6,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
@@ -38,7 +41,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
-import com.xingheyuzhuan.shiguangschedule.ui.components.AdaptiveNavigationScaffold
 import com.xingheyuzhuan.shiguangschedule.ui.components.DatePickerModal
 import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
 import kotlinx.datetime.DayOfWeek
@@ -64,10 +66,10 @@ import shiguangschedule.shared.generated.resources.desc_more_options
 import shiguangschedule.shared.generated.resources.desc_notification_settings
 import shiguangschedule.shared.generated.resources.desc_personalization
 import shiguangschedule.shared.generated.resources.desc_quick_actions
+import shiguangschedule.shared.generated.resources.desc_schedule_management
 import shiguangschedule.shared.generated.resources.desc_set_start_date
 import shiguangschedule.shared.generated.resources.desc_show_non_current_week
 import shiguangschedule.shared.generated.resources.desc_show_weekends
-import shiguangschedule.shared.generated.resources.desc_time_slot_customization
 import shiguangschedule.shared.generated.resources.desc_total_weeks
 import shiguangschedule.shared.generated.resources.dialog_title_manual_set_week
 import shiguangschedule.shared.generated.resources.dialog_title_select_total_weeks
@@ -82,7 +84,6 @@ import shiguangschedule.shared.generated.resources.item_quick_actions
 import shiguangschedule.shared.generated.resources.item_set_start_date
 import shiguangschedule.shared.generated.resources.item_show_non_current_week
 import shiguangschedule.shared.generated.resources.item_show_weekends
-import shiguangschedule.shared.generated.resources.item_time_slot_customization
 import shiguangschedule.shared.generated.resources.item_total_weeks
 import shiguangschedule.shared.generated.resources.more_horiz_24px
 import shiguangschedule.shared.generated.resources.section_title_advanced_features
@@ -93,6 +94,7 @@ import shiguangschedule.shared.generated.resources.status_set_start_date_first
 import shiguangschedule.shared.generated.resources.status_total_weeks_format
 import shiguangschedule.shared.generated.resources.title_course_notification_settings
 import shiguangschedule.shared.generated.resources.title_manage_course_tables
+import shiguangschedule.shared.generated.resources.title_schedule_management
 import shiguangschedule.shared.generated.resources.title_schedule_settings
 import shiguangschedule.shared.generated.resources.title_vacation
 
@@ -111,134 +113,129 @@ fun SettingsScreen(
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
-    AdaptiveNavigationScaffold(
-        currentDestination = Destination.Settings,
-        onTabSelected = { dest -> onNavigate(dest) }
-    ) { navPadding ->
-        Scaffold(
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text(stringResource(Res.string.title_schedule_settings)) },
-                    scrollBehavior = scrollBehavior,
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surface
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(Res.string.title_schedule_settings)) },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        }
+    ) { innerPadding ->
+        if (!uiState.isReady) {
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding))
+        } else {
+            val appSettings = uiState.appSettings
+            val courseTableConfig = uiState.courseConfig
+            val displayCurrentWeek = uiState.currentWeek
+
+            val showWeekends = courseTableConfig?.showWeekends ?: false
+            val semesterStartDateString = courseTableConfig?.semesterStartDate
+            val semesterTotalWeeks = courseTableConfig?.semesterTotalWeeks ?: 20
+            val firstDayOfWeekInt = courseTableConfig?.firstDayOfWeek ?: DayOfWeek.MONDAY.isoDayNumber
+
+            val semesterStartDate: LocalDate? = remember(semesterStartDateString) {
+                semesterStartDateString?.let {
+                    try {
+                        LocalDate.parse(it)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+            }
+
+            var showTotalWeeksDialog by remember { mutableStateOf(false) }
+            var showManualWeekDialog by remember { mutableStateOf(false) }
+            var showDatePickerModal by remember { mutableStateOf(false) }
+            var showFirstDayOfWeekDialog by remember { mutableStateOf(false) }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = SETTING_PADDING),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(SECTION_SPACING),
+                contentPadding = PaddingValues(
+                    bottom = 88.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
+                )
+            ) {
+                item {
+                    GeneralSettingsSection(
+                        showNonCurrentWeek = appSettings.showNonCurrentWeekCourses,
+                        onShowNonCurrentWeekChanged = { isChecked -> viewModel.onShowNonCurrentWeekChanged(isChecked) },
+                        showWeekends = showWeekends,
+                        onShowWeekendsChanged = { isChecked -> viewModel.onShowWeekendsChanged(isChecked) },
+                        semesterStartDate = semesterStartDate,
+                        semesterTotalWeeks = semesterTotalWeeks,
+                        firstDayOfWeekInt = firstDayOfWeekInt,
+                        displayCurrentWeek = displayCurrentWeek,
+                        onSemesterStartDateClick = { showDatePickerModal = true },
+                        onSemesterTotalWeeksClick = { showTotalWeeksDialog = true },
+                        onManualWeekClick = { showManualWeekDialog = true },
+                        onFirstDayOfWeekClick = { showFirstDayOfWeekDialog = true },
+                        onQuickActionsClick = { onNavigate(Destination.QuickActions) }
                     )
+                }
+                item {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp, horizontal = 16.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                }
+                item {
+                    AdvancedSettingsSection(onNavigate = onNavigate)
+                }
+            }
+
+            if (showDatePickerModal) {
+                DatePickerModal(
+                    onDateSelected = { selectedDateMillis ->
+                        viewModel.onSemesterStartDateSelected(selectedDateMillis)
+                    },
+                    onDismiss = { showDatePickerModal = false }
                 )
             }
-        ) { innerPadding ->
-            if (!uiState.isReady) {
-                Box(modifier = Modifier.fillMaxSize().padding(innerPadding))
-            } else {
-                val appSettings = uiState.appSettings
-                val courseTableConfig = uiState.courseConfig
-                val displayCurrentWeek = uiState.currentWeek
 
-                val showWeekends = courseTableConfig?.showWeekends ?: false
-                val semesterStartDateString = courseTableConfig?.semesterStartDate
-                val semesterTotalWeeks = courseTableConfig?.semesterTotalWeeks ?: 20
-                val firstDayOfWeekInt = courseTableConfig?.firstDayOfWeek ?: DayOfWeek.MONDAY.isoDayNumber
-
-                val semesterStartDate: LocalDate? = remember(semesterStartDateString) {
-                    semesterStartDateString?.let {
-                        try {
-                            LocalDate.parse(it)
-                        } catch (e: Exception) {
-                            null
-                        }
+            if (showTotalWeeksDialog) {
+                NumberPickerDialog(
+                    title = stringResource(Res.string.dialog_title_select_total_weeks),
+                    range = 1..30,
+                    initialValue = semesterTotalWeeks,
+                    onDismiss = { showTotalWeeksDialog = false },
+                    onConfirm = { selectedWeeks ->
+                        viewModel.onSemesterTotalWeeksSelected(selectedWeeks)
+                        showTotalWeeksDialog = false
                     }
-                }
+                )
+            }
 
-                var showTotalWeeksDialog by remember { mutableStateOf(false) }
-                var showManualWeekDialog by remember { mutableStateOf(false) }
-                var showDatePickerModal by remember { mutableStateOf(false) }
-                var showFirstDayOfWeekDialog by remember { mutableStateOf(false) }
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = SETTING_PADDING),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(SECTION_SPACING),
-                    contentPadding = PaddingValues(
-                        bottom = navPadding.calculateBottomPadding()
-                    )
-                ) {
-                    item {
-                        GeneralSettingsSection(
-                            showNonCurrentWeek = appSettings.showNonCurrentWeekCourses,
-                            onShowNonCurrentWeekChanged = { isChecked -> viewModel.onShowNonCurrentWeekChanged(isChecked) },
-                            showWeekends = showWeekends,
-                            onShowWeekendsChanged = { isChecked -> viewModel.onShowWeekendsChanged(isChecked) },
-                            semesterStartDate = semesterStartDate,
-                            semesterTotalWeeks = semesterTotalWeeks,
-                            firstDayOfWeekInt = firstDayOfWeekInt,
-                            displayCurrentWeek = displayCurrentWeek,
-                            onSemesterStartDateClick = { showDatePickerModal = true },
-                            onSemesterTotalWeeksClick = { showTotalWeeksDialog = true },
-                            onManualWeekClick = { showManualWeekDialog = true },
-                            onFirstDayOfWeekClick = { showFirstDayOfWeekDialog = true },
-                            onQuickActionsClick = { onNavigate(Destination.QuickActions) }
-                        )
+            if (showManualWeekDialog) {
+                ManualWeekPickerDialog(
+                    totalWeeks = semesterTotalWeeks,
+                    currentWeek = displayCurrentWeek,
+                    onDismiss = { showManualWeekDialog = false },
+                    onConfirm = { weekNumber ->
+                        viewModel.onCurrentWeekManuallySet(weekNumber)
+                        showManualWeekDialog = false
                     }
-                    item {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 16.dp),
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
+                )
+            }
+
+            if (showFirstDayOfWeekDialog) {
+                DayOfWeekPickerDialog(
+                    initialDayOfWeekInt = firstDayOfWeekInt,
+                    onDismiss = { showFirstDayOfWeekDialog = false },
+                    onConfirm = { selectedDayInt ->
+                        viewModel.onFirstDayOfWeekSelected(selectedDayInt)
+                        showFirstDayOfWeekDialog = false
                     }
-                    item {
-                        AdvancedSettingsSection(onNavigate = onNavigate)
-                    }
-                }
-
-                if (showDatePickerModal) {
-                    DatePickerModal(
-                        onDateSelected = { selectedDateMillis ->
-                            viewModel.onSemesterStartDateSelected(selectedDateMillis)
-                        },
-                        onDismiss = { showDatePickerModal = false }
-                    )
-                }
-
-                if (showTotalWeeksDialog) {
-                    NumberPickerDialog(
-                        title = stringResource(Res.string.dialog_title_select_total_weeks),
-                        range = 1..30,
-                        initialValue = semesterTotalWeeks,
-                        onDismiss = { showTotalWeeksDialog = false },
-                        onConfirm = { selectedWeeks ->
-                            viewModel.onSemesterTotalWeeksSelected(selectedWeeks)
-                            showTotalWeeksDialog = false
-                        }
-                    )
-                }
-
-                if (showManualWeekDialog) {
-                    ManualWeekPickerDialog(
-                        totalWeeks = semesterTotalWeeks,
-                        currentWeek = displayCurrentWeek,
-                        onDismiss = { showManualWeekDialog = false },
-                        onConfirm = { weekNumber ->
-                            viewModel.onCurrentWeekManuallySet(weekNumber)
-                            showManualWeekDialog = false
-                        }
-                    )
-                }
-
-                if (showFirstDayOfWeekDialog) {
-                    DayOfWeekPickerDialog(
-                        initialDayOfWeekInt = firstDayOfWeekInt,
-                        onDismiss = { showFirstDayOfWeekDialog = false },
-                        onConfirm = { selectedDayInt ->
-                            viewModel.onFirstDayOfWeekSelected(selectedDayInt)
-                            showFirstDayOfWeekDialog = false
-                        }
-                    )
-                }
+                )
             }
         }
     }
@@ -402,9 +399,9 @@ private fun AdvancedSettingsSection(onNavigate: (Destination) -> Unit) {
                 onClick = { onNavigate(Destination.CourseManagementList) }
             )
             SettingItem(
-                title = stringResource(Res.string.item_time_slot_customization),
-                subtitle = stringResource(Res.string.desc_time_slot_customization),
-                onClick = { onNavigate(Destination.TimeSlotSettings) }
+                title = stringResource(Res.string.title_schedule_management),
+                subtitle = stringResource(Res.string.desc_schedule_management),
+                onClick = { onNavigate(Destination.TimeScheduleManagement) }
             )
             SettingItem(
                 title = stringResource(Res.string.item_personalization),

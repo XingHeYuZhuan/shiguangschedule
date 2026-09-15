@@ -75,7 +75,7 @@ actual object CalendarAccountManager : KoinComponent {
 
     actual suspend fun syncCurrentTableToSystemCalendar(
         courses: List<CourseWithWeeks>,
-        timeSlots: List<TimeSlot>,
+        getTimeSlotsForDate: suspend (LocalDate) -> List<TimeSlot>,
         semesterStartDate: LocalDate,
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,
@@ -103,7 +103,7 @@ actual object CalendarAccountManager : KoinComponent {
 
                 IcsExportTool.processCourseInstances(
                     courses = courses,
-                    timeSlots = timeSlots,
+                    getTimeSlotsForDate = getTimeSlotsForDate,
                     semesterStartDate = semesterStartDate,
                     semesterTotalWeeks = semesterTotalWeeks,
                     firstDayOfWeekInt = firstDayOfWeekInt,

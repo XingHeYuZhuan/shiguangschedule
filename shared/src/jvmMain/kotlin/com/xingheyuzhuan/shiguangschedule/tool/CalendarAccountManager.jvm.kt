@@ -7,7 +7,7 @@ import kotlinx.datetime.LocalDate
 actual object CalendarAccountManager {
     actual suspend fun syncCurrentTableToSystemCalendar(
         courses: List<CourseWithWeeks>,
-        timeSlots: List<TimeSlot>,
+        getTimeSlotsForDate: suspend (LocalDate) -> List<TimeSlot>,
         semesterStartDate: LocalDate,
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,

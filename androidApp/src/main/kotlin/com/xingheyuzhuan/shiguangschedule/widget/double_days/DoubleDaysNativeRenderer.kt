@@ -12,7 +12,6 @@ import com.xingheyuzhuan.shiguangschedule.widget.WidgetSnapshot
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 object DoubleDaysNativeRenderer {
 
@@ -109,8 +108,11 @@ object DoubleDaysNativeRenderer {
         } else {
             context.getString(R.string.widget_title_tomorrow)
         }
-        val datePattern = date.format(DateTimeFormatter.ofPattern("M.dd E", Locale.getDefault()))
-        rootRv.setTextViewText(dateId, "$prefix $datePattern")
+        val weekDaysArray = context.resources.getStringArray(R.array.week_days_names)
+        val dayOfWeekStr = weekDaysArray[date.dayOfWeek.value - 1]
+        val monthDayStr = date.format(DateTimeFormatter.ofPattern("M.dd"))
+
+        rootRv.setTextViewText(dateId, "$prefix $monthDayStr $dayOfWeekStr")
 
         if (totalCount == 0) {
             rootRv.setViewVisibility(containerId, View.GONE)

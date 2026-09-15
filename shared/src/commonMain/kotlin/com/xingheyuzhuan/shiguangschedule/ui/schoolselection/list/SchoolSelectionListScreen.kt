@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,15 +33,20 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -70,9 +78,11 @@ import shiguangschedule.shared.generated.resources.search_hint_school
 import shiguangschedule.shared.generated.resources.text_no_adapter_for_category
 import shiguangschedule.shared.generated.resources.text_no_school_found
 import shiguangschedule.shared.generated.resources.title_select_school
+import shiguangschedule.shared.generated.resources.title_update_repo_screen
+import shiguangschedule.shared.generated.resources.update_24px
 
 /**
- * 主学校选择屏幕，现在通过 ViewModel 管理状态和数据获取。
+ * 学校选择主界面，包含搜索栏、分类 Tab 页签与学校索引列表。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,7 +91,6 @@ fun SchoolSelectionListScreen(
     onBack: () -> Unit,
     viewModel: SchoolSelectionViewModel = koinViewModel()
 ) {
-    // 观察 ViewModel 状态
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val filteredSchools by viewModel.filteredSchools.collectAsState()
@@ -90,44 +99,131 @@ fun SchoolSelectionListScreen(
 
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-    var isSearchActive by remember { mutableStateOf(false) }
+
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val textFieldState = rememberTextFieldState(initialText = searchQuery)
+
+    LaunchedEffect(textFieldState) {
+        snapshotFlow { textFieldState.text }.collect { text ->
+            viewModel.updateSearchQuery(text.toString())
+        }
+    }
 
     val titleText = stringResource(Res.string.title_select_school)
     val placeholderText = stringResource(Res.string.search_hint_school)
 
     Scaffold(
+        modifier = Modifier.semantics { isTraversalGroup = true },
         topBar = {
-            SearchBarWithTitle(
-                onBack = onBack,
-                searchQuery = searchQuery,
-                onQueryChange = viewModel::updateSearchQuery,
-                searchActive = isSearchActive,
-                onSearchActiveChange = { active ->
-                    isSearchActive = active
-                    if (!active) {
-                        viewModel.updateSearchQuery("")
-                    }
-                },
-                placeholderText = placeholderText,
-                titleText = titleText,
-                filteredSchools = filteredSchools,
-                onSchoolSelected = { selectedSchool ->
-                    viewModel.saveLastSchool(selectedSchool)
-                    onNavigate(
-                        Destination.AdapterSelection(
-                            schoolId = selectedSchool.id,
-                            schoolName = selectedSchool.name,
-                            categoryNumber = selectedCategory.value,
-                            resourceFolder = selectedSchool.resource_folder
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SearchBar(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 4.dp)
+                        .semantics { traversalIndex = 0f },
+                    inputField = {
+                        SearchBarDefaults.InputField(
+                            query = textFieldState.text.toString(),
+                            onQueryChange = { newText ->
+                                textFieldState.clearText()
+                                textFieldState.edit { append(newText) }
+                            },
+                            onSearch = { expanded = false },
+                            expanded = expanded,
+                            onExpandedChange = { expanded = it },
+                            placeholder = {
+                                Text(if (expanded) placeholderText else titleText)
+                            },
+                            leadingIcon = {
+                                IconButton(onClick = {
+                                    if (expanded) {
+                                        expanded = false
+                                        textFieldState.clearText()
+                                    } else {
+                                        onBack()
+                                    }
+                                }) {
+                                    Icon(
+                                        imageVector = vectorResource(Res.drawable.arrow_back_24px),
+                                        contentDescription = stringResource(Res.string.a11y_back)
+                                    )
+                                }
+                            },
+                            trailingIcon = {
+                                if (!expanded) {
+                                    IconButton(onClick = { expanded = true }) {
+                                        Icon(
+                                            imageVector = vectorResource(Res.drawable.search_24px),
+                                            contentDescription = stringResource(Res.string.a11y_search)
+                                        )
+                                    }
+                                } else if (textFieldState.text.isNotEmpty()) {
+                                    IconButton(onClick = { textFieldState.clearText() }) {
+                                        Icon(
+                                            imageVector = vectorResource(Res.drawable.close_24px),
+                                            contentDescription = stringResource(Res.string.a11y_clear_search)
+                                        )
+                                    }
+                                }
+                            }
                         )
-                    )
-                    isSearchActive = false
-                    viewModel.updateSearchQuery("")
+                    },
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it },
+                ) {
+                    if (filteredSchools.isEmpty() && textFieldState.text.isNotBlank()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = stringResource(Res.string.text_no_school_found),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(filteredSchools) { school ->
+                                SchoolItem(school = school) { selectedSchool ->
+                                    viewModel.saveLastSchool(selectedSchool)
+                                    onNavigate(
+                                        Destination.AdapterSelection(
+                                            schoolId = selectedSchool.id,
+                                            schoolName = selectedSchool.name,
+                                            categoryNumber = selectedCategory.value,
+                                            resourceFolder = selectedSchool.resource_folder
+                                        )
+                                    )
+                                    expanded = false
+                                    textFieldState.clearText()
+                                }
+                            }
+                        }
+                    }
                 }
-            )
+
+                if (!expanded) {
+                    IconButton(
+                        onClick = { onNavigate(Destination.UpdateRepo) },
+                        modifier = Modifier.padding(start = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.update_24px),
+                            contentDescription = stringResource(Res.string.title_update_repo_screen)
+                        )
+                    }
+                }
+            }
         }
     ) { paddingValues ->
-        if (!isSearchActive) {
+        if (!expanded) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -151,7 +247,6 @@ fun SchoolSelectionListScreen(
                     onClearHistory = { viewModel.clearHistory(it) },
                     onSchoolSelected = { school, category ->
                         viewModel.saveLastSchool(school)
-                        // 列表点击跳转
                         onNavigate(
                             Destination.AdapterSelection(
                                 schoolId = school.id,
@@ -163,14 +258,12 @@ fun SchoolSelectionListScreen(
                     }
                 )
             }
-        } else {
-            Box(modifier = Modifier.padding(paddingValues))
         }
     }
 }
 
 /**
- * 集中管理加载状态和列表显示。
+ * 展示学校列表面板（含加载指示器、空状态提示与最近访问历史）。
  */
 @Composable
 private fun SchoolContent(
@@ -195,7 +288,7 @@ private fun SchoolContent(
                 CircularProgressIndicator()
             }
         }
-        filteredSchools.isEmpty() && !isLoading -> {
+        filteredSchools.isEmpty() -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = stringResource(Res.string.text_no_adapter_for_category),
@@ -246,7 +339,7 @@ private fun SchoolContent(
                     }
                 }
             ) { school ->
-                Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)) {
+                Box(modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp)) {
                     SchoolItem(
                         school = school,
                         onClick = { onSchoolSelected(it, selectedCategory) }
@@ -258,7 +351,7 @@ private fun SchoolContent(
 }
 
 /**
- * 类别选择器，使用最新的 PrimaryTabRow。
+ * 类型分类切换 Tab 页签。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -305,89 +398,7 @@ fun CategoryTabs(
 }
 
 /**
- * 带有标题和搜索功能的自定义 SearchBar 组件。
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SearchBarWithTitle(
-    onBack: () -> Unit,
-    searchQuery: String,
-    onQueryChange: (String) -> Unit,
-    searchActive: Boolean,
-    onSearchActiveChange: (Boolean) -> Unit,
-    placeholderText: String,
-    titleText: String,
-    filteredSchools: List<School>,
-    onSchoolSelected: (School) -> Unit
-) {
-    SearchBar(
-        modifier = Modifier.fillMaxWidth(),
-        inputField = {
-            SearchBarDefaults.InputField(
-                query = searchQuery,
-                onQueryChange = onQueryChange,
-                onSearch = { onSearchActiveChange(false) },
-                expanded = searchActive,
-                onExpandedChange = onSearchActiveChange,
-                placeholder = { Text(if (searchActive) placeholderText else titleText) },
-                leadingIcon = {
-                    IconButton(onClick = {
-                        if (searchActive) {
-                            onSearchActiveChange(false)
-                            onQueryChange("")
-                        } else {
-                            onBack()
-                        }
-                    }) {
-                        Icon(
-                            imageVector = vectorResource(Res.drawable.arrow_back_24px),
-                            contentDescription = stringResource(Res.string.a11y_back)
-                        )
-                    }
-                },
-                trailingIcon = {
-                    if (!searchActive) {
-                        IconButton(onClick = { onSearchActiveChange(true) }) {
-                            Icon(
-                                imageVector = vectorResource(Res.drawable.search_24px),
-                                contentDescription = stringResource(Res.string.a11y_search)
-                            )
-                        }
-                    } else if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(
-                                imageVector = vectorResource(Res.drawable.close_24px),
-                                contentDescription = stringResource(Res.string.a11y_clear_search)
-                            )
-                        }
-                    }
-                }
-            )
-        },
-        expanded = searchActive,
-        onExpandedChange = onSearchActiveChange,
-    ) {
-        // 搜索结果内容
-        if (filteredSchools.isEmpty() && searchQuery.isNotBlank()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(stringResource(Res.string.text_no_school_found), style = MaterialTheme.typography.bodyLarge)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(filteredSchools) { school ->
-                    SchoolItem(school = school) { onSchoolSelected(it) }
-                }
-            }
-        }
-    }
-}
-
-/**
- * 学校列表项
+ * 单个学校卡片项。
  */
 @Composable
 fun SchoolItem(school: School, onClick: (School) -> Unit) {

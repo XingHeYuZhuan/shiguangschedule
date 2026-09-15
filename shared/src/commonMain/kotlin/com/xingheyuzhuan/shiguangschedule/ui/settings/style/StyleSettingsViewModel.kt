@@ -377,13 +377,13 @@ class StyleSettingsViewModel(
     }
 
     private fun createDemoTimeSlots(dummyTableId: String): List<TimeSlot> = listOf(
-        TimeSlot(1, "08:20", "09:05", dummyTableId),
-        TimeSlot(2, "09:15", "10:00", dummyTableId),
-        TimeSlot(3, "10:20", "11:05", dummyTableId),
-        TimeSlot(4, "11:15", "12:00", dummyTableId),
-        TimeSlot(5, "14:00", "14:45", dummyTableId),
-        TimeSlot(6, "14:55", "15:40", dummyTableId),
-        TimeSlot(7, "16:00", "16:45", dummyTableId),
-        TimeSlot(8, "16:55", "17:40", dummyTableId)
+        TimeSlot(timeTableId = dummyTableId, number = 1, startTime = "08:20", endTime = "09:05"),
+        TimeSlot(timeTableId = dummyTableId, number = 2, startTime = "09:15", endTime = "10:00"),
+        TimeSlot(timeTableId = dummyTableId, number = 3, startTime = "10:20", endTime = "11:05"),
+        TimeSlot(timeTableId = dummyTableId, number = 4, startTime = "11:15", endTime = "12:00"),
+        TimeSlot(timeTableId = dummyTableId, number = 5, startTime = "14:00", endTime = "14:45"),
+        TimeSlot(timeTableId = dummyTableId, number = 6, startTime = "14:55", endTime = "15:40"),
+        TimeSlot(timeTableId = dummyTableId, number = 7, startTime = "16:00", endTime = "16:45"),
+        TimeSlot(timeTableId = dummyTableId, number = 8, startTime = "16:55", endTime = "17:40")
     )
 }

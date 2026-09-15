@@ -10,7 +10,7 @@ import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.StyleSettingsRepository
-import com.xingheyuzhuan.shiguangschedule.data.repository.TimeSlotRepository
+import com.xingheyuzhuan.shiguangschedule.data.repository.TimeScheduleRepository
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed.Companion.toComposedStyle
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -117,10 +117,10 @@ private fun LocalTime.formatToHHmm(): String {
 
 @OptIn(ExperimentalUuidApi::class, ExperimentalCoroutinesApi::class)
 @KoinViewModel
-class WeeklyScheduleViewModel (
+class WeeklyScheduleViewModel(
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository,
-    private val timeSlotRepository: TimeSlotRepository,
+    private val timeScheduleRepository: TimeScheduleRepository,
     private val styleSettingsRepository: StyleSettingsRepository
 ) : ViewModel() {
 
@@ -143,10 +143,19 @@ class WeeklyScheduleViewModel (
         }
     }
 
-    private val timeSlotsFlow = appSettingsFlow.flatMapLatest { settings ->
+    private val timeSlotsFlow = combine(
+        appSettingsFlow,
+        _pagerMondayDate
+    ) { settings, pagerDate ->
         val tableId = settings.currentCourseTableId
+        val today = getTodayLocalDate()
+        val currentWeekMonday = today.startOfWeek(DayOfWeek.MONDAY)
+        val isCurrentWeek = pagerDate == currentWeekMonday
+        val targetDateForSidebar = if (isCurrentWeek) today else pagerDate
+        tableId to targetDateForSidebar
+    }.flatMapLatest { (tableId, targetDate) ->
         if (tableId.isNotEmpty()) {
-            timeSlotRepository.getTimeSlotsByCourseTableId(tableId)
+            timeScheduleRepository.observeEffectiveTimeSlots(tableId, targetDate)
         } else {
             flowOf(emptyList())
         }
@@ -156,18 +165,20 @@ class WeeklyScheduleViewModel (
         _pagerMondayDate,
         appSettingsFlow,
         courseTableConfigFlow,
-        timeSlotsFlow,
         styleFlow
-    ) { date, settings, config, slots, style ->
+    ) { date, settings, config, style ->
         val tableId = settings.currentCourseTableId
         val mode = style.toComposedStyle().scheduleMode
 
-        if (config != null) {
+        if (config != null && tableId.isNotEmpty()) {
             val window = listOf(
                 date.minus(1, DateTimeUnit.WEEK),
                 date,
                 date.plus(1, DateTimeUnit.WEEK)
             )
+
+            val today = getTodayLocalDate()
+            val currentWeekMonday = today.startOfWeek(DayOfWeek.MONDAY)
 
             combine(window.map { day ->
                 val pageWeekNum = appSettingsRepository.getWeekIndexAtDate(
@@ -188,8 +199,12 @@ class WeeklyScheduleViewModel (
                     courseTableRepository.getCoursesWithWeeksByDate(tableId, day, config)
                 }
 
-                coursesFlow.map { courses ->
-                    day.toString() to mergeCourses(courses, slots, pageWeekNum ?: -1, mode)
+                val isCurrentWeekWindow = day == currentWeekMonday
+                val targetDateForSlots = if (isCurrentWeekWindow) today else day
+                val daySlotsFlow = timeScheduleRepository.observeEffectiveTimeSlots(tableId, targetDateForSlots)
+
+                combine(coursesFlow, daySlotsFlow) { courses, daySlots ->
+                    day.toString() to mergeCourses(courses, daySlots, pageWeekNum ?: -1, mode)
                 }
             }) { results -> results.toMap() }
         } else {

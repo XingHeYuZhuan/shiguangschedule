@@ -21,15 +21,26 @@ class SchoolSelectionViewModel(
     private val historyRepository: SchoolHistoryRepository
 ) : ViewModel() {
 
-    private val _allSchools = MutableStateFlow<List<School>>(emptyList())
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
     private val _selectedCategory = MutableStateFlow(AdapterCategory.BACHELOR_AND_ASSOCIATE)
     val selectedCategory: StateFlow<AdapterCategory> = _selectedCategory
 
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    private val _allSchools: StateFlow<List<School>> = schoolRepository.getSchoolsFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val isLoading: StateFlow<Boolean> = _allSchools
+        .map { it.isEmpty() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true
+        )
 
     // 观察历史记录
     val schoolHistory: StateFlow<SchoolHistoryModel> = historyRepository.historyFlow
@@ -38,10 +49,6 @@ class SchoolSelectionViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = SchoolHistoryModel()
         )
-
-    init {
-        loadSchools()
-    }
 
     val displayCategories: List<AdapterCategory> = listOf(
         AdapterCategory.BACHELOR_AND_ASSOCIATE,
@@ -72,15 +79,6 @@ class SchoolSelectionViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
-
-    private fun loadSchools() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            val schools = schoolRepository.getSchools()
-            _allSchools.value = schools
-            _isLoading.value = false
-        }
-    }
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query

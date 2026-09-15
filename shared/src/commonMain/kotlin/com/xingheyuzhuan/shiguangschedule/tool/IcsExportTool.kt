@@ -29,16 +29,15 @@ object IcsExportTool {
     /**
      * 核心引擎：遍历并计算学期内所有课程的具体发生时间实例。
      */
-    inline fun processCourseInstances(
+    suspend inline fun processCourseInstances(
         courses: List<CourseWithWeeks>,
-        timeSlots: List<TimeSlot>,
+        crossinline getTimeSlotsForDate: suspend (LocalDate) -> List<TimeSlot>,
         semesterStartDate: LocalDate,
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,
         skippedDates: Set<String>? = null,
-        action: (course: Course, startDateTime: LocalDateTime, endDateTime: LocalDateTime, weekNumber: Int) -> Unit
+        crossinline action: suspend (course: Course, startDateTime: LocalDateTime, endDateTime: LocalDateTime, weekNumber: Int) -> Unit
     ) {
-        val timeSlotMap = timeSlots.associateBy { it.number }
         val dayOfWeekMap = mapOf(
             1 to DayOfWeek.MONDAY,
             2 to DayOfWeek.TUESDAY,
@@ -58,25 +57,6 @@ object IcsExportTool {
         courses.forEach { courseWithWeeks ->
             val course = courseWithWeeks.course
             val weeks = courseWithWeeks.weeks.map { it.weekNumber }
-
-            val startTime: LocalTime
-            val endTime: LocalTime
-            if (course.isCustomTime) {
-                val s = course.customStartTime ?: return@forEach
-                val e = course.customEndTime ?: return@forEach
-                try {
-                    startTime = LocalTime.parse(s)
-                    endTime = LocalTime.parse(e)
-                } catch (_: Exception) { return@forEach }
-            } else {
-                val s = timeSlotMap[course.startSection]?.startTime ?: return@forEach
-                val e = timeSlotMap[course.endSection]?.endTime ?: return@forEach
-                try {
-                    startTime = LocalTime.parse(s)
-                    endTime = LocalTime.parse(e)
-                } catch (_: Exception) { return@forEach }
-            }
-
             val dayOfWeek = dayOfWeekMap[course.day] ?: return@forEach
 
             weeks.forEach { week ->
@@ -89,6 +69,27 @@ object IcsExportTool {
                 if (weekIndex > semesterTotalWeeks) return@forEach
 
                 if (skippedDates?.contains(date.toString()) == true) return@forEach
+
+                val timeSlots = getTimeSlotsForDate(date)
+                val timeSlotMap = timeSlots.associateBy { it.number }
+
+                val startTime: LocalTime
+                val endTime: LocalTime
+                if (course.isCustomTime) {
+                    val s = course.customStartTime ?: return@forEach
+                    val e = course.customEndTime ?: return@forEach
+                    try {
+                        startTime = LocalTime.parse(s)
+                        endTime = LocalTime.parse(e)
+                    } catch (_: Exception) { return@forEach }
+                } else {
+                    val s = timeSlotMap[course.startSection]?.startTime ?: return@forEach
+                    val e = timeSlotMap[course.endSection]?.endTime ?: return@forEach
+                    try {
+                        startTime = LocalTime.parse(s)
+                        endTime = LocalTime.parse(e)
+                    } catch (_: Exception) { return@forEach }
+                }
 
                 action(
                     course,
@@ -105,7 +106,7 @@ object IcsExportTool {
      */
     suspend fun generateIcsFileContent(
         courses: List<CourseWithWeeks>,
-        timeSlots: List<TimeSlot>,
+        getTimeSlotsForDate: suspend (LocalDate) -> List<TimeSlot>,
         semesterStartDate: LocalDate,
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,
@@ -132,7 +133,7 @@ object IcsExportTool {
         val dtStampStr = formatDateTimeUtc(Clock.System.now())
 
         processCourseInstances(
-            courses, timeSlots, semesterStartDate, semesterTotalWeeks, firstDayOfWeekInt, skippedDates
+            courses, getTimeSlotsForDate, semesterStartDate, semesterTotalWeeks, firstDayOfWeekInt, skippedDates
         ) { course, start, end, _ ->
             ics.append("BEGIN:VEVENT\r\n")
             ics.append("UID:${generateUid()}@shiguangschedule.com\r\n")

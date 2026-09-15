@@ -7,22 +7,25 @@ import com.xingheyuzhuan.shiguangschedule.data.model.SchoolHistoryModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 import okio.FileSystem
 import okio.Path
 import okio.buffer
 import okio.use
+import org.koin.core.annotation.Named
+import org.koin.core.annotation.Single
 import school_index.Adapter
 import school_index.AdapterCategory
 import school_index.School
 import school_index.SchoolIndex
-import org.koin.core.annotation.Named
-import org.koin.core.annotation.Single
 
 /**
  * 学校数据仓库。
- * 职责：处理内部存储中 Protobuf 学校索引文件的读取与解析。
+ * 职责：处理内部存储中 Protobuf 学校索引文件的读取、解析与响应式流派发。
  */
 @Single
 class SchoolRepository(
@@ -37,8 +40,18 @@ class SchoolRepository(
         AdapterCategory.GENERAL_TOOL
     )
 
+    // 用于触发文件重新加载信号的通知流
+    private val _reloadSignal = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
     /**
-     * 核心加载函数：仅从内部存储文件读取 Protobuf 索引。
+     * 手动触发仓库重新解析 Protobuf（例如更新仓库文件成功后调用）
+     */
+    fun refresh() {
+        _reloadSignal.tryEmit(Unit)
+    }
+
+    /**
+     * 核心加载函数：从内部存储文件读取 Protobuf 索引。
      */
     private suspend fun loadIndex(): SchoolIndex? {
         return withContext(Dispatchers.IO) {
@@ -61,19 +74,30 @@ class SchoolRepository(
     }
 
     /**
-     * 【一级页面数据】获取经过类别过滤的学校列表。
+     * 【响应式核心】提供学校列表的观察 Flow。
+     * 当收到 `refresh()` 信号或初始化时，自动读取本地文件并发射最新学校数据。
+     */
+    fun getSchoolsFlow(): Flow<List<School>> {
+        return _reloadSignal
+            .onStart { emit(Unit) } // 首次订阅时立即触发一次加载
+            .map {
+                getSchools()
+            }
+            .distinctUntilChanged()
+    }
+
+    /**
+     * 获取经过类别过滤与排序的学校列表（同步/单次获取）。
      */
     suspend fun getSchools(): List<School> {
         val index = loadIndex() ?: return emptyList()
 
-        // 1. 过滤：使用 Wire 生成的直接列表属性名
         val filteredSchools = index.schools.filter { school ->
             school.adapters.any { adapter ->
                 adapter.category in RELEVANT_MENU_CATEGORIES
             }
         }
 
-        // 2. 排序：initial 字段在 Wire 中保留了 proto 定义的原样
         return filteredSchools.sortedBy { it.initial.uppercase() + it.name }
     }
 
@@ -99,10 +123,8 @@ class SchoolRepository(
     }
 }
 
-
 /**
  * 用户记录仓库
- *
  */
 @Single
 class SchoolHistoryRepository(
@@ -114,7 +136,6 @@ class SchoolHistoryRepository(
 
     /**
      * 保存上次选择的学校
-     * 适配点：resourceFolder -> resource_folder
      */
     suspend fun saveLastSchool(category: AdapterCategory, school: School) {
         dataStore.edit { prefs ->

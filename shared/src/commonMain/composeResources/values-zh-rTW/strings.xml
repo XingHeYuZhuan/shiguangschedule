@@ -8,7 +8,6 @@
     <string name="a11y_save">儲存</string>
     <string name="a11y_delete">刪除</string>
     <string name="a11y_edit">編輯</string>
-    <string name="a11y_back">返回</string>
     <string name="action_add">新增</string>
     <string name="action_next_step">下一步</string>
     <string name="title_loading">載入中...</string>
@@ -214,7 +213,6 @@
     <string name="desc_notification_settings">管理您的課程提醒通知</string>
     <string name="desc_manage_course_tables">管理多份課程表，可切換、刪除</string>
     <string name="item_time_slot_customization">自訂時間段</string>
-    <string name="desc_time_slot_customization">編輯您的課程時間段設定</string>
     <string name="item_more_options">更多</string>
     <string name="desc_more_options">提供我們的更多資訊</string>
     <string name="a11y_more_options">更多選項</string>
@@ -233,10 +231,10 @@
     <string name="label_table_name">課表名稱</string>
     <string name="text_no_tables_hint">目前沒有課表，點選右下角按鈕新增。</string>
     <string name="toast_switch_table_success">已切換到課表: %1$s</string>
-    <string name="toast_add_table_success">課表 \'%1$s\' 已新增</string>
+    <string name="toast_add_table_success">課表 '%1$s' 已新增</string>
     <string name="dialog_title_edit_table">編輯課表名稱</string>
     <string name="toast_edit_table_success">課表名稱已更新</string>
-    <string name="dialog_text_confirm_delete">您確定要刪除課表 \'%1$s\' 嗎？此操作無法復原。</string>
+    <string name="dialog_text_confirm_delete">您確定要刪除課表 '%1$s' 嗎？此操作無法復原。</string>
     <string name="toast_delete_table_success">%1$s 已刪除</string>
     <string name="toast_delete_last_table_failed">不能刪除最後一個課表</string>
     <string name="a11y_current_table">目前課表</string>
@@ -262,7 +260,7 @@
     <string name="toast_class_duration_positive">課程時長必須大於0分鐘</string>
     <string name="label_break_duration_minutes">課間休息 (分鐘)</string>
     <string name="toast_break_duration_non_negative">休息時長不能為負</string>
-    <string name="text_no_time_slots_hint">目前沒有時間段。點選右上角 \'+\' 新增。</string>
+    <string name="text_no_time_slots_hint">目前沒有時間段。點選右上角 '+' 新增。</string>
     <string name="toast_slot_removed_unsaved">時間段已從清單移除，請點選儲存以更新資料庫</string>
     <string name="time_slot_section_number">第 %1$s 節</string>
     <string name="a11y_delete_time_slot">刪除時間段</string>
@@ -571,4 +569,39 @@
     <string name="backup_target_webdav">WebDAV 雲端同步</string>
     <string name="backup_target_local_zip">本地 ZIP 檔案</string>
 
+    <string name="action_copy">複製</string>
+    <string name="error_name_cannot_be_empty">名稱不能為空</string>
+    <string name="title_edit_public_schedule">編輯公共作息</string>
+    <string name="title_edit_exclusive_schedule">編輯專屬作息</string>
+    <string name="label_schedule_scheme_name">作息方案名稱</string>
+    <string name="title_add_combo_schedule">新增组合作息</string>
+    <string name="title_edit_combo_schedule">編輯組合作息</string>
+    <string name="label_combo_schedule_name">組合作息名稱</string>
+    <string name="label_base_schedule">基準作息時間（規則不生效時自動使用）</string>
+    <string name="option_exclusive_schedule">課表專屬作息</string>
+    <string name="option_unnamed_schedule">未命名作息</string>
+    <string name="option_select_base_schedule">選擇基準作息</string>
+    <string name="title_rule_list_by_date">規則切換列表（按日期範圍）</string>
+    <string name="action_add_time_range_rule">添加時間段規則</string>
+    <string name="label_applied_schedule">應用作息</string>
+    <string name="option_select_schedule_table">選擇作息表</string>
+    <string name="label_effective_date_range">生效日期範圍</string>
+    <string name="error_rule_date_overlap">警告：此規則的時間段與其他規則存在重疊！</string>
+    <string name="a11y_delete_rule">刪除規則</string>
+    <string name="dialog_title_select_effective_date_range">選擇規則生效日期範圍</string>
+    <string name="msg_please_create_public_schedule_first">請先建立至少一個公共作息方案</string>
+    <string name="title_schedule_management">作息方案管理</string>
+    <string name="a11y_add_schedule_scheme">新增方案</string>
+    <string name="action_add_public_schedule">新增公共作息</string>
+    <string name="action_add_combo_schedule">新增組合作息</string>
+    <string name="a11y_delete_selected">刪除選取項</string>
+    <string name="a11y_edit_schedule">編輯方案</string>
+    <string name="dialog_msg_confirm_delete_schedules">確定要刪除選取的 %1$d 項作息方案嗎？此操作無法復原。</string>
+    <string name="title_exclusive_schedule">課表專屬作息</string>
+    <string name="follow_course_table">跟隨課表</string>
+    <string name="schedule_type_exclusive">課表專屬</string>
+    <string name="schedule_type_public">公共作息</string>
+    <string name="schedule_type_combo">組合作息</string>
+    <string name="desc_schedule_management">支援公共作息與組合作息</string>
+    <string name="action_apply_to_all_schemes">套用到所有方案</string>
 </resources>

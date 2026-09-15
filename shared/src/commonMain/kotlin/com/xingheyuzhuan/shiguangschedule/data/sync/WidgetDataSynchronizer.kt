@@ -2,13 +2,12 @@ package com.xingheyuzhuan.shiguangschedule.data.sync
 
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
-import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetAppSettings
 import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetCourse
 import com.xingheyuzhuan.shiguangschedule.data.model.AppSettingsModel
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
-import com.xingheyuzhuan.shiguangschedule.data.repository.TimeSlotRepository
+import com.xingheyuzhuan.shiguangschedule.data.repository.TimeScheduleRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.WidgetRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,13 +44,13 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * 负责主数据库与 Widget 数据库之间的数据同步（跨平台共享核心逻辑）。
- * 持续监听应用设置、课表及时间段的变化，自动计算并写入优化后的 Widget 专用数据库。
+ * 持续监听应用设置、课表及作息调度变化，自动计算并写入优化后的 Widget 专用数据库。
  */
 @Single(createdAtStart = true)
 class WidgetDataSynchronizer(
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository,
-    private val timeSlotRepository: TimeSlotRepository,
+    private val timeScheduleRepository: TimeScheduleRepository,
     private val widgetRepository: WidgetRepository
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -66,7 +65,7 @@ class WidgetDataSynchronizer(
 
     /**
      * 持续监听主数据库变化的 Flow 核心链条。
-     * 当当前课表 ID 改变时，会自动切换监听对应的课程、时间段与配置数据。
+     * 当当前课表 ID 或其绑定的作息规则改变时，自动触发重新计算。
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val syncFlow: Flow<Unit> = appSettingsRepository.getAppSettings()
@@ -75,20 +74,20 @@ class WidgetDataSynchronizer(
 
             if (tableId.isNotEmpty()) {
                 val coursesFlow = courseTableRepository.getCoursesWithWeeksByTableId(tableId)
-                val timeSlotsFlow = timeSlotRepository.getTimeSlotsByCourseTableId(tableId)
+                // 监听当前课表关联的作息规则或绑定变化
+                val timeScheduleFlow = timeScheduleRepository.getTimeScheduleFlowByTableId(tableId)
                 val configFlow = appSettingsRepository.getCourseTableConfigFlow(tableId)
 
-                // 联合监听当前课表的所有相关数据表
-                combine(coursesFlow, timeSlotsFlow, configFlow) { courses, timeSlots, config ->
-                    Quadruple(appSettings, courses, timeSlots, config)
+                combine(coursesFlow, timeScheduleFlow, configFlow) { courses, _, config ->
+                    Triple(appSettings, courses, config)
                 }
             } else {
-                flowOf(Quadruple(appSettings, emptyList(), emptyList(), null))
+                flowOf(Triple(appSettings, emptyList(), null))
             }
         }
-        .map { (appSettings, coursesWithWeeks, timeSlots, config) ->
+        .map { (appSettings, coursesWithWeeks, config) ->
             if (config != null) {
-                performSync(appSettings, config, coursesWithWeeks, timeSlots)
+                performSync(appSettings, config, coursesWithWeeks)
             } else {
                 // 配置为空时清空小组件数据
                 widgetRepository.deleteAll()
@@ -135,9 +134,6 @@ class WidgetDataSynchronizer(
             .launchIn(scope)
     }
 
-    /** 四元组辅助数据类，用于 combine 操作符传递多路数据 */
-    private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
-
     /**
      * 手动触发一次性数据同步（挂起函数）。
      */
@@ -146,28 +142,26 @@ class WidgetDataSynchronizer(
         val tableId = appSettings.currentCourseTableId
 
         val coursesWithWeeks = if (tableId.isNotEmpty()) courseTableRepository.getCoursesWithWeeksByTableId(tableId).first() else emptyList()
-        val timeSlots = if (tableId.isNotEmpty()) timeSlotRepository.getTimeSlotsByCourseTableId(tableId).first() else emptyList()
         val courseConfig = if (tableId.isNotEmpty()) appSettingsRepository.getCourseConfigOnce(tableId) else null
 
         if (courseConfig != null) {
-            performSync(appSettings, courseConfig, coursesWithWeeks, timeSlots)
+            performSync(appSettings, courseConfig, coursesWithWeeks)
         } else {
             widgetRepository.deleteAll()
             widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
         }
-        // 手动同步完成后主动发出通知
         _syncCompletedChannel.trySend(Unit)
     }
 
     /**
-     * 核心计算与写库逻辑：解析开学日期、计算周次、匹配课程时间并写入 Widget 数据库。
+     * 核心计算与写库逻辑：解析开学日期、按天动态获取生效作息、匹配课程时间并写入 Widget 数据库。
      */
     private suspend fun performSync(
         appSettings: AppSettingsModel,
         courseConfig: CourseTableConfig,
-        coursesWithWeeks: List<CourseWithWeeks>,
-        timeSlots: List<TimeSlot>
+        coursesWithWeeks: List<CourseWithWeeks>
     ) = withContext(Dispatchers.IO) {
+        val tableId = courseConfig.courseTableId
         val semesterStartDateString = courseConfig.semesterStartDate ?: run {
             widgetRepository.deleteAll()
             widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
@@ -192,22 +186,19 @@ class WidgetDataSynchronizer(
         widgetRepository.insertOrUpdateAppSettings(widgetSettings)
 
         val skippedDates = appSettings.skippedDates
-        val timeSlotMap = timeSlots.associateBy { it.number }
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
 
         val semesterStartDate: LocalDate = try {
             LocalDate.parse(semesterStartDateString)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             widgetRepository.deleteAll()
             widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
             return@withContext
         }
 
-        // 将开学日期对齐到设定的每周起始日
         val alignedSemesterStartDate = getStartDayOfWeek(semesterStartDate, firstDayOfWeekInt)
 
         val widgetCourses = mutableListOf<WidgetCourse>()
-        // 如果还没开学，从开学第一天开始同步；否则从今天开始同步
         val startSyncDate = if (today < alignedSemesterStartDate) {
             alignedSemesterStartDate
         } else {
@@ -233,7 +224,10 @@ class WidgetDataSynchronizer(
                 continue
             }
 
-            // 遍历所有课程，检查是否在当前周及当天有课
+            // 根据当前具体的日期，动态获取当天真实生效的时间段
+            val effectiveTimeSlots = timeScheduleRepository.getEffectiveTimeSlotsOnce(tableId, date)
+            val timeSlotMap = effectiveTimeSlots.associateBy { it.number }
+
             for (courseWithWeeks in coursesWithWeeks) {
                 if (courseWithWeeks.weeks.any { it.weekNumber == weekNumber } && courseWithWeeks.course.day == dayOfWeek) {
                     val course = courseWithWeeks.course

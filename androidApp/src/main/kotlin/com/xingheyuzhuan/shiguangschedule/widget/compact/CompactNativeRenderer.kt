@@ -11,8 +11,6 @@ import com.xingheyuzhuan.shiguangschedule.widget.WidgetSnapshot
 import com.xingheyuzhuan.shiguangschedule.widget.WidgetCourseProto
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 object CompactNativeRenderer {
 
@@ -40,8 +38,9 @@ object CompactNativeRenderer {
         val currentWeek = if (snapshot.current_week <= 0) null else snapshot.current_week
 
         // 头部基础信息渲染
-        val dateFormatter = DateTimeFormatter.ofPattern("E", Locale.getDefault())
-        rv.setTextViewText(R.id.tv_header_title, today.format(dateFormatter))
+        val weekDaysArray = context.resources.getStringArray(R.array.week_days_names)
+        val dayOfWeekStr = weekDaysArray[today.dayOfWeek.value - 1]
+        rv.setTextViewText(R.id.tv_header_title, dayOfWeekStr)
 
         // 渲染周数
         if (currentWeek != null) {

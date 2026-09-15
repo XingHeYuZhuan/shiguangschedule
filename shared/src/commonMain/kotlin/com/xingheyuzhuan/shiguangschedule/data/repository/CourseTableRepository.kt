@@ -10,6 +10,7 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeek
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeTable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -32,7 +33,7 @@ class CourseTableRepository(
     private val courseTableDao: CourseTableDao,
     private val courseDao: CourseDao,
     private val courseWeekDao: CourseWeekDao,
-    private val timeSlotRepository: TimeSlotRepository,
+    private val timeScheduleRepository: TimeScheduleRepository,
     private val appSettingsRepository: AppSettingsRepository
 ) {
     private val repositoryScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -64,16 +65,21 @@ class CourseTableRepository(
             courseTableId = tableId,
             showWeekends = false,
             semesterTotalWeeks = 20,
-            defaultClassDuration = 45,
-            defaultBreakDuration = 10,
             firstDayOfWeek = 1
         )
         appSettingsRepository.insertOrUpdateCourseConfig(defaultConfig)
 
+        val exclusiveTable = TimeTable(
+            id = tableId,
+            name = null,
+            createdAt = Clock.System.now().toEpochMilliseconds(),
+            defaultClassDuration = 45,
+            defaultBreakDuration = 10
+        )
         val defaultTimeSlotsForNewTable = defaultTimeSlots.map {
-            it.copy(courseTableId = tableId)
+            it.copy(timeTableId = tableId)
         }
-        timeSlotRepository.insertAll(defaultTimeSlotsForNewTable)
+        timeScheduleRepository.saveExclusiveTimeTable(exclusiveTable, defaultTimeSlotsForNewTable)
 
         println("数据库初始化数据已完成写入")
     }
@@ -107,12 +113,15 @@ class CourseTableRepository(
         )
         courseTableDao.insert(newTable)
 
-        // 2. 插入默认时间段
+        val exclusiveTable = TimeTable(
+            id = newTable.id,
+            name = null,
+            createdAt = Clock.System.now().toEpochMilliseconds()
+        )
         val defaultTimeSlotsForNewTable = defaultTimeSlots.map {
-            it.copy(courseTableId = newTable.id)
+            it.copy(timeTableId = newTable.id)
         }
-        // 调用 timeSlotRepository 的方法来插入时间段
-        timeSlotRepository.insertAll(defaultTimeSlotsForNewTable)
+        timeScheduleRepository.saveExclusiveTimeTable(exclusiveTable, defaultTimeSlotsForNewTable)
 
         // 3. 插入默认课表配置
         val newConfig = CourseTableConfig(courseTableId = newTable.id)
@@ -197,9 +206,6 @@ class CourseTableRepository(
 
     /**
      * 批量删除指定课表下、指定名称的所有课程实例及其关联的周次记录。
-     *
-     * 依赖 Room 的 ForeignKey.CASCADE (在 CourseWeek 实体中定义)，
-     * 此方法只需删除 Course 记录，CourseWeek 记录将自动被清理。
      *
      * @param tableId 课表的唯一ID。
      * @param courseNames 需要删除的课程名称列表。
@@ -351,7 +357,6 @@ class CourseTableRepository(
 
     /**
      * 根据物理日期和配置，获取该周的所有课程。
-     * 此函数是重构“真日历”模式的关键，它实现了从“日期”到“课程数据”的直接映射。
      */
     fun getCoursesWithWeeksByDate(
         courseTableId: String,
@@ -369,23 +374,23 @@ class CourseTableRepository(
             return flowOf(emptyList())
         }
 
-        // 3. 调用 DAO 层的精准查询方法（按周次过滤）
+        // 调用 DAO 层的精准查询方法（按周次过滤）
         return courseDao.getCoursesWithWeeksByTableAndWeek(courseTableId, weekNumber)
     }
 }
 
 private val defaultTimeSlots = listOf(
-    TimeSlot(number = 1, startTime = "08:00", endTime = "08:45", courseTableId = "placeholder"),
-    TimeSlot(number = 2, startTime = "08:50", endTime = "09:35", courseTableId = "placeholder"),
-    TimeSlot(number = 3, startTime = "09:50", endTime = "10:35", courseTableId = "placeholder"),
-    TimeSlot(number = 4, startTime = "10:40", endTime = "11:25", courseTableId = "placeholder"),
-    TimeSlot(number = 5, startTime = "11:30", endTime = "12:15", courseTableId = "placeholder"),
-    TimeSlot(number = 6, startTime = "14:00", endTime = "14:45", courseTableId = "placeholder"),
-    TimeSlot(number = 7, startTime = "14:50", endTime = "15:35", courseTableId = "placeholder"),
-    TimeSlot(number = 8, startTime = "15:45", endTime = "16:30", courseTableId = "placeholder"),
-    TimeSlot(number = 9, startTime = "16:35", endTime = "17:20", courseTableId = "placeholder"),
-    TimeSlot(number = 10, startTime = "18:30", endTime = "19:15", courseTableId = "placeholder"),
-    TimeSlot(number = 11, startTime = "19:20", endTime = "20:05", courseTableId = "placeholder"),
-    TimeSlot(number = 12, startTime = "20:10", endTime = "20:55", courseTableId = "placeholder"),
-    TimeSlot(number = 13, startTime = "21:10", endTime = "21:55", courseTableId = "placeholder")
+    TimeSlot(number = 1, startTime = "08:00", endTime = "08:45", timeTableId = "placeholder"),
+    TimeSlot(number = 2, startTime = "08:50", endTime = "09:35", timeTableId = "placeholder"),
+    TimeSlot(number = 3, startTime = "09:50", endTime = "10:35", timeTableId = "placeholder"),
+    TimeSlot(number = 4, startTime = "10:40", endTime = "11:25", timeTableId = "placeholder"),
+    TimeSlot(number = 5, startTime = "11:30", endTime = "12:15", timeTableId = "placeholder"),
+    TimeSlot(number = 6, startTime = "14:00", endTime = "14:45", timeTableId = "placeholder"),
+    TimeSlot(number = 7, startTime = "14:50", endTime = "15:35", timeTableId = "placeholder"),
+    TimeSlot(number = 8, startTime = "15:45", endTime = "16:30", timeTableId = "placeholder"),
+    TimeSlot(number = 9, startTime = "16:35", endTime = "17:20", timeTableId = "placeholder"),
+    TimeSlot(number = 10, startTime = "18:30", endTime = "19:15", timeTableId = "placeholder"),
+    TimeSlot(number = 11, startTime = "19:20", endTime = "20:05", timeTableId = "placeholder"),
+    TimeSlot(number = 12, startTime = "20:10", endTime = "20:55", timeTableId = "placeholder"),
+    TimeSlot(number = 13, startTime = "21:10", endTime = "21:55", timeTableId = "placeholder")
 )

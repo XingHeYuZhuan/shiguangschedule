@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
-import com.xingheyuzhuan.shiguangschedule.ui.components.AdaptiveNavigationScaffold
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -79,30 +81,29 @@ fun TodayScheduleScreen(
     val gridStyle by viewModel.gridStyle.collectAsState()
     val isDark = LocalIsDarkTheme.current
 
-    AdaptiveNavigationScaffold(
-        currentDestination = Destination.TodaySchedule,
-        onTabSelected = { dest -> onNavigate(dest) }
-    ) { navPadding ->
-        Scaffold(
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            text = stringResource(Res.string.title_today_schedule),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors()
-                )
-            }
-        ) { innerPadding ->
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                when (val state = uiState) {
-                    is TodayUiState.Loading -> { /* 可放置圆圈加载 */ }
-                    is TodayUiState.Success -> {
-                        TodayContent(state, gridStyle, isDark, navPadding)
-                    }
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(Res.string.title_today_schedule),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors()
+            )
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            when (val state = uiState) {
+                is TodayUiState.Loading -> { /* 可放置圆圈加载 */ }
+                is TodayUiState.Success -> {
+                    TodayContent(state, gridStyle, isDark)
                 }
             }
         }
@@ -114,7 +115,7 @@ fun TodayContent(
     state: TodayUiState.Success,
     gridStyle: ScheduleGridStyle,
     isDark: Boolean,
-    navPadding: PaddingValues = PaddingValues(0.dp)
+    modifier: Modifier = Modifier
 ) {
     val currentTime = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time }
 
@@ -139,7 +140,7 @@ fun TodayContent(
     )
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
@@ -199,7 +200,7 @@ fun TodayContent(
                 state = scrollState,
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(
-                    bottom = navPadding.calculateBottomPadding() + 16.dp
+                    bottom = 88.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
                 ),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {

@@ -6,6 +6,7 @@ import com.xingheyuzhuan.shiguangschedule.data.model.RepoType
 import com.xingheyuzhuan.shiguangschedule.data.model.RepositoryInfo
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.GitRepositoryImpl
+import com.xingheyuzhuan.shiguangschedule.data.repository.SchoolRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,8 @@ import shiguangschedule.shared.generated.resources.Res
 @KoinViewModel
 open class UpdateRepoViewModel(
     private val gitRepository: GitRepositoryImpl,
-    private val appSettingsRepository: AppSettingsRepository
+    private val appSettingsRepository: AppSettingsRepository,
+    private val schoolRepository: SchoolRepository
 ) : ViewModel() {
 
     // UI状态，包含可供选择的仓库列表、当前选择的仓库和日志
@@ -181,6 +183,8 @@ open class UpdateRepoViewModel(
                     state.copy(logs = newLogs)
                 }
             }
+
+            schoolRepository.refresh()
 
             _uiState.update { it.copy(isUpdating = false) }
         }

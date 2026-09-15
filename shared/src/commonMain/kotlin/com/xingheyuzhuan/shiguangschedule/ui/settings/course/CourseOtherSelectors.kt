@@ -54,6 +54,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shiguangschedule.shared.generated.resources.Res
+import shiguangschedule.shared.generated.resources.action_apply_to_all_schemes
 import shiguangschedule.shared.generated.resources.action_cancel
 import shiguangschedule.shared.generated.resources.action_confirm
 import shiguangschedule.shared.generated.resources.action_double_week
@@ -273,12 +274,14 @@ fun WeekSelectorBottomSheet(
 fun ColorPickerBottomSheet(
     colorMaps: List<DualColor>,
     selectedIndex: Int,
+    showApplyToAllOption: Boolean = false,
     onDismissRequest: () -> Unit,
-    onConfirm: (Int) -> Unit
+    onConfirm: (colorIndex: Int, applyToAll: Boolean) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var tempSelectedIndex by remember { mutableIntStateOf(selectedIndex) }
+    var applyToAll by remember { mutableStateOf(false) }
 
     val isDark = LocalIsDarkTheme.current
     val actionCancel = stringResource(Res.string.action_cancel)
@@ -337,7 +340,28 @@ fun ColorPickerBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            if (showApplyToAllOption) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { applyToAll = !applyToAll }
+                        .padding(vertical = 8.dp)
+                ) {
+                    androidx.compose.material3.Checkbox(
+                        checked = applyToAll,
+                        onCheckedChange = { applyToAll = it }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(Res.string.action_apply_to_all_schemes),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(onClick = onDismissRequest, modifier = Modifier.weight(1f)) {
@@ -345,7 +369,7 @@ fun ColorPickerBottomSheet(
                 }
                 Button(
                     onClick = {
-                        onConfirm(tempSelectedIndex)
+                        onConfirm(tempSelectedIndex, applyToAll)
                         coroutineScope.launch { modalBottomSheetState.hide() }.invokeOnCompletion {
                             if (!modalBottomSheetState.isVisible) onDismissRequest()
                         }

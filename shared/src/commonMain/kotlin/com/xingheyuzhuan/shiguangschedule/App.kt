@@ -1,7 +1,5 @@
 package com.xingheyuzhuan.shiguangschedule
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -13,17 +11,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
-import androidx.navigation3.runtime.get
 import androidx.navigation3.runtime.metadata
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.xingheyuzhuan.shiguangschedule.data.model.StartScreen
+import com.xingheyuzhuan.shiguangschedule.ui.components.AdaptiveNavigationScaffold
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.AdapterSelectionScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.SchoolSelectionListScreen
@@ -46,7 +46,9 @@ import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.delete.QuickD
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.tweaks.TweakScheduleScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.style.StyleSettingsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.themesettings.ThemeSettingsScreen
-import com.xingheyuzhuan.shiguangschedule.ui.settings.time.TimeSlotManagementScreen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.time.ComboScheduleEditScreen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.time.SingleScheduleEditScreen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.time.TimeScheduleManagementScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.update.UpdateRepoScreen
 import com.xingheyuzhuan.shiguangschedule.ui.theme.ShiguangScheduleTheme
 import com.xingheyuzhuan.shiguangschedule.ui.today.TodayScheduleScreen
@@ -79,6 +81,10 @@ fun AppNavigation(startDestination: Destination) {
         startDestination
     )
 
+    val currentDestination = backStack.lastOrNull() as? Destination ?: startDestination
+
+    var navHideFraction by remember { mutableFloatStateOf(0f) }
+
     val onNavigate: (Destination) -> Unit = remember(backStack) {
         { dest ->
             if (dest.isMainScreen) {
@@ -104,54 +110,49 @@ fun AppNavigation(startDestination: Destination) {
 
     val animSpec = tween<IntOffset>(300)
 
-    NavDisplay(
-        backStack = backStack,
-        onBack = onBack,
-        transitionSpec = {
-            val fromMain = initialState.metadata[ShiguangNavMetadata.IsMainScreenKey] ?: false
-            val toMain = targetState.metadata[ShiguangNavMetadata.IsMainScreenKey] ?: false
-
-            if (fromMain && toMain) {
-                EnterTransition.None togetherWith ExitTransition.None
-            } else {
+    AdaptiveNavigationScaffold(
+        currentDestination = currentDestination,
+        onTabSelected = onNavigate,
+        showNavigation = currentDestination.isMainScreen,
+        navHideFractionProvider = { navHideFraction }
+    ) { _ ->
+        NavDisplay(
+            backStack = backStack,
+            onBack = onBack,
+            modifier = Modifier.fillMaxSize(),
+            transitionSpec = {
                 slideInHorizontally(initialOffsetX = { it }, animationSpec = animSpec) togetherWith
                         slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeOut()
-            }
-        },
-        popTransitionSpec = {
-            val fromMain = initialState.metadata[ShiguangNavMetadata.IsMainScreenKey] ?: false
-            val toMain = targetState.metadata[ShiguangNavMetadata.IsMainScreenKey] ?: false
-
-            if (fromMain && toMain) {
-                EnterTransition.None togetherWith ExitTransition.None
-            } else {
+            },
+            popTransitionSpec = {
                 slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
                         slideOutHorizontally(targetOffsetX = { it }, animationSpec = animSpec)
-            }
-        },
-        predictivePopTransitionSpec = {
-            slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
-                    slideOutHorizontally(targetOffsetX = { it }, animationSpec = animSpec)
-        },
-        entryDecorators = listOf(
-            rememberSaveableStateHolderNavEntryDecorator(),
-            rememberViewModelStoreNavEntryDecorator()
-        )
-    ) { key ->
-        val destination = key as Destination
+            },
+            predictivePopTransitionSpec = {
+                slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
+                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = animSpec)
+            },
+            entryDecorators = listOf(
+                rememberSaveableStateHolderNavEntryDecorator(),
+                rememberViewModelStoreNavEntryDecorator()
+            )
+        ) { key ->
+            val destination = key as Destination
 
-        NavEntry(
-            key = key,
-            metadata = metadata {
-                put(ShiguangNavMetadata.IsMainScreenKey, destination.isMainScreen)
-            }
-        ) {
-            Surface(modifier = Modifier.fillMaxSize()) {
-                ScreenContent(
-                    targetDest = destination,
-                    onNavigate = onNavigate,
-                    onBack = onBack
-                )
+            NavEntry(
+                key = key,
+                metadata = metadata {
+                    put(ShiguangNavMetadata.IsMainScreenKey, destination.isMainScreen)
+                }
+            ) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    ScreenContent(
+                        targetDest = destination,
+                        onNavigate = onNavigate,
+                        onBack = onBack,
+                        onNavHideFractionChanged = { navHideFraction = it }
+                    )
+                }
             }
         }
     }
@@ -161,13 +162,17 @@ fun AppNavigation(startDestination: Destination) {
 fun ScreenContent(
     targetDest: Destination,
     onNavigate: (Destination) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavHideFractionChanged: (Float) -> Unit
 ) {
     when (targetDest) {
-        Destination.CourseSchedule -> WeeklyScheduleScreen(onNavigate, onBack)
+        Destination.CourseSchedule -> WeeklyScheduleScreen(
+            onNavigate = onNavigate,
+            onBack = onBack,
+            onNavHideFractionChanged = onNavHideFractionChanged
+        )
         Destination.Settings -> SettingsScreen(onNavigate, onBack)
         Destination.TodaySchedule -> TodayScheduleScreen(onNavigate, onBack)
-        Destination.TimeSlotSettings -> TimeSlotManagementScreen(onBack)
         Destination.ManageCourseTables -> ManageCourseTablesScreen(onBack)
         Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(onNavigate, onBack)
         Destination.CourseTableConversion -> CourseTableConversionScreen(onNavigate, onBack)
@@ -184,6 +189,31 @@ fun ScreenContent(
         Destination.ThemeSettings -> ThemeSettingsScreen(onBack)
         Destination.BackupAndRestore -> BackupScreen(onBack)
         Destination.LanguageSettings -> LanguageSettingScreen(onBack)
+
+        Destination.TimeScheduleManagement -> TimeScheduleManagementScreen(
+            onBack = onBack,
+            onEditSingleSchedule = { tableId, isPublic, copyFromId ->
+                onNavigate(Destination.SingleScheduleEdit(tableId, isPublic, copyFromId))
+            },
+            onEditComboSchedule = { comboId, copyFromId ->
+                onNavigate(Destination.ComboScheduleEdit(comboId, copyFromId))
+            }
+        )
+
+        // 单一/公共作息编辑页面路由
+        is Destination.SingleScheduleEdit -> SingleScheduleEditScreen(
+            tableId = targetDest.tableId,
+            isPublic = targetDest.isPublic,
+            copyFromId = targetDest.copyFromId,
+            onBack = onBack
+        )
+
+        // 组合作息编辑页面路由
+        is Destination.ComboScheduleEdit -> ComboScheduleEditScreen(
+            comboId = targetDest.comboId,
+            copyFromId = targetDest.copyFromId,
+            onBack = onBack
+        )
 
         is Destination.AdapterSelection -> AdapterSelectionScreen(
             onNavigate, onBack, targetDest.schoolId, targetDest.schoolName, targetDest.categoryNumber, targetDest.resourceFolder
