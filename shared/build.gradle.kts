@@ -103,12 +103,12 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.androidx.sqlite.framework)
-            implementation(libs.ktor.client.cio)
+            implementation(libs.ktor.client.android)
         }
 
         jvmMain.dependencies {
             implementation(libs.androidx.sqlite.bundled)
-            implementation(libs.ktor.client.cio)
+            implementation(libs.ktor.client.java)
         }
 
         iosMain.dependencies {
